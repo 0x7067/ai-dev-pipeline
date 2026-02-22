@@ -25,10 +25,9 @@ build/
 .env.*
 !.env.example
 
-# Generated docs (recreated by agents)
-docs/current-plan.md
-docs/impl-summary.md
-docs/review-report.md
-docs/test-report.md
-docs/verify-report.md
-docs/deploy-report.md
+# CI workflow (optional — scaffold via /setup if needed)
+.github/workflows/smoke.yml
+
+# Generated docs (recreated by agents each run)
+docs/*
+!docs/templates/
