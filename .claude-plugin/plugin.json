@@ -13,7 +13,8 @@
     "./.claude/agents/researcher.md",
     "./.claude/agents/reviewer.md",
     "./.claude/agents/tester.md",
-    "./.claude/agents/verifier.md"
+    "./.claude/agents/verifier.md",
+    "./.claude/agents/refactorer.md"
   ],
   "commands": "./.claude/commands/",
   "skills": "./.claude/skills/",

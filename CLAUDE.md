@@ -17,6 +17,7 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 4. `/test`
 5. `/verify`
 6. `/cycle` (orchestrates all phases)
+7. `/refactor` (structural changes with behavioral equivalence guarantee)
 
 ## Reuse Contract
 - Keep tooling detection dynamic: scripts should auto-detect `bun`, `npm`, `pnpm`, `yarn`, or project-native commands.
