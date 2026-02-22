@@ -6,6 +6,21 @@ run() {
   "$@"
 }
 
+has_rg() {
+  command -v rg >/dev/null 2>&1
+}
+
+has_file_pattern() {
+  local pattern="$1"
+  local file="$2"
+
+  if has_rg; then
+    rg -q -- "$pattern" "$file"
+  else
+    grep -Eq -- "$pattern" "$file"
+  fi
+}
+
 has_package_script() {
   local script_name="$1"
 
@@ -18,7 +33,7 @@ has_package_script() {
     return $?
   fi
 
-  rg -q "\"${script_name}\"[[:space:]]*:" package.json
+  has_file_pattern "\"${script_name}\"[[:space:]]*:" package.json
 }
 
 if has_package_script "format"; then

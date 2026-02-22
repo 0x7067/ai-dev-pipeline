@@ -15,6 +15,43 @@ ingress_regex="${BOUNDARY_INGRESS_REGEX:-process\.env|JSON\.parse\(|req\.body|lo
 core_glob="${BOUNDARY_CORE_GLOB:-**/core/**}"
 domain_glob="${BOUNDARY_DOMAIN_GLOB:-**/domain/**}"
 
+has_rg() {
+  command -v rg >/dev/null 2>&1
+}
+
+glob_to_ere() {
+  local glob="$1"
+
+  # Escape regex metacharacters except glob markers.
+  glob="$(printf '%s' "$glob" | sed 's/[].[^$+(){}|\\]/\\&/g')"
+  glob="${glob//\*\*/__DOUBLE_STAR__}"
+  glob="${glob//\*/[^/]*}"
+  glob="${glob//\?/[^/]}"
+  glob="${glob//__DOUBLE_STAR__/.*}"
+
+  printf '%s' "^${glob}$"
+}
+
+search_with_glob() {
+  local dir="$1"
+  local path_glob="$2"
+  local pattern="$3"
+  local out_file="$4"
+
+  if has_rg; then
+    rg -n --glob "$path_glob" "$pattern" "$dir" >"$out_file" 2>/dev/null
+    return $?
+  fi
+
+  local path_regex
+  path_regex="$(glob_to_ere "$path_glob")"
+
+  grep -R -n -E -- "$pattern" "$dir" 2>/dev/null |
+    awk -F: -v path_re="$path_regex" '$1 ~ path_re { print }' >"$out_file"
+
+  [ -s "$out_file" ]
+}
+
 IFS=',' read -ra src_dirs <<< "$src_dirs_raw"
 valid_dirs=()
 for dir in "${src_dirs[@]}"; do
@@ -41,7 +78,7 @@ check_pattern() {
   local pattern="$2"
   local label="$3"
 
-  if rg -n --glob "$path_glob" "$pattern" "$dir" >"$tmp_file" 2>/dev/null; then
+  if search_with_glob "$dir" "$path_glob" "$pattern" "$tmp_file"; then
     echo "boundary-check: ERROR: found $label in files matching $path_glob"
     cat "$tmp_file"
     errors=$((errors + 1))

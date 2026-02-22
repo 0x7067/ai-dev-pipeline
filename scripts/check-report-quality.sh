@@ -13,10 +13,46 @@ note() {
   echo "report-quality: $*"
 }
 
+has_rg() {
+  command -v rg >/dev/null 2>&1
+}
+
+match_file() {
+  local pattern="$1"
+  local file="$2"
+
+  if has_rg; then
+    rg -q -- "$pattern" "$file"
+  else
+    grep -Eq -- "$pattern" "$file"
+  fi
+}
+
+match_stdin() {
+  local pattern="$1"
+
+  if has_rg; then
+    rg -q -- "$pattern"
+  else
+    grep -Eq -- "$pattern"
+  fi
+}
+
+count_stdin() {
+  local pattern="$1"
+
+  if has_rg; then
+    rg -c -- "$pattern" || true
+  else
+    grep -E -c -- "$pattern" || true
+  fi
+}
+
 require_heading() {
   local file="$1"
   local heading="$2"
-  if ! rg -q "^${heading}$" "$file"; then
+
+  if ! match_file "^${heading}$" "$file"; then
     fail "$file missing heading: ${heading}"
   fi
 }
@@ -25,7 +61,8 @@ require_pattern() {
   local file="$1"
   local pattern="$2"
   local label="$3"
-  if ! rg -q "$pattern" "$file"; then
+
+  if ! match_file "$pattern" "$file"; then
     fail "$file missing or empty field: ${label}"
   fi
 }
@@ -73,12 +110,12 @@ check_review_report() {
   require_heading "$file" '## Residual Risks'
   require_heading "$file" '## Recommendation'
 
-  require_pattern "$file" '^- Official sources:[[:space:]]+\S' 'Official sources'
-  require_pattern "$file" '^- Unsourced claims rejected:[[:space:]]+\S' 'Unsourced claims rejected'
+  require_pattern "$file" '^- Official sources:[[:space:]]+[^[:space:]]' 'Official sources'
+  require_pattern "$file" '^- Unsourced claims rejected:[[:space:]]+[^[:space:]]' 'Unsourced claims rejected'
 
   local evidence_block
   evidence_block="$(awk '/^## Evidence$/{flag=1;next} /^## /&&flag{exit} flag{print}' "$file")"
-  if ! printf '%s\n' "$evidence_block" | rg -q 'https?://'; then
+  if ! printf '%s\n' "$evidence_block" | match_stdin 'https?://'; then
     fail "$file evidence section must include at least one citation URL"
   fi
 }
@@ -87,9 +124,10 @@ section_has_content() {
   local file="$1"
   local heading="$2"
   local body
+
   body="$(awk -v h="$heading" '$0 ~ "^"h"$"{flag=1;next} /^## /&&flag{exit} flag{print}' "$file")"
   # Strip blank lines and check for non-whitespace content
-  printf '%s\n' "$body" | rg -q '\S'
+  printf '%s\n' "$body" | match_stdin '[^[:space:]]'
 }
 
 check_test_report() {
@@ -109,9 +147,9 @@ check_test_report() {
     fail "$file section '## Contract Tests' has no content"
   fi
 
-  require_pattern "$file" '^- Retry count:[[:space:]]+\S' 'Retry count'
-  require_pattern "$file" '^- Flaky tests observed:[[:space:]]+\S' 'Flaky tests observed'
-  require_pattern "$file" '^- Root cause notes:[[:space:]]+\S' 'Root cause notes'
+  require_pattern "$file" '^- Retry count:[[:space:]]+[^[:space:]]' 'Retry count'
+  require_pattern "$file" '^- Flaky tests observed:[[:space:]]+[^[:space:]]' 'Flaky tests observed'
+  require_pattern "$file" '^- Root cause notes:[[:space:]]+[^[:space:]]' 'Root cause notes'
 }
 
 check_verify_report() {
@@ -124,10 +162,10 @@ check_verify_report() {
   require_heading "$file" '## Human Approval Checkpoints'
   require_heading "$file" '## Residual Risk and Follow-ups'
 
-  require_pattern "$file" '^- Risk tier:[[:space:]]+\S' 'Risk tier'
-  require_pattern "$file" '^1\. Plan approved:[[:space:]]+\S' 'Plan approved'
-  require_pattern "$file" '^2\. Elevated-risk implementation approved \(required for `medium` and `high` risk\):[[:space:]]+\S' 'Elevated-risk implementation approved'
-  require_pattern "$file" '^3\. Release approved:[[:space:]]+\S' 'Release approved'
+  require_pattern "$file" '^- Risk tier:[[:space:]]+[^[:space:]]' 'Risk tier'
+  require_pattern "$file" '^1\. Plan approved:[[:space:]]+[^[:space:]]' 'Plan approved'
+  require_pattern "$file" '^2\. Elevated-risk implementation approved \(required for `medium` and `high` risk\):[[:space:]]+[^[:space:]]' 'Elevated-risk implementation approved'
+  require_pattern "$file" '^3\. Release approved:[[:space:]]+[^[:space:]]' 'Release approved'
 
   local approval_block
   approval_block="$(awk '/^## Human Approval Checkpoints$/{flag=1;next} /^## /&&flag{exit} flag{print}' "$file")"
@@ -135,9 +173,9 @@ check_verify_report() {
   local approver_count
   local date_count
   local link_count
-  approver_count="$(printf '%s\n' "$approval_block" | rg -c 'Approver:[[:space:]]+\S')"
-  date_count="$(printf '%s\n' "$approval_block" | rg -c 'Date:[[:space:]]+\S')"
-  link_count="$(printf '%s\n' "$approval_block" | rg -c 'Evidence link:[[:space:]]+\S')"
+  approver_count="$(printf '%s\n' "$approval_block" | count_stdin 'Approver:[[:space:]]+[^[:space:]]')"
+  date_count="$(printf '%s\n' "$approval_block" | count_stdin 'Date:[[:space:]]+[^[:space:]]')"
+  link_count="$(printf '%s\n' "$approval_block" | count_stdin 'Evidence link:[[:space:]]+[^[:space:]]')"
 
   if [ "$approver_count" -lt 3 ]; then
     fail "$file human approval checkpoints require approver metadata (3 entries)"

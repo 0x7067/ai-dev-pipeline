@@ -6,6 +6,41 @@ run() {
   "$@"
 }
 
+has_rg() {
+  command -v rg >/dev/null 2>&1
+}
+
+has_input_pattern() {
+  local pattern="$1"
+
+  if has_rg; then
+    rg -q -- "$pattern"
+  else
+    grep -Eq -- "$pattern"
+  fi
+}
+
+has_file_pattern() {
+  local pattern="$1"
+  local file="$2"
+
+  if has_rg; then
+    rg -q -- "$pattern" "$file"
+  else
+    grep -Eq -- "$pattern" "$file"
+  fi
+}
+
+filter_changed_files() {
+  local pattern="$1"
+
+  if has_rg; then
+    rg -- "$pattern"
+  else
+    grep -E -- "$pattern"
+  fi
+}
+
 fast_mode="${HOOKS_FAST:-1}"
 changed_files_list=""
 
@@ -21,7 +56,7 @@ fi
 has_changed_ext() {
   local ext_pattern="$1"
   [ -n "$changed_files_list" ] || return 1
-  printf '%s\n' "$changed_files_list" | rg -q "${ext_pattern}$"
+  printf '%s\n' "$changed_files_list" | has_input_pattern "${ext_pattern}$"
 }
 
 has_package_script() {
@@ -36,7 +71,7 @@ has_package_script() {
     return $?
   fi
 
-  rg -q "\"${script_name}\"[[:space:]]*:" package.json
+  has_file_pattern "\"${script_name}\"[[:space:]]*:" package.json
 }
 
 if has_package_script "lint"; then
@@ -86,7 +121,7 @@ if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
   if command -v ruff >/dev/null 2>&1; then
     if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ]; then
       if has_changed_ext '\.py'; then
-        run ruff check $(printf '%s\n' "$changed_files_list" | rg '\.py$' | tr '\n' ' ')
+        run ruff check $(printf '%s\n' "$changed_files_list" | filter_changed_files '\.py$' | tr '\n' ' ')
         exit $?
       fi
       echo "lint-on-edit: skipped (no Python changes)"

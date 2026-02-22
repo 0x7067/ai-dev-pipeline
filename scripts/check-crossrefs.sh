@@ -2,10 +2,84 @@
 set -euo pipefail
 
 errors=0
+skill_names=()
+agent_names=()
 
 fail() {
   echo "crossrefs: ERROR: $*"
   errors=$((errors + 1))
+}
+
+has_rg() {
+  command -v rg >/dev/null 2>&1
+}
+
+file_has_pattern() {
+  local pattern="$1"
+  local file="$2"
+
+  if has_rg; then
+    rg -q -- "$pattern" "$file"
+  else
+    grep -Eq -- "$pattern" "$file"
+  fi
+}
+
+collect_name_fields() {
+  local path_glob="$1"
+
+  if has_rg; then
+    rg --no-filename '^name:' $path_glob 2>/dev/null |
+      sed 's/^name:[[:space:]]*//' |
+      tr -d '"' |
+      sed 's/^[[:space:]]*//; s/[[:space:]]*$//' |
+      awk 'NF' |
+      sort -u
+  else
+    grep -h -E '^name:' $path_glob 2>/dev/null |
+      sed 's/^name:[[:space:]]*//' |
+      tr -d '"' |
+      sed 's/^[[:space:]]*//; s/[[:space:]]*$//' |
+      awk 'NF' |
+      sort -u
+  fi
+}
+
+load_names() {
+  local target_array_name="$1"
+  local path_glob="$2"
+  local line
+
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    eval "$target_array_name+=(\"\$line\")"
+  done < <(collect_name_fields "$path_glob")
+}
+
+has_skill() {
+  local target="$1"
+  local name
+
+  for name in "${skill_names[@]}"; do
+    if [ "$name" = "$target" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+has_agent() {
+  local target="$1"
+  local name
+
+  for name in "${agent_names[@]}"; do
+    if [ "$name" = "$target" ]; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 if [ ! -d .claude/agents ]; then
@@ -18,8 +92,8 @@ if [ ! -d .claude/commands ]; then
   fail "missing .claude/commands"
 fi
 
-mapfile -t skill_names < <(rg -n '^name:' .claude/skills/*/SKILL.md -r '$0' 2>/dev/null | sed 's/.*name:[[:space:]]*//' | tr -d '"' | sort -u)
-mapfile -t agent_names < <(rg -n '^name:' .claude/agents/*.md -r '$0' 2>/dev/null | sed 's/.*name:[[:space:]]*//' | tr -d '"' | sort -u)
+load_names skill_names ".claude/skills/*/SKILL.md"
+load_names agent_names ".claude/agents/*.md"
 
 if [ "${#skill_names[@]}" -eq 0 ]; then
   fail "no skills discovered"
@@ -28,18 +102,8 @@ if [ "${#agent_names[@]}" -eq 0 ]; then
   fail "no agents discovered"
 fi
 
-has_skill() {
-  local target="$1"
-  printf '%s\n' "${skill_names[@]}" | rg -x -q -- "$target"
-}
-
-has_agent() {
-  local target="$1"
-  printf '%s\n' "${agent_names[@]}" | rg -x -q -- "$target"
-}
-
 for agent_file in .claude/agents/*.md; do
-  if ! rg -q '^description:' "$agent_file"; then
+  if ! file_has_pattern '^description:' "$agent_file"; then
     fail "$agent_file missing required description"
   fi
 
@@ -80,7 +144,7 @@ for agent_file in .claude/agents/*.md; do
 done
 
 for cmd_file in .claude/commands/*.md; do
-  if rg -q '^agent:' "$cmd_file"; then
+  if file_has_pattern '^agent:' "$cmd_file"; then
     agent="$(sed -n 's/^agent:[[:space:]]*//p' "$cmd_file" | head -n1 | tr -d '"')"
     if [ -n "$agent" ] && ! has_agent "$agent"; then
       fail "$cmd_file references missing agent '$agent'"
@@ -114,7 +178,13 @@ if [ -f CLAUDE.md ]; then
     if [ ! -f "$path" ]; then
       fail "CLAUDE.md references missing rule '$path'"
     fi
-  done < <(rg -n '^@\.claude/rules/.+\.md$' CLAUDE.md -r '$0' | sed 's/^[0-9]*://')
+  done < <(
+    if has_rg; then
+      rg --no-filename '^@\.claude/rules/.+\.md$' CLAUDE.md 2>/dev/null
+    else
+      grep -E '^@\.claude/rules/.+\.md$' CLAUDE.md 2>/dev/null
+    fi
+  )
 else
   fail "missing CLAUDE.md"
 fi

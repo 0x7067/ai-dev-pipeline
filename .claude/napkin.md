@@ -38,3 +38,5 @@
 - Self-correction: prefer `https://docs.claude.com/en/docs/claude-code/...` URLs in reports; avoid mixing with older or alternate doc hostnames.
 - Implementation pattern: make report-quality checks bootstrap-safe by default and strict via env toggle (`REPORT_QUALITY_REQUIRE_CONTENT=1`) for active workflow runs/CI.
 - Active-run quality enforcement pattern: pair strict report checks (`REPORT_QUALITY_REQUIRE_CONTENT=1`) with strict artifact checks (`WORKFLOW_REQUIRE_ARTIFACTS=1`) so verify blocks on missing approvals/content.
+- Self-correction: in shell validators, `rg -h` prints help (not "no filename"); use `--no-filename` only to avoid corrupting parser input.
+- Portability pattern: for workflow scripts, implement `rg`-first helpers with `grep -E` fallback and avoid Bash 4-only `mapfile` to keep CI portable.

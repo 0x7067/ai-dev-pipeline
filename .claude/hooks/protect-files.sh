@@ -22,11 +22,13 @@ check_and_block() {
 }
 
 if [ -n "$payload" ]; then
-  mapfile -t extracted_paths < <(
-    if command -v jq >/dev/null 2>&1; then
-      printf '%s' "$payload" | jq -r '.. | objects | .file_path? // empty | strings' 2>/dev/null || true
-    fi
-  )
+  extracted_paths=()
+  if command -v jq >/dev/null 2>&1; then
+    while IFS= read -r extracted_path; do
+      [ -n "$extracted_path" ] || continue
+      extracted_paths+=("$extracted_path")
+    done < <(printf '%s' "$payload" | jq -r '.. | objects | .file_path? // empty | strings' 2>/dev/null || true)
+  fi
 
   if [ "${#extracted_paths[@]}" -gt 0 ]; then
     for path in "${extracted_paths[@]}"; do
