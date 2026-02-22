@@ -48,12 +48,12 @@ if has_package_script "format"; then
   fi
 
   if command -v pnpm >/dev/null 2>&1; then
-    run pnpm -s format
+    run pnpm run --silent format
     exit $?
   fi
 
   if command -v yarn >/dev/null 2>&1; then
-    run yarn -s format
+    run yarn run --silent format
     exit $?
   fi
 
