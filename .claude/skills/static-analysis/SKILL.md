@@ -1,6 +1,6 @@
 ---
 name: static-analysis
-description: Run deterministic verification checks and produce a blocking/advisory summary.
+description: Run deterministic verification checks and produce a blocking/advisory summary. Use when verifying code quality gates, running lint and type checks, or producing a go/no-go decision.
 ---
 
 # Static Analysis

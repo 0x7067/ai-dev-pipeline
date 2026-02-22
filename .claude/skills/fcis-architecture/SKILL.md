@@ -1,6 +1,6 @@
 ---
 name: fcis-architecture
-description: Apply Functional Core / Imperative Shell architecture and enforce parse-at-boundary design.
+description: Apply Functional Core / Imperative Shell architecture and enforce parse-at-boundary design. Use when classifying code into core/shell/boundary layers, designing new modules, or enforcing separation of side effects.
 ---
 
 # FC/IS Architecture

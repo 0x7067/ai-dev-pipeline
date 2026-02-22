@@ -1,6 +1,6 @@
 ---
 name: test-gen
-description: Generate tests with a focus on property-based core invariants and boundary contract behavior.
+description: Generate tests with a focus on property-based core invariants and boundary contract behavior. Use when writing tests, defining invariants, or adding contract tests for boundary parsers.
 ---
 
 # Test Generation

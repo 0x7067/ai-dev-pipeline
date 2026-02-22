@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Perform severity-first code review with FC/IS, security, and correctness lenses.
+description: Perform severity-first code review with FC/IS, security, and correctness lenses. Use when reviewing code changes, assessing architecture compliance, or checking for security issues.
 ---
 
 # Code Review

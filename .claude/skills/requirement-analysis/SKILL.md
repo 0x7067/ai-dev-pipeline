@@ -1,6 +1,6 @@
 ---
 name: requirement-analysis
-description: Analyze feature requirements and produce implementation specs aligned with FC/IS and strict boundary parsing.
+description: Analyze feature requirements and produce implementation specs aligned with FC/IS and strict boundary parsing. Use when planning a new feature, analyzing a bug report, or producing implementation specs.
 ---
 
 # Requirement Analysis
