@@ -3,6 +3,12 @@ set -euo pipefail
 
 # Heuristic guardrail for early detection. Real enforcement should be backed by tests and linters.
 
+tmp_file="$(mktemp "${TMPDIR:-/tmp}/boundary_hits.XXXXXX")"
+cleanup() {
+  rm -f "$tmp_file"
+}
+trap cleanup EXIT
+
 if [ ! -d src ]; then
   echo "boundary-check: skipped (no src directory)"
   exit 0
@@ -15,9 +21,9 @@ check_pattern() {
   local pattern="$2"
   local label="$3"
 
-  if rg -n --glob "$path_glob" "$pattern" src >/tmp/boundary_hits.txt 2>/dev/null; then
+  if rg -n --glob "$path_glob" "$pattern" src >"$tmp_file" 2>/dev/null; then
     echo "boundary-check: ERROR: found $label in files matching $path_glob"
-    cat /tmp/boundary_hits.txt
+    cat "$tmp_file"
     errors=$((errors + 1))
   fi
 }

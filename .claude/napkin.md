@@ -28,3 +28,9 @@
 - Correction: repo is now git-initialized; deployment/version automation may proceed in this root.
 - Debugging lesson: frontmatter validators must explicitly handle `---` before list-item regex to avoid false references.
 - Reuse win: provide one smoke command with stable machine-readable output (`RESULT|...`, `SUMMARY|...`) for CI parsing across projects.
+- Adversarial review finding: regex-scanning raw hook payloads is fragile; parse JSON hook input with `jq` before policy checks.
+- Gate design note: never use `npm run <script>` as a capability probe because failures are indistinguishable from missing scripts unless checked explicitly.
+- Repro note: fixed `/tmp/<name>` redirections in validation scripts are symlink-clobber risks; prefer `mktemp` with cleanup trap.
+- Self-correction: while mocking PATH for hook tests, removing system binaries caused false negatives (`bash` missing). Keep `/bin:/usr/bin` in PATH when running wrapper scripts.
+- Fix pattern applied: determine script presence from `package.json` (`jq`/regex fallback), then execute selected check exactly once and propagate exit code.
+- Medium-risk hardening pattern: remove "probe-by-execution" in formatter hooks and use `mktemp` + `trap` for all temporary files in shared directories.
