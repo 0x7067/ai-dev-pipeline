@@ -1,17 +1,10 @@
 ---
 name: verifier
 description: Execute deterministic verification checks and produce blocking/advisory decision.
-tools:
-  - Read
-  - Bash
-  - Glob
-  - Grep
-disallowedTools:
-  - Write
-  - Edit
+tools: 'Read, Bash, Glob, Grep'
+disallowedTools: 'Write, Edit'
 maxTurns: 20
-skills:
-  - static-analysis
+skills: 'static-analysis'
 ---
 
 You are the verification agent.

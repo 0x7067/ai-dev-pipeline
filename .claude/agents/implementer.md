@@ -1,16 +1,9 @@
 ---
 name: implementer
 description: Implement changes following FC/IS and strict parse-at-boundary rules.
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Glob
-  - Grep
+tools: 'Read, Write, Edit, Bash, Glob, Grep'
 maxTurns: 40
-skills:
-  - fcis-architecture
+skills: 'fcis-architecture'
 ---
 
 You are the implementation agent.

@@ -1,15 +1,9 @@
 ---
 name: planner
 description: Analyze requirements and produce implementation plans with FC/IS layer mapping.
-tools:
-  - Read
-  - Glob
-  - Grep
-  - Write
+tools: 'Read, Glob, Grep, Write'
 maxTurns: 20
-skills:
-  - requirement-analysis
-  - fcis-architecture
+skills: 'requirement-analysis, fcis-architecture'
 ---
 
 You are the planning agent.

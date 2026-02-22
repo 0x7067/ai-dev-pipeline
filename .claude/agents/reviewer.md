@@ -1,18 +1,10 @@
 ---
 name: reviewer
 description: Perform severity-first review for architecture, security, and correctness.
-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash
-disallowedTools:
-  - Write
-  - Edit
+tools: 'Read, Glob, Grep, Bash'
+disallowedTools: 'Write, Edit'
 maxTurns: 25
-skills:
-  - code-review
-  - fcis-architecture
+skills: 'code-review, fcis-architecture'
 ---
 
 You are the review agent.
