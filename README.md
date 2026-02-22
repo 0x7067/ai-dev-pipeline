@@ -1,83 +1,73 @@
 # ai-dev-pipeline
 
-A Claude Code plugin that adds a structured development workflow with verification gates, human approval checkpoints, and architecture guardrails.
+A reusable Claude Code workflow plugin for structured AI-assisted development. Enforces Functional Core / Imperative Shell (FC/IS) architecture, strict boundary parsing, and human approval checkpoints.
 
-## What it does
+## Installation
 
-Provides slash commands that guide code changes through a disciplined pipeline:
+Install via the Claude Code plugin system, then run `/setup` in any project to scaffold scripts, rules, and templates.
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `/setup` | Scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo |
+| `/plan` | Analyze requirements and produce an implementation plan |
+| `/research` | Perform upfront research for unclear or high-risk work |
+| `/implement` | Implement changes from the approved plan |
+| `/review` | Severity-first architecture, security, and correctness review |
+| `/audit` | Holistic project audit — structure, conventions, critical issues, and quick wins |
+| `/test` | Generate and run tests including property-based and boundary contract tests |
+| `/verify` | Run verification gates and produce a go/no-go decision |
+| `/cycle` | Run full workflow: plan → implement → review → test → verify |
+| `/autopilot` | Same as `/cycle` with optional research and approval gates |
+
+### `/review` vs `/audit`
+
+`/review` is a **merge gate** — operates on code changes, produces blocking/warning/advisory findings per feature. Run it before merging.
+
+`/audit` is a **project health check** — reviews the project as a whole across structure, conventions, and design philosophy. Run it periodically or before major architectural decisions.
+
+## Workflow
+
+Default sequence:
 
 ```
 /plan → /implement → /review → /test → /verify
 ```
 
-Or run the full cycle at once with `/cycle`.
+Use `/cycle` to orchestrate all phases in one command, or `/autopilot` to include optional research with approval prompts at risk checkpoints.
 
-Each phase is backed by a specialized agent (planner, implementer, reviewer, tester, verifier) and enforced by automated hooks that run type-checking, linting, and formatting on every edit.
+## Architecture
 
-## Key concepts
+This plugin enforces **Functional Core / Imperative Shell**:
 
-- **Functional Core / Imperative Shell** -- business logic stays pure and testable, side effects live at the edges
-- **Parse at the boundary** -- all external data is parsed into typed domain values before reaching core logic
-- **Verification gates** -- type checks, lints, security scans, property-based tests, and contract tests must pass before a change is considered done
-- **Human-in-the-loop** -- plan approval required before implementation; elevated review for medium/high-risk changes
+- **Core** — pure business logic, no I/O, deterministic
+- **Shell** — orchestration, side effects, I/O
+- **Boundary** — parses untrusted external input into typed domain values before forwarding to core
 
-## Installation
+All agents and scripts enforce these boundaries. Boundary violations are **blocking** findings in `/review`.
 
-```bash
-claude plugin add 0x7067/ai-dev-pipeline
-```
+## Agents
 
-## Available commands
-
-| Command | Description |
+| Agent | Role |
 |---|---|
-| `/plan` | Analyze requirements and produce an implementation plan |
-| `/implement` | Execute the approved plan |
-| `/review` | Severity-first code review (architecture, security, correctness) |
-| `/test` | Generate property-based and contract tests |
-| `/verify` | Run all verification gates and produce a go/no-go report |
-| `/cycle` | Orchestrate the full pipeline end-to-end |
-| `/research` | Investigate unclear or high-risk areas before planning |
-| `/autopilot` | Run the full chain with approval gates |
-
-## Hooks
-
-Runs automatically during Claude Code sessions:
-
-- **PreToolUse** -- protects critical files from accidental edits
-- **PostToolUse** -- type-checks and lints after every file write
-- **Stop** -- formats code when the agent stops
-
-## Project structure
-
-```
-.claude/
-  agents/       # Specialized agents (planner, implementer, reviewer, tester, verifier, researcher)
-  commands/     # Slash command definitions
-  hooks/        # Automated quality hooks
-  rules/        # Architecture and code style policies
-  skills/       # Reusable skills (FC/IS, code review, test gen, etc.)
-scripts/        # Verification and validation shell scripts
-docs/           # Templates, reports, and specs
-```
-
-## Using as a template
-
-This repo is designed to be copied into other projects. The scripts auto-detect your package manager (`bun`, `npm`, `pnpm`, `yarn`) and the rules are generic enough to apply to any codebase.
+| `planner` | Produces `docs/current-plan.md` with FC/IS classification and risk tier |
+| `researcher` | Upfront research for high-risk or unclear work |
+| `implementer` | Implements from approved plan, enforcing FC/IS and parse-at-boundary |
+| `reviewer` | Severity-first code review (blocking / warning / advisory) |
+| `auditor` | Holistic project audit across 5 angles, read-only |
+| `tester` | Property-based and boundary contract tests |
+| `verifier` | Deterministic verification gates, go/no-go decision |
 
 ## Environment Variables
 
-See [docs/env-vars.md](docs/env-vars.md) for the full reference.
-
-## Hook path design
-
-The plugin ships two hook configurations that intentionally differ:
-
-- **`plugin.json`** — used when the plugin is installed globally (`claude plugin add`). Uses `${CLAUDE_PLUGIN_ROOT}/.claude/hooks/...` so the scripts are found at the plugin's install location regardless of the project.
-- **`.claude/settings.json`** — used when working inside this plugin repo itself. Uses project-relative `bash .claude/hooks/...` which resolves correctly from the repo root.
-
-Both sets of hooks operate relative to the **project root** as their working directory.
-
-## License
-
-[MIT](LICENSE)
+| Variable | Purpose |
+|---|---|
+| `HOOKS_FAST` | Skip slow hook checks (lint, type-check) in development |
+| `BOUNDARY_CHECK_STRICT` | Fail on any boundary violation (default: warn) |
+| `BOUNDARY_SRC_DIRS` | Source directories for boundary violation scanning |
+| `BOUNDARY_INGRESS_REGEX` | Regex identifying ingress points (default targets JS/TS) |
+| `BOUNDARY_CORE_GLOB` | Glob pattern for core layer files |
+| `BOUNDARY_DOMAIN_GLOB` | Glob pattern for domain type files |
+| `REPORT_QUALITY_REQUIRE_CONTENT` | Require non-empty report sections in smoke gate |
+| `SECURITY_SCAN_REQUIRED` | Fail pipeline if security scan is skipped |
