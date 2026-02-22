@@ -46,5 +46,25 @@ if has_package_script "lint"; then
   exit 1
 fi
 
+# Rust
+if [ -f Cargo.toml ] && command -v cargo-clippy >/dev/null 2>&1; then
+  run cargo clippy -- -D warnings
+  exit $?
+fi
+
+# Python
+if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
+  if command -v ruff >/dev/null 2>&1; then
+    run ruff check .
+    exit $?
+  fi
+fi
+
+# Go
+if [ -f go.mod ] && command -v golangci-lint >/dev/null 2>&1; then
+  run golangci-lint run
+  exit $?
+fi
+
 echo "lint-on-edit: skipped (no supported lint command found)"
 exit 0

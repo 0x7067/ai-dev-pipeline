@@ -6,6 +6,9 @@ tools:
   - Glob
   - Grep
   - Bash
+disallowedTools:
+  - Write
+  - Edit
 maxTurns: 25
 skills:
   - code-review

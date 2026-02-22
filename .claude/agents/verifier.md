@@ -6,6 +6,9 @@ tools:
   - Bash
   - Glob
   - Grep
+disallowedTools:
+  - Write
+  - Edit
 maxTurns: 20
 skills:
   - static-analysis

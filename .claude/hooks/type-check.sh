@@ -51,5 +51,25 @@ if command -v tsc >/dev/null 2>&1 && [ -f tsconfig.json ]; then
   exit $?
 fi
 
+# Rust
+if [ -f Cargo.toml ] && command -v cargo >/dev/null 2>&1; then
+  run cargo check
+  exit $?
+fi
+
+# Python
+if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
+  if command -v mypy >/dev/null 2>&1; then
+    run mypy .
+    exit $?
+  fi
+fi
+
+# Go
+if [ -f go.mod ] && command -v go >/dev/null 2>&1; then
+  run go vet ./...
+  exit $?
+fi
+
 echo "type-check: skipped (no supported typecheck command found)"
 exit 0

@@ -83,6 +83,15 @@ check_review_report() {
   fi
 }
 
+section_has_content() {
+  local file="$1"
+  local heading="$2"
+  local body
+  body="$(awk -v h="$heading" '$0 ~ "^"h"$"{flag=1;next} /^## /&&flag{exit} flag{print}' "$file")"
+  # Strip blank lines and check for non-whitespace content
+  printf '%s\n' "$body" | rg -q '\S'
+}
+
 check_test_report() {
   local file="$1"
 
@@ -92,6 +101,13 @@ check_test_report() {
   require_heading "$file" '## Integration Tests'
   require_heading "$file" '## Blocking Failures'
   require_heading "$file" '## Retry and Triage Notes'
+
+  if ! section_has_content "$file" '## Property-Based Tests'; then
+    fail "$file section '## Property-Based Tests' has no content"
+  fi
+  if ! section_has_content "$file" '## Contract Tests'; then
+    fail "$file section '## Contract Tests' has no content"
+  fi
 
   require_pattern "$file" '^- Retry count:[[:space:]]+\S' 'Retry count'
   require_pattern "$file" '^- Flaky tests observed:[[:space:]]+\S' 'Flaky tests observed'
