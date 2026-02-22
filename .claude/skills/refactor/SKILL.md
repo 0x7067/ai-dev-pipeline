@@ -66,6 +66,8 @@ Apply the approved structural changes:
 - Do not add new logic, new error handling, or new tests for new behavior.
 - If a previously untested invariant is exposed during refactoring, note it in the report but do not add tests for new behavior — only add tests that verify the existing behavior is preserved.
 
+The `implementer` agent handles any preservation tests inline; the `tester` agent is intentionally excluded from this workflow since no new behavior is being added.
+
 ## 6. Post-Refactor Gate
 
 Run the same verification gate:
@@ -79,59 +81,13 @@ All gates that passed in the baseline must still pass. No new failures are accep
 **If any gate regresses:** treat as blocking, revert the change that caused the regression, and resolve before continuing.
 
 Compare the structural diff:
-- `git diff --stat` should show only renamed/moved/restructured files.
+- `git diff --stat -M` should show only renamed/moved/restructured files.
 - No new exported symbols with new behavior.
 - No removed safety checks or error paths.
 
 ## 7. Output
 
-Write `docs/refactor-report.md`:
-
-```markdown
-# Refactor Report
-
-**Date:** YYYY-MM-DD
-**Risk Tier:** medium | high
-**Scope:** <brief description>
-
-## Scope Table
-
-| Symbol | File | Layer | Callers |
-|--------|------|-------|---------|
-| ...    | ...  | ...   | ...     |
-
-## Pre-Refactor Gate Results
-
-| Gate | Status |
-|------|--------|
-| Type check | PASS |
-| Lint | PASS |
-| Tests | PASS |
-
-## Structural Changes
-
-- <change 1>
-- <change 2>
-
-## Post-Refactor Gate Results
-
-| Gate | Before | After |
-|------|--------|-------|
-| Type check | PASS | PASS |
-| Lint | PASS | PASS |
-| Tests | PASS | PASS |
-
-## Behavior-Preservation Evidence
-
-- All <N> tests pass before and after.
-- No new exported symbols introduced.
-- No logic branches added or removed.
-- Diff is structural-only: <file renames / function moves>.
-
-## Decision
-
-GO — structural refactor complete, behavior preserved.
-```
+Write `docs/refactor-report.md` using template: `docs/templates/refactor-report-template.md`.
 
 ## Blocking Conditions
 
