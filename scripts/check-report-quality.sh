@@ -218,7 +218,11 @@ check_one() {
   local label="$2"
 
   if [ ! -f "$file" ]; then
-    fail "missing report file: $file"
+    if [ "$strict_mode" = "1" ]; then
+      fail "missing report file: $file"
+    else
+      note "skipping $label checks for missing $file (set REPORT_QUALITY_REQUIRE_CONTENT=1 to enforce)"
+    fi
     return
   fi
 

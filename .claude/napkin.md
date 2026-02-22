@@ -40,3 +40,4 @@
 - Active-run quality enforcement pattern: pair strict report checks (`REPORT_QUALITY_REQUIRE_CONTENT=1`) with strict artifact checks (`WORKFLOW_REQUIRE_ARTIFACTS=1`) so verify blocks on missing approvals/content.
 - Self-correction: in shell validators, `rg -h` prints help (not "no filename"); use `--no-filename` only to avoid corrupting parser input.
 - Portability pattern: for workflow scripts, implement `rg`-first helpers with `grep -E` fallback and avoid Bash 4-only `mapfile` to keep CI portable.
+- CI baseline rule: when artifacts are gitignored/generated, smoke checks must skip missing artifacts by default and enforce presence only under strict env flags.

@@ -17,7 +17,11 @@ check_file() {
   local file="$1"
 
   if [ ! -f "$file" ]; then
-    fail "missing required artifact: $file"
+    if [ "$strict_mode" = "1" ]; then
+      fail "missing required artifact: $file"
+    else
+      note "skipping missing artifact check for $file (set WORKFLOW_REQUIRE_ARTIFACTS=1 to enforce)"
+    fi
     return
   fi
 
