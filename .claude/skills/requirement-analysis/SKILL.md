@@ -107,7 +107,7 @@ Rationale: ...
 
 ## Human Approval Checkpoints
 - [ ] Plan approved before implementation
-- [ ] High-risk changes approved before finalization (if risk = high)
+- [ ] Elevated-risk changes approved before finalization (required for medium and high risk)
 ```
 
 ## Guardrails

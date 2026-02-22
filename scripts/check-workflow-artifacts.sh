@@ -34,13 +34,21 @@ check_file() {
   fi
 }
 
-check_file "docs/current-plan.md"
-check_file "docs/impl-summary.md"
-check_file "docs/review-report.md"
-check_file "docs/test-report.md"
-check_file "docs/verify-report.md"
+plan_file="${WORKFLOW_PLAN_PATH:-docs/current-plan.md}"
+summary_file="${WORKFLOW_SUMMARY_PATH:-docs/impl-summary.md}"
+review_file="${WORKFLOW_REVIEW_PATH:-docs/review-report.md}"
+test_file="${WORKFLOW_TEST_PATH:-docs/test-report.md}"
+verify_file="${WORKFLOW_VERIFY_PATH:-docs/verify-report.md}"
+specs_glob="${WORKFLOW_SPECS_GLOB:-docs/specs/*.md}"
 
-spec_files=(docs/specs/*.md)
+check_file "$plan_file"
+check_file "$summary_file"
+check_file "$review_file"
+check_file "$test_file"
+check_file "$verify_file"
+
+# shellcheck disable=SC2206  # $specs_glob is intentional glob expansion
+spec_files=($specs_glob)
 if [ "${spec_files[0]}" = "docs/specs/*.md" ]; then
   if [ "$strict_mode" = "1" ]; then
     fail "missing required artifact: docs/specs/<feature>.md"

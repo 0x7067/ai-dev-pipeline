@@ -2,6 +2,13 @@
 set -euo pipefail
 
 # Heuristic guardrail for early detection. Real enforcement should be backed by tests and linters.
+#
+# LANGUAGE COVERAGE: The default BOUNDARY_INGRESS_REGEX covers JavaScript/TypeScript only
+# (process.env, JSON.parse, req.body, localStorage.getItem). For other languages, override
+# BOUNDARY_INGRESS_REGEX with appropriate patterns before running:
+#   Python:  BOUNDARY_INGRESS_REGEX='os\.environ|json\.load\(|request\.(json|form|args)'
+#   Go:      BOUNDARY_INGRESS_REGEX='os\.Getenv|json\.Unmarshal|r\.FormValue'
+#   Rust:    BOUNDARY_INGRESS_REGEX='std::env::var|serde_json::from_str'
 
 tmp_file="$(mktemp "${TMPDIR:-/tmp}/boundary_hits.XXXXXX")"
 cleanup() {

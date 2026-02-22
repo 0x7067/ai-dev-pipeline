@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROTECTED_REGEX='(^|/)(\.env(\..+)?|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb|Cargo\.lock|Pipfile\.lock|poetry\.lock|Gemfile\.lock|.*\.(pem|key|p12|jks|keystore))$'
+PROTECTED_REGEX="${PROTECTED_FILES_REGEX:-(^|/)(\.env(\..+)?|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb|Cargo\.lock|Pipfile\.lock|poetry\.lock|Gemfile\.lock|.*\.(pem|key|p12|jks|keystore))$}"
 
 payload="${1:-}"
 if [ -z "$payload" ] && [ ! -t 0 ]; then

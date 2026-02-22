@@ -29,6 +29,7 @@ collect_name_fields() {
   local path_glob="$1"
 
   if has_rg; then
+    # shellcheck disable=SC2086  # $path_glob is intentional glob expansion
     rg --no-filename '^name:' $path_glob 2>/dev/null |
       sed 's/^name:[[:space:]]*//' |
       tr -d '"' |
@@ -36,6 +37,7 @@ collect_name_fields() {
       awk 'NF' |
       sort -u
   else
+    # shellcheck disable=SC2086  # $path_glob is intentional glob expansion
     grep -h -E '^name:' $path_glob 2>/dev/null |
       sed 's/^name:[[:space:]]*//' |
       tr -d '"' |
@@ -48,12 +50,13 @@ collect_name_fields() {
 load_names() {
   local target_array_name="$1"
   local path_glob="$2"
-  local line
-
-  while IFS= read -r line; do
+  local -n _target_ref="$target_array_name"
+  local lines line
+  mapfile -t lines < <(collect_name_fields "$path_glob")
+  for line in "${lines[@]}"; do
     [ -n "$line" ] || continue
-    eval "$target_array_name+=(\"\$line\")"
-  done < <(collect_name_fields "$path_glob")
+    _target_ref+=("$line")
+  done
 }
 
 has_skill() {

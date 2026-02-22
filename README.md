@@ -65,6 +65,19 @@ docs/           # Templates, reports, and specs
 
 This repo is designed to be copied into other projects. The scripts auto-detect your package manager (`bun`, `npm`, `pnpm`, `yarn`) and the rules are generic enough to apply to any codebase.
 
+## Environment Variables
+
+See [docs/env-vars.md](docs/env-vars.md) for the full reference.
+
+## Hook path design
+
+The plugin ships two hook configurations that intentionally differ:
+
+- **`plugin.json`** — used when the plugin is installed globally (`claude plugin add`). Uses `${CLAUDE_PLUGIN_ROOT}/.claude/hooks/...` so the scripts are found at the plugin's install location regardless of the project.
+- **`.claude/settings.json`** — used when working inside this plugin repo itself. Uses project-relative `bash .claude/hooks/...` which resolves correctly from the repo root.
+
+Both sets of hooks operate relative to the **project root** as their working directory.
+
 ## License
 
 [MIT](LICENSE)
