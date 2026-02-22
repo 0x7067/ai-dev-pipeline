@@ -41,7 +41,7 @@ check_pattern() {
   local pattern="$2"
   local label="$3"
 
-  if rg -n --glob "$path_glob" "$pattern" src >"$tmp_file" 2>/dev/null; then
+  if rg -n --glob "$path_glob" "$pattern" "$dir" >"$tmp_file" 2>/dev/null; then
     echo "boundary-check: ERROR: found $label in files matching $path_glob"
     cat "$tmp_file"
     errors=$((errors + 1))

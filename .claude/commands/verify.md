@@ -6,6 +6,8 @@ context: fork
 
 Run the `verifier` agent and write outcomes to `docs/verify-report.md`.
 
+**Prerequisite:** Project scripts must exist. If missing, run `/setup` first to scaffold them.
+
 Then run canonical verification gates:
 - `bash scripts/run-verification-gates.sh`
 

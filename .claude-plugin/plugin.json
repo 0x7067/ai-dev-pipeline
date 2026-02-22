@@ -1,0 +1,58 @@
+{
+  "name": "ai-dev-pipeline",
+  "version": "0.1.0",
+  "description": "Structured AI development workflow with FC/IS architecture, verification gates, and human approval checkpoints",
+  "author": {
+    "name": "Pedro"
+  },
+  "license": "MIT",
+  "keywords": ["workflow", "fc-is", "verification", "quality-gates", "planning"],
+  "agents": [
+    "./.claude/agents/planner.md",
+    "./.claude/agents/implementer.md",
+    "./.claude/agents/researcher.md",
+    "./.claude/agents/reviewer.md",
+    "./.claude/agents/tester.md",
+    "./.claude/agents/verifier.md"
+  ],
+  "commands": "./.claude/commands/",
+  "skills": "./.claude/skills/",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/type-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/lint-on-edit.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/format-on-stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
