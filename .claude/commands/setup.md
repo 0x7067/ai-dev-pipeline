@@ -29,18 +29,16 @@ Copy the following from `${CLAUDE_PLUGIN_ROOT}` into the project, skipping any f
 3. **Report templates** (`docs/templates/`):
    - All `.md` files from the plugin's `docs/templates/` directory.
 
-4. **CI workflow** (`.github/workflows/smoke.yml`).
+4. **CI workflow** (`.github/workflows/smoke.yml`) — **optional, ask the user first**.
+   Only scaffold this file if the user explicitly opts in. Many projects already have their own CI pipelines, and the smoke gate can be integrated into an existing workflow by adding `bash scripts/smoke-bootstrap.sh` as a step.
 
 5. **CLAUDE.md** at project root with `@`-references to the rules above. If a CLAUDE.md already exists, ask the user whether to merge or skip.
 
 6. **`.gitignore` additions** — append these lines if not already present:
    ```
-   docs/test-report.md
-   docs/verify-report.md
-   docs/review-report.md
-   docs/current-plan.md
-   docs/research/
-   docs/review/
+   # Generated docs (recreated by agents each run)
+   docs/*
+   !docs/templates/
    ```
 
 After scaffolding, print a summary of what was copied, what was skipped, and remind the user to review and commit the new files.
