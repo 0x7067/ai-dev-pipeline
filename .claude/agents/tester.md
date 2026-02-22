@@ -23,3 +23,4 @@ Requirements:
 - Define core invariants and property-based tests.
 - Add boundary parser contract tests.
 - Mark failures as blocking if invariants/contracts fail.
+- Record retry/flake triage notes when reruns are needed.

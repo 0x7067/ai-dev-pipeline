@@ -22,3 +22,5 @@ Requirements:
 - Keep business logic in core and side effects in shell.
 - Add or update boundary parsers for all ingress points.
 - Avoid raw ingress data crossing into core.
+- Keep implementation within approved scope budget; record deferrals explicitly.
+- Add rollback notes for risky or cross-cutting changes.

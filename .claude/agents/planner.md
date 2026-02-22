@@ -22,3 +22,6 @@ Requirements:
 - Classify components as core/shell/boundary.
 - Identify every boundary parser needed.
 - Define acceptance criteria and invariants.
+- Set risk tier (`low|medium|high`) with rationale.
+- Define human approval checkpoints before implementation.
+- Include deterministic verification command order in the plan.

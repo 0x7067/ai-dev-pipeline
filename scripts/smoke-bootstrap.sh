@@ -25,6 +25,8 @@ run_check() {
 }
 
 run_check "validate_claude_config" bash scripts/validate-claude-config.sh
+run_check "report_quality" bash scripts/check-report-quality.sh
+run_check "workflow_artifacts" bash scripts/check-workflow-artifacts.sh
 
 run_check "hooks_executable" bash -c '
   set -euo pipefail
@@ -43,9 +45,14 @@ run_check "required_bootstrap_files" bash -c '
     CLAUDE.md \
     .claude/settings.json \
     scripts/validate-claude-config.sh \
+    scripts/check-report-quality.sh \
+    scripts/check-workflow-artifacts.sh \
     scripts/check-crossrefs.sh \
     scripts/check-boundary-violations.sh \
-    docs/verification/acceptance-checklist.md; do
+    docs/verification/acceptance-checklist.md \
+    docs/templates/workflow-assessment-prompt-template.md \
+    docs/templates/workflow-assessment-rubric-template.md \
+    docs/templates/workflow-assessment-report-template.md; do
     [ -f "$f" ]
   done
 '

@@ -34,3 +34,7 @@
 - Self-correction: while mocking PATH for hook tests, removing system binaries caused false negatives (`bash` missing). Keep `/bin:/usr/bin` in PATH when running wrapper scripts.
 - Fix pattern applied: determine script presence from `package.json` (`jq`/regex fallback), then execute selected check exactly once and propagate exit code.
 - Medium-risk hardening pattern: remove "probe-by-execution" in formatter hooks and use `mktemp` + `trap` for all temporary files in shared directories.
+- Reusable workflow upgrades are more durable when policy changes are enforced by both templates and smoke checks, not docs alone.
+- Self-correction: prefer `https://docs.claude.com/en/docs/claude-code/...` URLs in reports; avoid mixing with older or alternate doc hostnames.
+- Implementation pattern: make report-quality checks bootstrap-safe by default and strict via env toggle (`REPORT_QUALITY_REQUIRE_CONTENT=1`) for active workflow runs/CI.
+- Active-run quality enforcement pattern: pair strict report checks (`REPORT_QUALITY_REQUIRE_CONTENT=1`) with strict artifact checks (`WORKFLOW_REQUIRE_ARTIFACTS=1`) so verify blocks on missing approvals/content.

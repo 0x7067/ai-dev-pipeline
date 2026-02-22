@@ -7,6 +7,8 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 - Enforce strict boundary parsing: parse external data into trusted domain values before core logic.
 - Use lightweight formal verification by default: property-based tests + contract tests.
 - Run deterministic quality checks through hooks and validation scripts.
+- Keep human-in-the-loop control points explicit for planning, high-risk changes, and release.
+- Keep evidence quality high: official docs first, limited external sources, no unsourced numeric claims.
 
 ## Default Command Flow
 1. `/plan`
@@ -21,6 +23,7 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 - Keep policies centralized in `.claude/rules/`.
 - Keep agent/skill wiring validated by `scripts/validate-claude-config.sh`.
 - Treat this folder as a template that can be copied into new projects.
+- Reuse report and assessment templates from `docs/templates/` for consistent outputs.
 
 ## Rules
 @.claude/rules/code-style.md

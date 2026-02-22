@@ -21,3 +21,5 @@ Requirements:
 - Findings first, ordered by severity.
 - Include file references and residual risks.
 - Flag any boundary parsing violations as blocking.
+- Include evidence summary with source links for material claims.
+- Mark unsourced numeric impact claims as unsupported and non-blocking evidence gaps unless security-critical.
