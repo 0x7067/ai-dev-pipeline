@@ -22,6 +22,10 @@
 5. Contract tests
 6. Full test suite
 
+## Canonical Gate Runner
+- Use `bash scripts/run-verification-gates.sh` as the single source of truth for gate execution order.
+- Allow overrides via environment variables for project-specific commands.
+
 ## Evidence Quality
 - Every verification or review claim must include evidence.
 - Sources must prioritize official documentation.

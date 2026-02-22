@@ -13,9 +13,9 @@ Deliverable:
 - `docs/verify-report.md`
 
 Requirements:
-- Run checks in order: type, lint, security, tests.
+- Run checks in order: type, lint, security, property tests, contract tests, full suite.
 - Distinguish blocking vs advisory findings.
 - Provide a go/no-go summary.
 - Classify and record risk tier (`low|medium|high`) for the change set.
 - Verify required human approvals are present for plan, high-risk changes, and release.
-- Run strict gates before final decision (gate commands defined in the verify command).
+- Run canonical verification gates before final decision (gate commands defined in the verify command).

@@ -13,4 +13,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run smoke bootstrap (strict)
+        env:
+          REPORT_QUALITY_REQUIRE_CONTENT: "1"
+          WORKFLOW_REQUIRE_ARTIFACTS: "1"
         run: bash scripts/smoke-bootstrap.sh

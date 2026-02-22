@@ -45,8 +45,23 @@ for agent_file in .claude/agents/*.md; do
 
   in_skills=0
   while IFS= read -r line; do
-    if [[ "$line" =~ ^skills: ]]; then
-      in_skills=1
+    if [[ "$line" =~ ^skills:[[:space:]]*(.*)$ ]]; then
+      raw_skills="${BASH_REMATCH[1]}"
+      raw_skills="${raw_skills//\"/}"
+      raw_skills="${raw_skills//\'/}"
+      if [ -n "$raw_skills" ]; then
+        IFS=',' read -ra skill_items <<< "$raw_skills"
+        for skill_item in "${skill_items[@]}"; do
+          skill="$(printf '%s' "$skill_item" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+          [ -n "$skill" ] || continue
+          if ! has_skill "$skill"; then
+            fail "$agent_file references missing skill '$skill'"
+          fi
+        done
+        in_skills=0
+      else
+        in_skills=1
+      fi
       continue
     fi
     if [ "$in_skills" -eq 1 ]; then

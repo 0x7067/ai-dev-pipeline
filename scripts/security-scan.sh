@@ -6,6 +6,8 @@ run() {
   "$@"
 }
 
+require_scan="${SECURITY_SCAN_REQUIRED:-0}"
+
 # Node.js: npm audit / pnpm audit / yarn audit / bun audit
 if [ -f package.json ]; then
   if command -v bun >/dev/null 2>&1 && [ -f bun.lockb ]; then
@@ -43,4 +45,8 @@ if [ -f go.mod ] && command -v govulncheck >/dev/null 2>&1; then
 fi
 
 echo "security-scan: skipped (no supported scanner found)"
+if [ "$require_scan" = "1" ]; then
+  echo "security-scan: ERROR: SECURITY_SCAN_REQUIRED=1 but no scanner available"
+  exit 1
+fi
 exit 0

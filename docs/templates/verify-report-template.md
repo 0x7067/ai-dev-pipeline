@@ -23,7 +23,16 @@
 
 ## Human Approval Checkpoints
 1. Plan approved:
+   - Approver:
+   - Date:
+   - Evidence link:
 2. High-risk implementation approved (required only for `high` risk):
+   - Approver:
+   - Date:
+   - Evidence link:
 3. Release approved:
+   - Approver:
+   - Date:
+   - Evidence link:
 
 ## Residual Risk and Follow-ups

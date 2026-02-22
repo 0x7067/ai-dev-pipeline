@@ -6,6 +6,24 @@ run() {
   "$@"
 }
 
+fast_mode="${HOOKS_FAST:-1}"
+changed_files_list=""
+
+if [ "$fast_mode" = "1" ] && command -v git >/dev/null 2>&1; then
+  changed_files_list="$(
+    {
+      git diff --name-only --diff-filter=ACM 2>/dev/null || true
+      git ls-files -m -o --exclude-standard 2>/dev/null || true
+    } | sort -u
+  )"
+fi
+
+has_changed_ext() {
+  local ext_pattern="$1"
+  [ -n "$changed_files_list" ] || return 1
+  printf '%s\n' "$changed_files_list" | rg -q "${ext_pattern}$"
+}
+
 has_package_script() {
   local script_name="$1"
 
@@ -22,6 +40,13 @@ has_package_script() {
 }
 
 if has_package_script "typecheck"; then
+  if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ]; then
+    if ! has_changed_ext '\.(ts|tsx|js|jsx|mjs|cjs)$'; then
+      echo "type-check: skipped (no relevant JS/TS changes)"
+      exit 0
+    fi
+  fi
+
   if command -v bun >/dev/null 2>&1; then
     run bun run -s typecheck
     exit $?
@@ -47,12 +72,20 @@ if has_package_script "typecheck"; then
 fi
 
 if command -v tsc >/dev/null 2>&1 && [ -f tsconfig.json ]; then
+  if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ] && ! has_changed_ext '\.(ts|tsx)$'; then
+    echo "type-check: skipped (no TypeScript changes)"
+    exit 0
+  fi
   run tsc --noEmit
   exit $?
 fi
 
 # Rust
 if [ -f Cargo.toml ] && command -v cargo >/dev/null 2>&1; then
+  if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ] && ! has_changed_ext '\.rs'; then
+    echo "type-check: skipped (no Rust changes)"
+    exit 0
+  fi
   run cargo check
   exit $?
 fi
@@ -60,6 +93,14 @@ fi
 # Python
 if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
   if command -v mypy >/dev/null 2>&1; then
+    if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ]; then
+      if has_changed_ext '\.py'; then
+        run mypy $(printf '%s\n' "$changed_files_list" | rg '\.py$' | tr '\n' ' ')
+        exit $?
+      fi
+      echo "type-check: skipped (no Python changes)"
+      exit 0
+    fi
     run mypy .
     exit $?
   fi
@@ -67,6 +108,10 @@ fi
 
 # Go
 if [ -f go.mod ] && command -v go >/dev/null 2>&1; then
+  if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ] && ! has_changed_ext '\.go'; then
+    echo "type-check: skipped (no Go changes)"
+    exit 0
+  fi
   run go vet ./...
   exit $?
 fi

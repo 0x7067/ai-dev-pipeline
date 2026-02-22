@@ -14,6 +14,11 @@
 1. Plan approval required before implementation:
 2. Additional approval required for high-risk changes:
 
+## Approval Record
+- Plan approval approver:
+- Plan approval date:
+- Plan approval evidence link:
+
 ## FC/IS Classification
 - Core:
 - Shell:

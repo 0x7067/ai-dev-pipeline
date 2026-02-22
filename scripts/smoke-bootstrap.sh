@@ -49,6 +49,7 @@ run_check "required_bootstrap_files" bash -c '
     scripts/check-workflow-artifacts.sh \
     scripts/check-crossrefs.sh \
     scripts/check-boundary-violations.sh \
+    scripts/run-verification-gates.sh \
     docs/verification/acceptance-checklist.md \
     docs/templates/workflow-assessment-prompt-template.md \
     docs/templates/workflow-assessment-rubric-template.md \

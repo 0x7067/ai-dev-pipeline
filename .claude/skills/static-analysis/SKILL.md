@@ -41,7 +41,15 @@ Detect the project's language and run the appropriate checker:
 | semgrep | `semgrep --config=auto .` |
 | cargo-audit | `cargo audit` |
 
-### 4. Test Suite
+### 4. Property-Based Tests
+
+Run property-based tests if configured (project-specific script).
+
+### 5. Contract Tests
+
+Run boundary parser contract tests if configured (project-specific script).
+
+### 6. Full Test Suite
 
 Detect and run the project's test runner:
 
@@ -105,7 +113,9 @@ Write to `docs/verify-report.md`:
 | 1 | Type check | `npx tsc --noEmit` | 0 | PASS |
 | 2 | Lint | `ruff check .` | 1 | BLOCKING |
 | 3 | Security | — | — | SKIPPED |
-| 4 | Tests | `pytest -q` | 0 | PASS |
+| 4 | Property tests | `npm run test:property` | 0 | PASS |
+| 5 | Contract tests | `npm run test:contract` | 0 | PASS |
+| 6 | Full suite | `pytest -q` | 0 | PASS |
 
 ## Blocking Findings
 

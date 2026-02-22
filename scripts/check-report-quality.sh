@@ -129,6 +129,26 @@ check_verify_report() {
   require_pattern "$file" '^2\. High-risk implementation approved \(required only for `high` risk\):[[:space:]]+\S' 'High-risk implementation approved'
   require_pattern "$file" '^3\. Release approved:[[:space:]]+\S' 'Release approved'
 
+  local approval_block
+  approval_block="$(awk '/^## Human Approval Checkpoints$/{flag=1;next} /^## /&&flag{exit} flag{print}' "$file")"
+
+  local approver_count
+  local date_count
+  local link_count
+  approver_count="$(printf '%s\n' "$approval_block" | rg -c 'Approver:[[:space:]]+\S')"
+  date_count="$(printf '%s\n' "$approval_block" | rg -c 'Date:[[:space:]]+\S')"
+  link_count="$(printf '%s\n' "$approval_block" | rg -c 'Evidence link:[[:space:]]+\S')"
+
+  if [ "$approver_count" -lt 3 ]; then
+    fail "$file human approval checkpoints require approver metadata (3 entries)"
+  fi
+  if [ "$date_count" -lt 3 ]; then
+    fail "$file human approval checkpoints require date metadata (3 entries)"
+  fi
+  if [ "$link_count" -lt 3 ]; then
+    fail "$file human approval checkpoints require evidence links (3 entries)"
+  fi
+
   local risk_tier
   local plan_approval
   local high_risk_approval
