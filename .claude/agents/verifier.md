@@ -17,5 +17,5 @@ Requirements:
 - Distinguish blocking vs advisory findings.
 - Provide a go/no-go summary.
 - Classify and record risk tier (`low|medium|high`) for the change set.
-- Verify required human approvals are present for plan, high-risk changes, and release.
+- Verify required human approvals are present for plan, medium/high-risk changes, and release.
 - Run canonical verification gates before final decision (gate commands defined in the verify command).

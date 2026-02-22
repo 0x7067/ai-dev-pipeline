@@ -11,7 +11,7 @@
 
 ## Human Approval Policy
 - Plan gate: required before implementation starts.
-- High-risk implementation gate: required only for `high` risk tier before code changes are finalized.
+- Elevated-risk implementation gate: required for `medium` and `high` risk tiers before code changes are finalized.
 - Release gate: required before go/no-go is marked `Go`.
 
 ## Verification Sequence

@@ -24,7 +24,7 @@
 
 ## Human Oversight
 - [ ] Plan approval checkpoint is documented.
-- [ ] High-risk implementation requires explicit approval.
+- [ ] Medium/high-risk implementation requires explicit approval.
 - [ ] Release approval checkpoint is documented.
 
 ## Reuse and Assessment

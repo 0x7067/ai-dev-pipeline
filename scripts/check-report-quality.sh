@@ -126,7 +126,7 @@ check_verify_report() {
 
   require_pattern "$file" '^- Risk tier:[[:space:]]+\S' 'Risk tier'
   require_pattern "$file" '^1\. Plan approved:[[:space:]]+\S' 'Plan approved'
-  require_pattern "$file" '^2\. High-risk implementation approved \(required only for `high` risk\):[[:space:]]+\S' 'High-risk implementation approved'
+  require_pattern "$file" '^2\. Elevated-risk implementation approved \(required for `medium` and `high` risk\):[[:space:]]+\S' 'Elevated-risk implementation approved'
   require_pattern "$file" '^3\. Release approved:[[:space:]]+\S' 'Release approved'
 
   local approval_block
@@ -151,13 +151,13 @@ check_verify_report() {
 
   local risk_tier
   local plan_approval
-  local high_risk_approval
+  local elevated_risk_approval
   local release_approval
 
   risk_tier="$(sed -n 's/^- Risk tier:[[:space:]]*//p' "$file" | head -n1)"
   risk_tier="$(normalize_value "$risk_tier")"
   plan_approval="$(sed -n 's/^1\. Plan approved:[[:space:]]*//p' "$file" | head -n1)"
-  high_risk_approval="$(sed -n 's/^2\. High-risk implementation approved (required only for `high` risk):[[:space:]]*//p' "$file" | head -n1)"
+  elevated_risk_approval="$(sed -n 's/^2\. Elevated-risk implementation approved (required for `medium` and `high` risk):[[:space:]]*//p' "$file" | head -n1)"
   release_approval="$(sed -n 's/^3\. Release approved:[[:space:]]*//p' "$file" | head -n1)"
 
   if ! [[ "$risk_tier" =~ ^low$|^medium$|^high$ ]]; then
@@ -168,10 +168,10 @@ check_verify_report() {
   validate_approval_value "$file" "Plan approved" "$plan_approval" 0
   validate_approval_value "$file" "Release approved" "$release_approval" 0
 
-  if [[ "$risk_tier" = "high" ]]; then
-    validate_approval_value "$file" "High-risk implementation approved" "$high_risk_approval" 0
+  if [[ "$risk_tier" = "medium" || "$risk_tier" = "high" ]]; then
+    validate_approval_value "$file" "Elevated-risk implementation approved" "$elevated_risk_approval" 0
   else
-    validate_approval_value "$file" "High-risk implementation approved" "$high_risk_approval" 1
+    validate_approval_value "$file" "Elevated-risk implementation approved" "$elevated_risk_approval" 1
   fi
 }
 

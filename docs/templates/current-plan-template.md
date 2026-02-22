@@ -12,7 +12,7 @@
 
 ## Human Checkpoints
 1. Plan approval required before implementation:
-2. Additional approval required for high-risk changes:
+2. Additional approval required for medium/high-risk changes:
 
 ## Approval Record
 - Plan approval approver:

@@ -26,7 +26,7 @@
    - Approver:
    - Date:
    - Evidence link:
-2. High-risk implementation approved (required only for `high` risk):
+2. Elevated-risk implementation approved (required for `medium` and `high` risk):
    - Approver:
    - Date:
    - Evidence link:

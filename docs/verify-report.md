@@ -24,7 +24,7 @@
    - Approver: maintainer
    - Date: 2026-02-22
    - Evidence link: https://example.com/plan-approval
-2. High-risk implementation approved (required only for `high` risk): n/a
+2. Elevated-risk implementation approved (required for `medium` and `high` risk): n/a
    - Approver: n/a
    - Date: 2026-02-22
    - Evidence link: https://example.com/not-required

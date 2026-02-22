@@ -43,7 +43,7 @@
 
 ## 5. Human-in-the-Loop Control Points
 1. Plan approval gate:
-2. High-risk implementation gate:
+2. Medium/high-risk implementation gate:
 3. Release gate:
 
 ## 6. Implementation Backlog
