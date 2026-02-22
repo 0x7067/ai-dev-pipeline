@@ -29,7 +29,7 @@ Deliverable:
 
 - Adding new features or functionality.
 - Changing public API contracts or observable behavior.
-- Modifying test assertions (tests are the behavioral specification).
+- Modifying test assertions (tests — including characterization tests — are the behavioral specification).
 - Deleting tests without explicit approval.
 
 ## Refactor Summary Requirements

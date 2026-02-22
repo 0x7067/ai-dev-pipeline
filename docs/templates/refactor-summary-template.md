@@ -11,6 +11,11 @@
 - No changed public interfaces: yes/no
 - No modified test assertions: yes/no
 
+## Characterization Tests
+- Coverage assessment: sufficient | insufficient | none
+- Characterization tests generated: yes (list files) | no (existing coverage sufficient)
+- Behavior captured: (public API surface, edge cases, error paths covered)
+
 ## Test Baseline
 - Command used:
 - Baseline result (pass/fail count):
