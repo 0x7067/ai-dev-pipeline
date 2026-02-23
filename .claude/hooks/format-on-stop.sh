@@ -38,7 +38,7 @@ has_package_script() {
 
 if has_package_script "format"; then
   if command -v bun >/dev/null 2>&1; then
-    run bun run -s format
+    run bun run --silent format
     exit $?
   fi
 
