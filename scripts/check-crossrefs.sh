@@ -47,18 +47,6 @@ collect_name_fields() {
   fi
 }
 
-load_names() {
-  local target_array_name="$1"
-  local path_glob="$2"
-  local -n _target_ref="$target_array_name"
-  local lines line
-  mapfile -t lines < <(collect_name_fields "$path_glob")
-  for line in "${lines[@]}"; do
-    [ -n "$line" ] || continue
-    _target_ref+=("$line")
-  done
-}
-
 has_skill() {
   local target="$1"
   local name
@@ -95,8 +83,15 @@ if [ ! -d .claude/commands ]; then
   fail "missing .claude/commands"
 fi
 
-load_names skill_names ".claude/skills/*/SKILL.md"
-load_names agent_names ".claude/agents/*.md"
+while IFS= read -r _line; do
+  [ -n "$_line" ] || continue
+  skill_names+=("$_line")
+done < <(collect_name_fields ".claude/skills/*/SKILL.md")
+
+while IFS= read -r _line; do
+  [ -n "$_line" ] || continue
+  agent_names+=("$_line")
+done < <(collect_name_fields ".claude/agents/*.md")
 
 if [ "${#skill_names[@]}" -eq 0 ]; then
   fail "no skills discovered"

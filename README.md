@@ -71,3 +71,5 @@ All agents and scripts enforce these boundaries. Boundary violations are **block
 | `BOUNDARY_DOMAIN_GLOB` | Glob pattern for domain type files |
 | `REPORT_QUALITY_REQUIRE_CONTENT` | Require non-empty report sections in smoke gate |
 | `SECURITY_SCAN_REQUIRED` | Fail pipeline if security scan is skipped |
+
+For the full variable reference, including `WORKFLOW_*` path overrides, see [docs/env-vars.md](docs/env-vars.md).

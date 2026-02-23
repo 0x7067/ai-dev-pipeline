@@ -49,11 +49,11 @@ check_file "$verify_file"
 
 # shellcheck disable=SC2206  # $specs_glob is intentional glob expansion
 spec_files=($specs_glob)
-if [ "${spec_files[0]}" = "docs/specs/*.md" ]; then
+if [ "${spec_files[0]}" = "$specs_glob" ]; then
   if [ "$strict_mode" = "1" ]; then
-    fail "missing required artifact: docs/specs/<feature>.md"
+    fail "missing required artifact: ${specs_glob} (no files matched)"
   else
-    note "skipping spec check (no docs/specs/*.md found, set WORKFLOW_REQUIRE_ARTIFACTS=1 to enforce)"
+    note "skipping spec check (no ${specs_glob} found, set WORKFLOW_REQUIRE_ARTIFACTS=1 to enforce)"
   fi
 else
   if [ "$strict_mode" = "1" ]; then
