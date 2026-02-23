@@ -121,7 +121,10 @@ if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
   if command -v ruff >/dev/null 2>&1; then
     if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ]; then
       if has_changed_ext '\.py'; then
-        run ruff check $(printf '%s\n' "$changed_files_list" | filter_changed_files '\.py$' | tr '\n' ' ')
+        _py_files=()
+        while IFS= read -r _f; do _py_files+=("$_f"); done \
+          < <(printf '%s\n' "$changed_files_list" | filter_changed_files '\.py$')
+        run ruff check "${_py_files[@]}"
         exit $?
       fi
       echo "lint-on-edit: skipped (no Python changes)"

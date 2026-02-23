@@ -1,70 +1,36 @@
 # ai-dev-pipeline
 
-A Claude Code plugin that adds a structured development workflow with verification gates, human approval checkpoints, and architecture guardrails.
+A reusable Claude Code workflow plugin for structured AI-assisted development. Enforces Functional Core / Imperative Shell (FC/IS) architecture, strict boundary parsing, and human approval checkpoints.
 
-## What it does
+## Installation
 
-Provides slash commands that guide code changes through a disciplined pipeline:
+Install via the Claude Code plugin system, then run `/setup` in any project to scaffold scripts, rules, and templates.
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `/setup` | Scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo |
+| `/plan` | Analyze requirements and produce an implementation plan |
+| `/research` | Perform upfront research for unclear or high-risk work |
+| `/implement` | Implement changes from the approved plan |
+| `/review` | Severity-first architecture, security, and correctness review |
+| `/audit` | Holistic project audit — structure, conventions, critical issues, and quick wins |
+| `/test` | Generate and run tests including property-based and boundary contract tests |
+| `/verify` | Run verification gates and produce a go/no-go decision |
+| `/cycle` | Run full workflow: plan → implement → review → test → verify |
+| `/autopilot` | Same as `/cycle` with optional research and approval gates |
+
+`/review` is a **merge gate** — operates on code changes, produces blocking/warning/advisory findings. `/audit` is a **project health check** — reviews the whole project periodically or before major architectural decisions.
+
+## Workflow
 
 ```
 /plan → /implement → /review → /test → /verify
 ```
 
-Or run the full cycle at once with `/cycle`.
+Use `/cycle` to orchestrate all phases, or `/autopilot` to include optional research with approval gates at risk checkpoints.
 
-Each phase is backed by a specialized agent (planner, implementer, reviewer, tester, verifier) and enforced by automated hooks that run type-checking, linting, and formatting on every edit.
+## Environment Variables
 
-## Key concepts
-
-- **Functional Core / Imperative Shell** -- business logic stays pure and testable, side effects live at the edges
-- **Parse at the boundary** -- all external data is parsed into typed domain values before reaching core logic
-- **Verification gates** -- type checks, lints, security scans, property-based tests, and contract tests must pass before a change is considered done
-- **Human-in-the-loop** -- plan approval required before implementation; elevated review for medium/high-risk changes
-
-## Installation
-
-```bash
-claude plugin add 0x7067/ai-dev-pipeline
-```
-
-## Available commands
-
-| Command | Description |
-|---|---|
-| `/plan` | Analyze requirements and produce an implementation plan |
-| `/implement` | Execute the approved plan |
-| `/review` | Severity-first code review (architecture, security, correctness) |
-| `/test` | Generate property-based and contract tests |
-| `/verify` | Run all verification gates and produce a go/no-go report |
-| `/cycle` | Orchestrate the full pipeline end-to-end |
-| `/research` | Investigate unclear or high-risk areas before planning |
-| `/autopilot` | Run the full chain with approval gates |
-
-## Hooks
-
-Runs automatically during Claude Code sessions:
-
-- **PreToolUse** -- protects critical files from accidental edits
-- **PostToolUse** -- type-checks and lints after every file write
-- **Stop** -- formats code when the agent stops
-
-## Project structure
-
-```
-.claude/
-  agents/       # Specialized agents (planner, implementer, reviewer, tester, verifier, researcher)
-  commands/     # Slash command definitions
-  hooks/        # Automated quality hooks
-  rules/        # Architecture and code style policies
-  skills/       # Reusable skills (FC/IS, code review, test gen, etc.)
-scripts/        # Verification and validation shell scripts
-docs/           # Templates, reports, and specs
-```
-
-## Using as a template
-
-This repo is designed to be copied into other projects. The scripts auto-detect your package manager (`bun`, `npm`, `pnpm`, `yarn`) and the rules are generic enough to apply to any codebase.
-
-## License
-
-[MIT](LICENSE)
+See [docs/env-vars.md](docs/env-vars.md) for the full reference.

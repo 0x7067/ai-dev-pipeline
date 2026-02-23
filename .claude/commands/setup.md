@@ -29,6 +29,9 @@ Copy the following from `${CLAUDE_PLUGIN_ROOT}` into the project, skipping any f
 3. **Report templates** (`docs/templates/`):
    - All `.md` files from the plugin's `docs/templates/` directory.
 
+3a. **Verification artifacts** (`docs/verification/`):
+   - `acceptance-checklist.md` — create with the heading `# Acceptance Checklist` and a single placeholder item `- [ ] All verification gates passed.`
+
 4. **CI workflow** (`.github/workflows/smoke.yml`) — **optional, ask the user first**.
    Only scaffold this file if the user explicitly opts in. Many projects already have their own CI pipelines, and the smoke gate can be integrated into an existing workflow by adding `bash scripts/smoke-bootstrap.sh` as a step.
 

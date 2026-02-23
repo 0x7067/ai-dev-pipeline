@@ -29,6 +29,7 @@ collect_name_fields() {
   local path_glob="$1"
 
   if has_rg; then
+    # shellcheck disable=SC2086  # $path_glob is intentional glob expansion
     rg --no-filename '^name:' $path_glob 2>/dev/null |
       sed 's/^name:[[:space:]]*//' |
       tr -d '"' |
@@ -36,6 +37,7 @@ collect_name_fields() {
       awk 'NF' |
       sort -u
   else
+    # shellcheck disable=SC2086  # $path_glob is intentional glob expansion
     grep -h -E '^name:' $path_glob 2>/dev/null |
       sed 's/^name:[[:space:]]*//' |
       tr -d '"' |
@@ -43,17 +45,6 @@ collect_name_fields() {
       awk 'NF' |
       sort -u
   fi
-}
-
-load_names() {
-  local target_array_name="$1"
-  local path_glob="$2"
-  local line
-
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    eval "$target_array_name+=(\"\$line\")"
-  done < <(collect_name_fields "$path_glob")
 }
 
 has_skill() {
@@ -92,8 +83,15 @@ if [ ! -d .claude/commands ]; then
   fail "missing .claude/commands"
 fi
 
-load_names skill_names ".claude/skills/*/SKILL.md"
-load_names agent_names ".claude/agents/*.md"
+while IFS= read -r _line; do
+  [ -n "$_line" ] || continue
+  skill_names+=("$_line")
+done < <(collect_name_fields ".claude/skills/*/SKILL.md")
+
+while IFS= read -r _line; do
+  [ -n "$_line" ] || continue
+  agent_names+=("$_line")
+done < <(collect_name_fields ".claude/agents/*.md")
 
 if [ "${#skill_names[@]}" -eq 0 ]; then
   fail "no skills discovered"

@@ -12,6 +12,7 @@
     "./.claude/agents/implementer.md",
     "./.claude/agents/researcher.md",
     "./.claude/agents/reviewer.md",
+    "./.claude/agents/auditor.md",
     "./.claude/agents/tester.md",
     "./.claude/agents/verifier.md"
   ],

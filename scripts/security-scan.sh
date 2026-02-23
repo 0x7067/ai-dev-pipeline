@@ -11,15 +11,17 @@ require_scan="${SECURITY_SCAN_REQUIRED:-0}"
 # Node.js: npm audit / pnpm audit / yarn audit / bun audit
 if [ -f package.json ]; then
   if command -v bun >/dev/null 2>&1 && [ -f bun.lockb ]; then
+    # bun audit is not yet available (bun does not implement `bun audit` as of the time of writing).
+    # Re-evaluate when bun adds native audit support: https://github.com/oven-sh/bun/issues/7440
     echo "security-scan: skipped (bun audit not yet supported)"
   elif command -v npm >/dev/null 2>&1 && [ -f package-lock.json ]; then
-    run npm audit --omit=dev
+    run npm audit --omit=dev --audit-level=high
     exit $?
   elif command -v pnpm >/dev/null 2>&1 && [ -f pnpm-lock.yaml ]; then
-    run pnpm audit --prod
+    run pnpm audit --prod --audit-level high
     exit $?
   elif command -v yarn >/dev/null 2>&1 && [ -f yarn.lock ]; then
-    run yarn audit --groups dependencies
+    run yarn audit --level high --groups dependencies
     exit $?
   fi
 fi
