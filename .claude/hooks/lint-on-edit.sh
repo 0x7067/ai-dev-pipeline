@@ -74,6 +74,18 @@ has_package_script() {
   has_file_pattern "\"${script_name}\"[[:space:]]*:" package.json
 }
 
+detect_pkg_manager() {
+  # Prefer lockfile — reflects what the project actually uses
+  if [ -f bun.lockb ] || [ -f bun.lock ]; then echo bun; return; fi
+  if [ -f pnpm-lock.yaml ]; then echo pnpm; return; fi
+  if [ -f yarn.lock ]; then echo yarn; return; fi
+  if [ -f package-lock.json ]; then echo npm; return; fi
+  # No lockfile — fall back to first available binary
+  for _pm in bun pnpm yarn npm; do
+    command -v "$_pm" >/dev/null 2>&1 && { echo "$_pm"; return; }
+  done
+}
+
 if has_package_script "lint"; then
   if [ "$fast_mode" = "1" ] && [ -n "$changed_files_list" ]; then
     if ! has_changed_ext '\.(js|jsx|ts|tsx|mjs|cjs|vue|svelte)$'; then
@@ -82,23 +94,9 @@ if has_package_script "lint"; then
     fi
   fi
 
-  if command -v bun >/dev/null 2>&1; then
-    run bun run -s lint
-    exit $?
-  fi
-
-  if command -v npm >/dev/null 2>&1; then
-    run npm run -s lint
-    exit $?
-  fi
-
-  if command -v pnpm >/dev/null 2>&1; then
-    run pnpm -s lint
-    exit $?
-  fi
-
-  if command -v yarn >/dev/null 2>&1; then
-    run yarn -s lint
+  _pm="$(detect_pkg_manager)"
+  if [ -n "$_pm" ]; then
+    run "$_pm" run --silent lint
     exit $?
   fi
 
