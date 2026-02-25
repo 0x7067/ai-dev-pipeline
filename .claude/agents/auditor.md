@@ -19,6 +19,7 @@ Replace all placeholder text in brackets with your actual findings. Omit section
 
 ## Constraints
 
+- If `docs/templates/audit-report-template.md` does not exist, abort immediately: print `auditor: ERROR: docs/templates/audit-report-template.md not found. Is this a complete ai-dev-pipeline install?` to stderr and exit without writing `docs/audit-report.md`.
 - Do not assume a specific programming language or framework unless the code clearly indicates one.
 - Do not propose large rewrites.
 - Do not generate code.

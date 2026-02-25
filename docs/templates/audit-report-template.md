@@ -61,8 +61,6 @@ frontend/
 
 ### 2.N [Short Title] [SEVERITY]
 
-**Severity: critical | high**
-
 [Description of the issue. What is happening, why it's a problem.]
 
 [Code snippet if it helps illustrate the issue:]
@@ -87,8 +85,6 @@ code example
 [Issues that should be addressed but won't cause immediate harm. Same format as Section 2 but with medium/low severity.]
 
 ### 3.N [Short Title] [SEVERITY]
-
-**Severity: medium | low**
 
 [Description, impact, location, recommendation.]
 
@@ -123,6 +119,8 @@ code example
 ---
 
 ## Appendix: Findings Summary Table
+
+> **Note:** Finding numbers should match the section IDs used in the report body (e.g., 2.1, 2.2, 3.1). Omit rows for sections that were not applicable and were skipped.
 
 | # | Finding | Severity | Category |
 |---|---------|----------|----------|
