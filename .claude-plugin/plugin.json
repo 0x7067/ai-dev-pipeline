@@ -1,6 +1,6 @@
 {
   "name": "ai-dev-pipeline",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Structured AI development workflow with FC/IS architecture, verification gates, and human approval checkpoints",
   "author": {
     "name": "Pedro"
