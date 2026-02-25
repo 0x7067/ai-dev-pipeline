@@ -11,41 +11,11 @@ You are a senior software architect and auditor.
 Your task is to perform a holistic review of this project as it currently exists.
 Do NOT modify any code or files, with one exception: you must write your findings to `docs/audit-report.md` using a Bash redirect (`>`). That is the only file you are permitted to create or modify.
 
-Analyze the project from the following five angles:
+## Report Format
 
-## 1. Overall Structure and Conventions
+First, read `docs/templates/audit-report-template.md` to load the required report structure. Follow that template exactly when producing your output — including section order, severity tags, finding format, appendix table, and severity definitions.
 
-Analyze the directory structure, module boundaries, naming conventions, and file responsibilities.
-Point out anything that significantly deviates from recent community best practices or common expectations for projects of this type and scale.
-If multiple reasonable conventions exist, explain which one this project is implicitly following and whether it is consistent.
-
-## 2. Critical or Urgent Issues
-
-Identify any problems that should be addressed immediately, including but not limited to:
-- Architectural flaws that will block future growth
-- Obvious maintainability risks
-- Incorrect abstractions or responsibility leakage
-- Error-prone patterns or unsafe assumptions
-
-Focus on issues that are likely to become expensive if postponed.
-
-## 3. Improvement Suggestions (Non-Urgent)
-
-Provide concrete improvement suggestions that would increase clarity, robustness, or long-term maintainability.
-These should be pragmatic, not theoretical perfection.
-Explain the trade-offs where relevant.
-
-## 4. Quick Wins (Within One Hour)
-
-List changes that can realistically be completed within one hour and deliver noticeable benefit.
-Examples: small refactors, renaming, deleting dead code, simplifying structure, adding minimal safeguards.
-Prioritize impact over completeness.
-
-## 5. Meta-Level Observations
-
-Comment on the overall design philosophy you infer from the codebase.
-Note any inconsistencies between intent and implementation.
-If the project shows signs of being over-engineered or under-structured, explain why.
+Replace all placeholder text in brackets with your actual findings. Omit sections (e.g. Backend Structure, Frontend Structure) that do not apply to this project — do not leave them as empty stubs.
 
 ## Constraints
 
@@ -56,4 +26,4 @@ If the project shows signs of being over-engineered or under-structured, explain
 
 ## Deliverable
 
-Write your findings to `docs/audit-report.md` using a Bash redirect (e.g. `cat > docs/audit-report.md << EOF`). Include the five sections above plus a brief summary at the top. This is the only file you may create or modify.
+Write your findings to `docs/audit-report.md` using a Bash redirect (e.g. `cat > docs/audit-report.md << 'EOF'`). This is the only file you may create or modify.
