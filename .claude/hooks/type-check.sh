@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Early exit: skip files outside project directory
+_hook_payload="$(cat)"
+_edited_file=""
+if [ -n "$_hook_payload" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    _edited_file="$(printf '%s' "$_hook_payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
+  fi
+fi
+if [ -n "$_edited_file" ]; then
+  case "$_edited_file" in
+    "$PWD"/*) ;;
+    *) echo "type-check: skipped (file outside project)"; exit 0 ;;
+  esac
+fi
+
 run() {
   echo "type-check: $*"
   "$@"
