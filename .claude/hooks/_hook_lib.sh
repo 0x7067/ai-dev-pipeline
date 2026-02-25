@@ -100,6 +100,7 @@ detect_pkg_manager() {
   if [ -f yarn.lock ]; then echo yarn; return; fi
   if [ -f package-lock.json ]; then echo npm; return; fi
   # No lockfile — fall back to first available binary
+  local _pm
   for _pm in bun pnpm yarn npm; do
     command -v "$_pm" >/dev/null 2>&1 && { echo "$_pm"; return; }
   done

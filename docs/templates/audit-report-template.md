@@ -12,7 +12,7 @@
 
 ## 1. Overall Structure and Conventions
 
-### Project Layout
+### Project Layout [INFO]
 
 [Describe the repo structure. Monorepo or single app? What are the top-level directories and what do they contain?]
 
@@ -21,11 +21,9 @@
 ├── ...
 ```
 
-**Severity: info**
-
 [Commentary on whether the structure follows conventions and any deviations worth noting.]
 
-### Backend Structure
+### Backend Structure [INFO]
 
 [Describe the backend organization pattern. Module-per-feature? Layered? How are shared utilities organized?]
 
@@ -34,9 +32,7 @@ backend/
 ├── ...
 ```
 
-**Severity: info**
-
-### Frontend Structure
+### Frontend Structure [INFO]
 
 [Describe the frontend organization. App Router vs Pages? Component organization? State management approach?]
 
@@ -45,11 +41,7 @@ frontend/
 ├── ...
 ```
 
-**Severity: info**
-
-### Naming Conventions
-
-**Severity: low | medium**
+### Naming Conventions [LOW | MEDIUM]
 
 [Note any inconsistencies in naming: route prefixes, file naming, variable conventions, etc. Include specific locations.]
 
