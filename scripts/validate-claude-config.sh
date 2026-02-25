@@ -17,5 +17,6 @@ echo "validate: settings.json is valid JSON"
 
 bash scripts/check-crossrefs.sh
 bash scripts/check-boundary-violations.sh
+bash scripts/check-plugin-version-sync.sh
 
 echo "validate: OK"
