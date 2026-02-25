@@ -37,6 +37,7 @@
 - `docs/verify-report.md`
 - `docs/review-report.md`
 - `docs/refactor-report.md`
+- `docs/audit-report.md`
 - `docs/templates/workflow-assessment-report-template.md`
 
 ## Reuse Guidance
