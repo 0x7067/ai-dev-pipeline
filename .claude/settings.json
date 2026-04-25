@@ -9,6 +9,15 @@
             "command": "bash .claude/hooks/protect-files.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-gate.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -22,6 +31,15 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/lint-on-edit.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-state-update.sh"
           }
         ]
       }

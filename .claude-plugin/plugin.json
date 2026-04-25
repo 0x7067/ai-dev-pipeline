@@ -28,6 +28,15 @@
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/protect-files.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/workflow-gate.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -41,6 +50,15 @@
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/lint-on-edit.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/.claude/hooks/workflow-state-update.sh"
           }
         ]
       }

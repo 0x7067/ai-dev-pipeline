@@ -31,6 +31,28 @@ Install via the Claude Code plugin system, then run `/setup` in any project to s
 
 Use `/cycle` to orchestrate all phases, or `/autopilot` to include optional research with approval gates at risk checkpoints.
 
+## Multi-Language Support
+
+Examples are provided for four languages, each demonstrating FC/IS layers, boundary parsing, error handling, property-based tests, contract tests, end-to-end scenarios, and anti-patterns:
+
+| Language | Directory |
+|---|---|
+| Python | `examples/python/` |
+| Go | `examples/go/` |
+| Rust | `examples/rust/` |
+| TypeScript | `examples/typescript/` |
+
+All examples are stdlib-only and self-contained. The boundary check script (`scripts/check-boundary-violations.sh`) auto-detects project language from markers (`pyproject.toml`, `go.mod`, `Cargo.toml`, `package.json`) and applies the appropriate ingress regex.
+
+## Workflow Enforcement
+
+Workflow phase prerequisites are enforced by hook-based gates. Running `/implement` before `/plan` is blocked, `/review` and `/test` require `/implement`, and `/verify` requires `/test`.
+
+- State is tracked in `.claude/workflow-state.json` (gitignored)
+- Use `/reset` to clear all phase completions and start a new task
+- Set `WORKFLOW_GATES_SKIP=1` to bypass all checks
+- `/cycle` and `/autopilot` orchestrate internally and are not gated
+
 ## Environment Variables
 
 See [docs/env-vars.md](docs/env-vars.md) for the full reference.

@@ -18,6 +18,15 @@ Copy the following from `${CLAUDE_PLUGIN_ROOT}` into the project, skipping any f
    - `validate-claude-config.sh`
    Mark all as executable (`chmod +x`).
 
+1a. **Workflow hooks** (`.claude/hooks/`):
+   - `workflow-gate.sh`
+   - `workflow-state-update.sh`
+   Mark as executable (`chmod +x`).
+
+1b. **Workflow state** (`.claude/workflow-state.json`):
+   - Create the initial workflow state file with all phases set to `false`.
+   - Ensure `.claude/workflow-state.json` is in `.gitignore`.
+
 2. **Rules** (`.claude/rules/`):
    - `code-style.md`
    - `architecture-fcis.md`

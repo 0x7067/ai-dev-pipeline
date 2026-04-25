@@ -17,3 +17,10 @@ Adopt high-ROI formal rigor without heavy proof tooling.
 ## Scope for v1
 - Mandatory: property-based + contract tests.
 - Optional (v2+): model checking for high-risk protocols.
+
+## Language Examples
+
+- Python: `@examples/python/property_tests.py`, `@examples/python/contract_tests.py`, `@examples/python/anti_patterns.py`
+- Go: `@examples/go/property_tests_test.go`, `@examples/go/contract_tests_test.go`, `@examples/go/anti_patterns.go`
+- Rust: `@examples/rust/property_tests.rs`, `@examples/rust/contract_tests.rs`, `@examples/rust/anti_patterns.rs`
+- TypeScript: `@examples/typescript/property-tests.ts`, `@examples/typescript/contract-tests.ts`, `@examples/typescript/anti-patterns.ts`

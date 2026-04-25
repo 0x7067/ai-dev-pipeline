@@ -11,6 +11,9 @@ Thumbs.db
 # Local overrides (personal settings, not committed)
 CLAUDE.local.md
 
+# Workflow state (per-session, not committed)
+.claude/workflow-state.json
+
 # Node
 node_modules/
 npm-debug.log*

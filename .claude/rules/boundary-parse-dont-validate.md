@@ -19,3 +19,10 @@ All external data must be parsed into trusted domain types before use in core lo
 
 ## Reference
 - https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/
+
+## Language Examples
+
+- Python: `@examples/python/boundary_parsing.py`, `@examples/python/error_handling.py`
+- Go: `@examples/go/boundary_parsing.go`, `@examples/go/error_handling.go`
+- Rust: `@examples/rust/boundary_parsing.rs`, `@examples/rust/error_handling.rs`
+- TypeScript: `@examples/typescript/boundary-parsing.ts`, `@examples/typescript/error-handling.ts`
