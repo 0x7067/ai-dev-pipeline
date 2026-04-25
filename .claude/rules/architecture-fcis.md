@@ -17,3 +17,10 @@ Separate business logic from side effects to improve correctness and reuse.
 ## Verification Expectations
 - Core logic must be unit/property testable in isolation.
 - Shell is validated mostly through integration tests.
+
+## Language Examples
+
+- Python: `@examples/python/fcis_layers.py`, `@examples/python/end_to_end_scenario.py`
+- Go: `@examples/go/fcis_layers.go`, `@examples/go/end_to_end_scenario.go`
+- Rust: `@examples/rust/fcis_layers.rs`, `@examples/rust/end_to_end_scenario.rs`
+- TypeScript: `@examples/typescript/fcis-layers.ts`, `@examples/typescript/end-to-end-scenario.ts`

@@ -16,9 +16,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
+detect_language_regex() {
+  if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
+    echo 'os\.environ|json\.load\(|request\.(json|form|args)'
+  elif [ -f go.mod ]; then
+    echo 'os\.Getenv|json\.Unmarshal|r\.FormValue'
+  elif [ -f Cargo.toml ]; then
+    echo 'std::env::var|serde_json::from_str'
+  elif [ -f package.json ] || [ -f tsconfig.json ]; then
+    echo 'process\.env|JSON\.parse\(|req\.body|localStorage\.getItem\('
+  else
+    echo 'process\.env|JSON\.parse\(|req\.body|localStorage\.getItem\('
+  fi
+}
+
 strict_mode="${BOUNDARY_CHECK_STRICT:-0}"
 src_dirs_raw="${BOUNDARY_SRC_DIRS:-src}"
-ingress_regex="${BOUNDARY_INGRESS_REGEX:-process\.env|JSON\.parse\(|req\.body|localStorage\.getItem\(}"
+ingress_regex="${BOUNDARY_INGRESS_REGEX:-$(detect_language_regex)}"
 core_glob="${BOUNDARY_CORE_GLOB:-**/core/**}"
 domain_glob="${BOUNDARY_DOMAIN_GLOB:-**/domain/**}"
 

@@ -42,3 +42,10 @@ All scripts respect these environment variables for project-specific customizati
 | Variable | Default | Description |
 |---|---|---|
 | `SECURITY_SCAN_REQUIRED` | `0` | Set to `1` to fail if no supported security scanner is found |
+
+## Workflow gates
+
+| Variable | Default | Description |
+|---|---|---|
+| `WORKFLOW_GATES_SKIP` | `0` | Set to `1` to bypass workflow phase prerequisite checks |
+| `WORKFLOW_STATE_PATH` | `.claude/workflow-state.json` | Override path for the workflow state file |

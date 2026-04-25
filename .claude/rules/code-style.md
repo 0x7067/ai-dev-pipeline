@@ -14,3 +14,10 @@ Applies to all generated or modified code and scripts.
 - Keep project-specific values configurable.
 - Avoid hardcoded absolute paths.
 - Prefer shell scripts with graceful tool detection for cross-project reuse.
+
+## Language Examples
+
+- Python: `@examples/python/anti_patterns.py`
+- Go: `@examples/go/anti_patterns.go`
+- Rust: `@examples/rust/anti_patterns.rs`
+- TypeScript: `@examples/typescript/anti-patterns.ts`
