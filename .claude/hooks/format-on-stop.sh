@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck disable=SC2034
 HOOK_NAME="format-on-stop"
+# shellcheck source=_hook_lib.sh
 source "$(dirname "$0")/_hook_lib.sh"
 
 if has_package_script "format"; then

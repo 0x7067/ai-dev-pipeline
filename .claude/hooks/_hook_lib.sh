@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared utilities for Claude Code PostToolUse hooks.
 # Usage: set HOOK_NAME before sourcing this file.
 #   HOOK_NAME="lint-on-edit"

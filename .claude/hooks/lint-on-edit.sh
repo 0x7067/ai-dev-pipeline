@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154
 set -euo pipefail
 
+# shellcheck disable=SC2034
 HOOK_NAME="lint-on-edit"
 # shellcheck source=_hook_lib.sh
 source "$(dirname "$0")/_hook_lib.sh"

@@ -164,6 +164,7 @@ check_verify_report() {
 
   require_pattern "$file" '^- Risk tier:[[:space:]]+[^[:space:]]' 'Risk tier'
   require_pattern "$file" '^1\. Plan approved:[[:space:]]+[^[:space:]]' 'Plan approved'
+  # shellcheck disable=SC2016
   require_pattern "$file" '^2\. Elevated-risk implementation approved \(required for `medium` and `high` risk\):[[:space:]]+[^[:space:]]' 'Elevated-risk implementation approved'
   require_pattern "$file" '^3\. Release approved:[[:space:]]+[^[:space:]]' 'Release approved'
 
@@ -195,6 +196,7 @@ check_verify_report() {
   risk_tier="$(sed -n 's/^- Risk tier:[[:space:]]*//p' "$file" | head -n1)"
   risk_tier="$(normalize_value "$risk_tier")"
   plan_approval="$(sed -n 's/^1\. Plan approved:[[:space:]]*//p' "$file" | head -n1)"
+  # shellcheck disable=SC2016
   elevated_risk_approval="$(sed -n 's/^2\. Elevated-risk implementation approved (required for `medium` and `high` risk):[[:space:]]*//p' "$file" | head -n1)"
   release_approval="$(sed -n 's/^3\. Release approved:[[:space:]]*//p' "$file" | head -n1)"
 

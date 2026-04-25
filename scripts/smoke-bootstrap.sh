@@ -28,6 +28,7 @@ run_check "validate_claude_config" bash scripts/validate-claude-config.sh
 run_check "report_quality" bash scripts/check-report-quality.sh
 run_check "workflow_artifacts" bash scripts/check-workflow-artifacts.sh
 
+# shellcheck disable=SC2016
 run_check "hooks_executable" bash -c '
   set -euo pipefail
   for f in \
@@ -39,6 +40,7 @@ run_check "hooks_executable" bash -c '
   done
 '
 
+# shellcheck disable=SC2016
 run_check "required_bootstrap_files" bash -c '
   set -euo pipefail
   for f in \
