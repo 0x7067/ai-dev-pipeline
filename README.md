@@ -53,6 +53,20 @@ Workflow phase prerequisites are enforced by hook-based gates. Running `/impleme
 - Set `WORKFLOW_GATES_SKIP=1` to bypass all checks
 - `/cycle` and `/autopilot` orchestrate internally and are not gated
 
+## Proactive Invocation
+
+Pipeline skills auto-engage based on intent — describing a bug, feature, review, refactor, or release triggers the matching skill before any other response. The `SessionStart` hook (`.claude/hooks/session-start.sh`) loads the `using-pipeline` meta-skill at session start, which carries the intent → skill mapping. Explicit slash commands (`/plan`, `/implement`, etc.) remain available and behave identically.
+
+## CI / GitHub Actions
+
+Three workflows ship in `.github/workflows/`:
+
+| Workflow | Purpose |
+|---|---|
+| `claude.yml` | Responds to `@claude` mentions in issues and PRs to perform on-demand tasks |
+| `claude-code-review.yml` | Automated Claude code review on opened/updated pull requests |
+| `shellcheck.yml` | Runs ShellCheck across the repo on pull requests and pushes to `main` |
+
 ## Environment Variables
 
 See [docs/env-vars.md](docs/env-vars.md) for the full reference.

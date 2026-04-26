@@ -24,7 +24,7 @@ When the user describes a coding intent — fixing a bug, adding a feature, revi
 ## Reuse Contract
 - Keep tooling detection dynamic: scripts should auto-detect `bun`, `npm`, `pnpm`, `yarn`, or project-native commands.
 - Keep policies centralized in `.claude/rules/`.
-- Keep agent/skill wiring validated by `scripts/validate-claude-config.sh`.
+- Keep agent/skill wiring validated by `scripts/validate-claude-config.sh`, which also runs `scripts/check-plugin-version-sync.sh` to keep `plugin.json` and `.claude-plugin/plugin.json` versions in sync.
 - Treat this folder as a template that can be copied into new projects.
 - Reuse report and assessment templates from `docs/templates/` for consistent outputs.
 
