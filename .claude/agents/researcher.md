@@ -1,6 +1,6 @@
 ---
 name: researcher
-description: Use PROACTIVELY before planning when requirements are unclear, the change is high-risk, or external evidence is needed. Produces a sourced research note.
+description: Use PROACTIVELY when the user says "research", "investigate", "look into", "what does X do", "I'm not sure how Y works", or when requirements are vague, the area is unfamiliar, or the change is high-risk and needs external evidence — before planning. Produces a sourced research note.
 tools: 'Read, Glob, Grep, Write'
 disallowedTools: 'Edit, Bash'
 maxTurns: 20

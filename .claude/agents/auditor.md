@@ -1,6 +1,6 @@
 ---
 name: auditor
-description: Holistic project audit — structure, conventions, critical issues, quick wins, and design philosophy. Use before major architectural decisions or periodically to assess overall project health. Does not review individual code changes; use the reviewer agent for that.
+description: Use when the user asks for a project-wide audit, health check, or architectural assessment — phrases like "audit this repo", "what's the overall state", "health check", "tech debt review", "before we redesign…". Covers structure, conventions, critical issues, quick wins, and design philosophy. Does not review individual code changes; use the reviewer agent for that.
 tools: 'Read, Glob, Grep, Bash'
 disallowedTools: 'Write, Edit'
 maxTurns: 30

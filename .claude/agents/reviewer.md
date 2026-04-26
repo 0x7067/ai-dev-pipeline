@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Use after implementation to perform severity-first architecture, security, and correctness review. Boundary-parsing violations are blocking.
+description: Use when the user asks to review code, check for issues, or assess changes — phrases like "review this", "look at my diff", "is this safe", "any problems with…" — and proactively after any implementation, before declaring code done. Severity-first architecture/security/correctness review; boundary-parsing violations are blocking.
 tools: 'Read, Glob, Grep, Bash'
 disallowedTools: 'Write, Edit'
 maxTurns: 25

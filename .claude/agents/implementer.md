@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Use after `/plan` approval to apply the planned changes following FC/IS and parse-at-boundary. Writes code and an implementation summary.
+description: Use when an approved plan exists and the user is ready to write the code — phrases like "implement this", "build it", "let's do it", "go ahead", "write the code". Requires a prior plan; if none exists, plan first. Writes code following FC/IS and parse-at-boundary, and produces an implementation summary.
 tools: 'Read, Write, Edit, Bash, Glob, Grep'
 maxTurns: 40
 skills: 'fcis-architecture'

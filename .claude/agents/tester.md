@@ -1,6 +1,6 @@
 ---
 name: tester
-description: Use after implementation to add property-based and contract tests, then run the full suite. Generates new tests; does not run gate checks.
+description: Use when the user asks for tests or coverage — phrases like "add tests", "write tests for…", "needs property tests", "test the parser", "improve coverage" — and proactively after implementing code that lacks tests, before declaring it done. Generates property-based and contract tests, then runs the suite; does not run gate checks.
 tools: 'Read, Write, Edit, Bash, Glob, Grep'
 maxTurns: 30
 skills: 'test-gen, fcis-architecture'

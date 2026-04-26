@@ -18,6 +18,9 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 5. `/verify`
 6. `/cycle` (orchestrates all phases)
 
+## Proactive Invocation
+When the user describes a coding intent — fixing a bug, adding a feature, reviewing, refactoring, shipping — Claude must invoke the matching pipeline skill, command, or agent **proactively**, before producing any other response, rather than waiting for an explicit slash command. The `using-pipeline` meta-skill (`.claude/skills/using-pipeline/SKILL.md`) is the source of truth for intent → skill mapping and the anti-rationalization rules; it is auto-loaded at session start by the `SessionStart` hook in `.claude/hooks/session-start.sh`.
+
 ## Reuse Contract
 - Keep tooling detection dynamic: scripts should auto-detect `bun`, `npm`, `pnpm`, `yarn`, or project-native commands.
 - Keep policies centralized in `.claude/rules/`.

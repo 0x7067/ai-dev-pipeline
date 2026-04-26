@@ -1,6 +1,6 @@
 ---
 name: static-analysis
-description: Run deterministic verification checks and produce a blocking/advisory summary. Use when verifying code quality gates, running lint and type checks, or producing a go/no-go decision.
+description: Use when the user asks to verify, ship, release, merge, or finalize code — phrases like "is this ready to ship", "verify this", "ready to merge", "run the gates", "is this done" — and after implementation to produce a go/no-go decision via type checks, lint, security scan, and the canonical gate runner.
 ---
 
 # Static Analysis
