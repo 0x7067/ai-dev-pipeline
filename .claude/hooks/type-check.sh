@@ -17,8 +17,7 @@ if has_package_script "typecheck"; then
 
   _pm="$(detect_pkg_manager)"
   if [ -n "$_pm" ]; then
-    run "$_pm" run --silent typecheck
-    exit $?
+    run_advisory "$_pm" run --silent typecheck
   fi
 
   echo "type-check: ERROR: package.json has typecheck script but no supported package manager found"
@@ -30,8 +29,7 @@ if command -v tsc >/dev/null 2>&1 && [ -f tsconfig.json ]; then
     echo "type-check: skipped (no TypeScript changes)"
     exit 0
   fi
-  run tsc --noEmit
-  exit $?
+  run_advisory tsc --noEmit
 fi
 
 # Rust
@@ -40,8 +38,7 @@ if [ -f Cargo.toml ] && command -v cargo >/dev/null 2>&1; then
     echo "type-check: skipped (no Rust changes)"
     exit 0
   fi
-  run cargo check
-  exit $?
+  run_advisory cargo check
 fi
 
 # Python
@@ -52,14 +49,12 @@ if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
         _py_files=()
         while IFS= read -r _f; do _py_files+=("$_f"); done \
           < <(printf '%s\n' "$changed_files_list" | filter_changed_files '\.py$')
-        run mypy "${_py_files[@]}"
-        exit $?
+        run_advisory mypy "${_py_files[@]}"
       fi
       echo "type-check: skipped (no Python changes)"
       exit 0
     fi
-    run mypy .
-    exit $?
+    run_advisory mypy .
   fi
 fi
 
@@ -69,8 +64,7 @@ if [ -f go.mod ] && command -v go >/dev/null 2>&1; then
     echo "type-check: skipped (no Go changes)"
     exit 0
   fi
-  run go vet ./...
-  exit $?
+  run_advisory go vet ./...
 fi
 
 echo "type-check: skipped (no supported typecheck command found)"

@@ -26,6 +26,20 @@ run() {
   "$@"
 }
 
+# Run a tool advisorily: capture combined output; on failure emit to stderr
+# and exit 1 (non-blocking). Never exit 2 (which Claude treats as blocking).
+run_advisory() {
+  echo "${HOOK_NAME}: $*"
+  local _out _rc
+  _out="$("$@" 2>&1)" && _rc=0 || _rc=$?
+  if [ "$_rc" -ne 0 ]; then
+    printf '%s\n' "$_out" >&2
+    echo "${HOOK_NAME}: command failed (exit $_rc) — reported as advisory" >&2
+    exit 1
+  fi
+  exit 0
+}
+
 has_rg() {
   command -v rg >/dev/null 2>&1
 }
