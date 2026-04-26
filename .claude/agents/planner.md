@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Use when the user asks to plan a feature, bug fix, or refactor before implementation. Produces an FC/IS-classified plan with risk tier and approval checkpoints.
+description: Use when the user wants to plan, design, scope, or break down a feature, bug fix, or refactor — phrases like "plan this", "how should we approach…", "what's the design for…", "let's add X", "let's build…". Required before any non-trivial code change. Produces an FC/IS-classified plan with risk tier and approval checkpoints.
 tools: 'Read, Glob, Grep, Write'
 maxTurns: 20
 skills: 'requirement-analysis, fcis-architecture'

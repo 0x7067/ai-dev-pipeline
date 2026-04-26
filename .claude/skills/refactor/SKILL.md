@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Refactor code without behavior change — with pre/post verification gates and human approval. Use when restructuring, renaming, extracting, or moving code while preserving all existing behavior.
+description: Use when the user says "refactor", "clean up", "restructure", "extract", "rename", "split this up", "tidy up", "this is messy", or otherwise asks to change code shape without changing behavior. Engages pre/post verification gates and human approval before finalizing.
 ---
 
 # Refactor

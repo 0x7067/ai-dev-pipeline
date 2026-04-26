@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Perform severity-first code review with FC/IS, security, and correctness lenses. Use when reviewing code changes, assessing architecture compliance, or checking for security issues.
+description: Use when the user asks to review, check, look at, audit, or assess code — phrases like "review this", "is this OK", "does this look right", "check my changes" — and proactively after any non-trivial implementation, before reporting code as done. Severity-first FC/IS, security, and correctness lenses.
 ---
 
 # Code Review

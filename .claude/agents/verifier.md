@@ -1,6 +1,6 @@
 ---
 name: verifier
-description: Use as the final gate before merge/release to run deterministic checks and produce a go/no-go decision. Runs gates; does not generate new tests.
+description: Use when the user asks "is this ready to ship", "ready to merge", "verify this", "are we done", or before any release — to run the canonical gate sequence (type, lint, security, tests) and produce a go/no-go decision. Runs gates only; does not generate new tests.
 tools: 'Read, Bash, Glob, Grep'
 disallowedTools: 'Write, Edit'
 maxTurns: 20
