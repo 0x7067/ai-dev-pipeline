@@ -17,8 +17,7 @@ if has_package_script "lint"; then
 
   _pm="$(detect_pkg_manager)"
   if [ -n "$_pm" ]; then
-    run "$_pm" run --silent lint
-    exit $?
+    run_advisory "$_pm" run --silent lint
   fi
 
   echo "lint-on-edit: ERROR: package.json has lint script but no supported package manager found"
@@ -31,8 +30,7 @@ if [ -f Cargo.toml ] && command -v cargo-clippy >/dev/null 2>&1; then
     echo "lint-on-edit: skipped (no Rust changes)"
     exit 0
   fi
-  run cargo clippy -- -D warnings
-  exit $?
+  run_advisory cargo clippy -- -D warnings
 fi
 
 # Python
@@ -43,14 +41,12 @@ if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ]; then
         _py_files=()
         while IFS= read -r _f; do _py_files+=("$_f"); done \
           < <(printf '%s\n' "$changed_files_list" | filter_changed_files '\.py$')
-        run ruff check "${_py_files[@]}"
-        exit $?
+        run_advisory ruff check "${_py_files[@]}"
       fi
       echo "lint-on-edit: skipped (no Python changes)"
       exit 0
     fi
-    run ruff check .
-    exit $?
+    run_advisory ruff check .
   fi
 fi
 
@@ -60,8 +56,7 @@ if [ -f go.mod ] && command -v golangci-lint >/dev/null 2>&1; then
     echo "lint-on-edit: skipped (no Go changes)"
     exit 0
   fi
-  run golangci-lint run
-  exit $?
+  run_advisory golangci-lint run
 fi
 
 echo "lint-on-edit: skipped (no supported lint command found)"
