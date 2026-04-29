@@ -49,7 +49,8 @@ INIT
 fi
 
 if command -v jq >/dev/null 2>&1; then
-  tmp="$(mktemp)"
+  tmp="$(mktemp -t workflow-state.XXXXXX)"
+  trap 'rm -f "$tmp"' EXIT
   jq --arg phase "$phase" '.phases[$phase].completed = true' "$state_file" > "$tmp" && mv "$tmp" "$state_file"
   echo "workflow-state: marked '$phase' as completed"
 else

@@ -109,14 +109,26 @@ has_package_script() {
 }
 
 detect_pkg_manager() {
-  # Prefer lockfile — reflects what the project actually uses
-  if [ -f bun.lockb ] || [ -f bun.lock ]; then echo bun; return; fi
-  if [ -f pnpm-lock.yaml ]; then echo pnpm; return; fi
-  if [ -f yarn.lock ]; then echo yarn; return; fi
-  if [ -f package-lock.json ]; then echo npm; return; fi
-  # No lockfile — fall back to first available binary
+  # Prefer lockfile — reflects what the project actually uses.
+  # Only echo if the corresponding binary is available; otherwise fall through.
+  if { [ -f bun.lockb ] || [ -f bun.lock ]; } && command -v bun  >/dev/null 2>&1; then echo bun; return; fi
+  if [ -f pnpm-lock.yaml ]                    && command -v pnpm >/dev/null 2>&1; then echo pnpm; return; fi
+  if [ -f yarn.lock ]                         && command -v yarn >/dev/null 2>&1; then echo yarn; return; fi
+  if [ -f package-lock.json ]                 && command -v npm  >/dev/null 2>&1; then echo npm; return; fi
+  # No matching lockfile+binary — fall back to first available binary.
   local _pm
   for _pm in bun pnpm yarn npm; do
     command -v "$_pm" >/dev/null 2>&1 && { echo "$_pm"; return; }
   done
+}
+
+# Detect Python package manager (uv > poetry > pip).
+# Lockfile presence + binary availability required; falls back to pip if any Python project marker exists.
+detect_py_pkg_manager() {
+  if [ -f uv.lock ]      && command -v uv     >/dev/null 2>&1; then echo uv; return; fi
+  if [ -f poetry.lock ]  && command -v poetry >/dev/null 2>&1; then echo poetry; return; fi
+  if { [ -f pyproject.toml ] || [ -f setup.py ] || [ -f setup.cfg ] || [ -f requirements.txt ]; } \
+      && command -v pip >/dev/null 2>&1; then
+    echo pip; return
+  fi
 }

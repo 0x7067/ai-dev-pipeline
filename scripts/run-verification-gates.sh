@@ -162,13 +162,23 @@ run_full_suite() {
       run pytest
       return 0
     fi
+    if [ -d tests ] || [ -d test ]; then
+      if command -v python3 >/dev/null 2>&1; then
+        run python3 -m unittest discover
+        return 0
+      fi
+      if command -v python >/dev/null 2>&1; then
+        run python -m unittest discover
+        return 0
+      fi
+    fi
   fi
 
   echo "verify-gates: Full suite skipped (no configured test runner)"
   return 0
 }
 
-export HOOKS_FAST=0
+export HOOKS_FAST="${HOOKS_FAST:-0}"
 
 run_typecheck
 run_lint
