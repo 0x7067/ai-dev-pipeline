@@ -44,6 +44,9 @@ Copy the following from `${CLAUDE_PLUGIN_ROOT}` into the project, skipping any f
 4. **CI workflow** (`.github/workflows/smoke.yml`) — **optional, ask the user first**.
    Only scaffold this file if the user explicitly opts in. Many projects already have their own CI pipelines, and the smoke gate can be integrated into an existing workflow by adding `bash scripts/smoke-bootstrap.sh` as a step.
 
+4a. **Authoritative verify workflow** (`.github/workflows/verify.yml`) — **optional, ask the user first**.
+   Copy `${CLAUDE_PLUGIN_ROOT}/templates/ci/github-actions-verify.yml.template` to `.github/workflows/verify.yml`. This implements the authoritative gate from `.claude/rules/release-and-verification.md` (Gate Authority section). Skip if the consuming repo already runs `scripts/run-verification-gates.sh` in its existing CI.
+
 5. **CLAUDE.md** at project root with `@`-references to the rules above. If a CLAUDE.md already exists, ask the user whether to merge or skip.
 
 6. **`.gitignore` additions** — append these lines if not already present:

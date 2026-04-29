@@ -36,3 +36,4 @@ docs/*
 !docs/templates/
 !docs/env-vars.md
 !docs/verification/
+!docs/hook-recipes.md

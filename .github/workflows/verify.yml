@@ -1,0 +1,40 @@
+# Authoritative verify gate per .claude/rules/release-and-verification.md (Gate Authority).
+# Self-hosted: this repo dogfoods its own canonical gate runner.
+name: verify
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Claude config
+        run: bash scripts/validate-claude-config.sh
+
+      - name: Cross-reference check
+        run: bash scripts/check-crossrefs.sh
+
+      - name: Report quality check (lenient — reports may be absent on plugin repo)
+        run: bash scripts/check-report-quality.sh
+
+      - name: Run verification gates
+        env:
+          MAX_VERIFY_RETRIES: '0'
+        run: bash scripts/run-verification-gates.sh
+
+      - name: Upload verify artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-report
+          path: |
+            docs/verify-report.md
+            docs/.verify-retry.json
+          if-no-files-found: ignore

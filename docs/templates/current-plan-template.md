@@ -4,7 +4,13 @@
 
 ## Scope
 
+## Touched Files
+
 ## Non-Goals
+
+## Evidence
+- Official sources:
+- External sources (max 2):
 
 ## Risk Profile
 - Risk tier: `low` | `medium` | `high`
