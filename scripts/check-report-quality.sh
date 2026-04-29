@@ -106,6 +106,8 @@ check_review_report() {
   local file="$1"
 
   require_heading "$file" '## Findings \(Highest Severity First\)'
+  require_heading "$file" '## Blocking Findings \(Tool-Derived\)'
+  require_heading "$file" '## Advisory Findings \(Model\)'
   require_heading "$file" '## Evidence'
   require_heading "$file" '## Residual Risks'
   require_heading "$file" '## Recommendation'
@@ -157,10 +159,14 @@ check_verify_report() {
 
   require_heading "$file" '## Context'
   require_heading "$file" '## Gate Results'
+  require_heading "$file" '## Retry Envelope'
   require_heading "$file" '## Decision'
   require_heading "$file" '## Finding Classification'
   require_heading "$file" '## Human Approval Checkpoints'
   require_heading "$file" '## Residual Risk and Follow-ups'
+
+  require_pattern "$file" '^- Retry count:[[:space:]]+[^[:space:]]' 'Retry count'
+  require_pattern "$file" '^- Final exit codes per gate:[[:space:]]+[^[:space:]]' 'Final exit codes per gate'
 
   require_pattern "$file" '^- Risk tier:[[:space:]]+[^[:space:]]' 'Risk tier'
   require_pattern "$file" '^1\. Plan approved:[[:space:]]+[^[:space:]]' 'Plan approved'

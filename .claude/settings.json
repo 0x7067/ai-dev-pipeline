@@ -18,6 +18,10 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/protect-files.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/plan-gate.sh"
           }
         ]
       },

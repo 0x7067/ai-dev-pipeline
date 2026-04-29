@@ -180,9 +180,43 @@ run_full_suite() {
 
 export HOOKS_FAST="${HOOKS_FAST:-0}"
 
-run_typecheck
-run_lint
-run_security
-run_property
-run_contract
-run_full_suite
+MAX_VERIFY_RETRIES="${MAX_VERIFY_RETRIES:-0}"
+VERIFY_RETRY_HINT_FILE="${VERIFY_RETRY_HINT_FILE:-docs/.verify-retry.json}"
+
+write_retry_hint() {
+  local gate="$1"
+  local exit_code="$2"
+  local attempt="$3"
+  mkdir -p "$(dirname "$VERIFY_RETRY_HINT_FILE")" 2>/dev/null || true
+  printf '{"gate":"%s","exit_code":%s,"attempt":%s}\n' "$gate" "$exit_code" "$attempt" >> "$VERIFY_RETRY_HINT_FILE"
+}
+
+run_gate() {
+  local label="$1"
+  local fn="$2"
+  local attempt=0
+  local rc=0
+  while :; do
+    rc=0
+    "$fn" || rc=$?
+    if [ "$rc" -eq 0 ]; then
+      return 0
+    fi
+    write_retry_hint "$label" "$rc" "$attempt"
+    if [ "$attempt" -ge "$MAX_VERIFY_RETRIES" ]; then
+      return "$rc"
+    fi
+    attempt=$((attempt + 1))
+    echo "verify-gates: ${label} failed (rc=${rc}); retry ${attempt}/${MAX_VERIFY_RETRIES}"
+  done
+}
+
+# Reset hint file on each run
+: > "$VERIFY_RETRY_HINT_FILE" 2>/dev/null || true
+
+run_gate typecheck run_typecheck
+run_gate lint run_lint
+run_gate security run_security
+run_gate property run_property
+run_gate contract run_contract
+run_gate full_suite run_full_suite

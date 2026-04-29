@@ -38,6 +38,9 @@
 - No logic branches added or removed.
 - Diff is structural-only: <file renames / function moves>.
 
+## Behavior-Equivalence Evidence
+- Tool-derived signals confirming no observable behavior change (test exit codes, snapshot diffs, golden outputs):
+
 ## Decision
 - [ ] GO — structural refactor complete, behavior preserved.
 - [ ] NO-GO — blocking finding detected.

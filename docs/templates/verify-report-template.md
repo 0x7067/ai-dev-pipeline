@@ -13,6 +13,11 @@
 5. Contract tests:
 6. Full suite:
 
+## Retry Envelope
+- Retry count:
+- Final exit codes per gate:
+- Hint file: `docs/.verify-retry.json`
+
 ## Decision
 - [ ] Go
 - [ ] No-Go
