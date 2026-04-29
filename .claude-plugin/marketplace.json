@@ -8,7 +8,7 @@
       "name": "ai-dev-pipeline",
       "source": "./",
       "description": "Structured AI development workflow with FC/IS architecture, verification gates, and human approval checkpoints",
-      "version": "0.2.1"
+      "version": "0.2.2"
     }
   ]
 }
