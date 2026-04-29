@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 
 total=0
 passed=0
@@ -12,12 +12,41 @@ run_check() {
   total=$((total + 1))
   echo "==> $name"
 
-  if "$@"; then
+  set +e
+  "$@"
+  local code=$?
+  set -e
+
+  if [ "$code" -eq 0 ]; then
     echo "RESULT|${name}|PASS"
     passed=$((passed + 1))
   else
-    local code=$?
     echo "RESULT|${name}|FAIL|exit_code=${code}"
+    failed=$((failed + 1))
+  fi
+
+  echo
+}
+
+run_check_required_files() {
+  local name="$1"
+  shift
+  total=$((total + 1))
+  echo "==> $name"
+
+  local missing=()
+  local f
+  for f in "$@"; do
+    [ -f "$f" ] || missing+=("$f")
+  done
+
+  if [ "${#missing[@]}" -eq 0 ]; then
+    echo "RESULT|${name}|PASS"
+    passed=$((passed + 1))
+  else
+    local list
+    list="$(IFS=,; echo "${missing[*]}")"
+    echo "RESULT|${name}|FAIL|missing=${list}"
     failed=$((failed + 1))
   fi
 
@@ -40,25 +69,19 @@ run_check "hooks_executable" bash -c '
   done
 '
 
-# shellcheck disable=SC2016
-run_check "required_bootstrap_files" bash -c '
-  set -euo pipefail
-  for f in \
-    CLAUDE.md \
-    .claude/settings.json \
-    scripts/validate-claude-config.sh \
-    scripts/check-report-quality.sh \
-    scripts/check-workflow-artifacts.sh \
-    scripts/check-crossrefs.sh \
-    scripts/check-boundary-violations.sh \
-    scripts/run-verification-gates.sh \
-    docs/verification/acceptance-checklist.md \
-    docs/templates/workflow-assessment-prompt-template.md \
-    docs/templates/workflow-assessment-rubric-template.md \
-    docs/templates/workflow-assessment-report-template.md; do
-    [ -f "$f" ]
-  done
-'
+run_check_required_files "required_bootstrap_files" \
+  CLAUDE.md \
+  .claude/settings.json \
+  scripts/validate-claude-config.sh \
+  scripts/check-report-quality.sh \
+  scripts/check-workflow-artifacts.sh \
+  scripts/check-crossrefs.sh \
+  scripts/check-boundary-violations.sh \
+  scripts/run-verification-gates.sh \
+  docs/verification/acceptance-checklist.md \
+  docs/templates/workflow-assessment-prompt-template.md \
+  docs/templates/workflow-assessment-rubric-template.md \
+  docs/templates/workflow-assessment-report-template.md
 
 echo "SUMMARY|total=${total}|passed=${passed}|failed=${failed}"
 

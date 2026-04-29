@@ -1,6 +1,6 @@
 ---
 name: static-analysis
-description: Use when the user asks to verify, ship, release, merge, or finalize code — phrases like "is this ready to ship", "verify this", "ready to merge", "run the gates", "is this done" — and after implementation to produce a go/no-go decision via type checks, lint, security scan, and the canonical gate runner.
+description: Use when the user asks to verify, ship, release, merge, or finalize code — phrases like "is this ready to ship", "verify this", "ready to merge", "run the gates", "is this done" — and after implementation to produce a go/no-go decision via type checks, lint, security scan, and the canonical gate runner. Produces `docs/verify-report.md`. Requires the implementation phase to be complete; do not invoke standalone for ad-hoc lint or type-check runs.
 ---
 
 # Static Analysis

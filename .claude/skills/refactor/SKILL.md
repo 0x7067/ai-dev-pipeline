@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Use when the user says "refactor", "clean up", "restructure", "extract", "rename", "split this up", "tidy up", "this is messy", or otherwise asks to change code shape without changing behavior. Engages pre/post verification gates and human approval before finalizing.
+description: Use when the user says "refactor", "clean up", "restructure", "extract", "rename", "split this up", "tidy up", "this is messy", or otherwise asks to change code shape without changing behavior. Engages pre/post verification gates and human approval before finalizing. Blocks on any observable behavior change. Do not invoke for feature work or bug fixes (use `/cycle`).
 ---
 
 # Refactor

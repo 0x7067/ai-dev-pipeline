@@ -1,6 +1,6 @@
 ---
 name: test-gen
-description: Use when the user asks for tests, coverage, invariants, property tests, or contract tests — phrases like "add tests", "write a test for…", "improve coverage", "this needs a test", "test the parser" — and proactively after implementing core or boundary code, before declaring it done. Focuses on property-based invariants and boundary contracts.
+description: Use when the user asks for tests, coverage, invariants, property tests, or contract tests — phrases like "add tests", "write a test for…", "improve coverage", "this needs a test", "test the parser" — and proactively after implementing core or boundary code, before declaring it done. Focuses on property-based invariants and boundary contracts. Auto-detects language (Python, Go, Rust, TypeScript) and emits idiomatic tests. Outputs `docs/test-report.md`. Do not invoke for running existing test suites (use `/verify`).
 ---
 
 # Test Generation

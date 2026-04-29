@@ -6,6 +6,15 @@ A reusable Claude Code workflow plugin for structured AI-assisted development. E
 
 Install via the Claude Code plugin system, then run `/setup` in any project to scaffold scripts, rules, and templates.
 
+After `/setup`, verify the scaffolding:
+
+```sh
+bash scripts/validate-claude-config.sh   # confirms settings.json + cross-refs + boundary + version-sync
+bash scripts/smoke-bootstrap.sh          # confirms required files and hook executability
+```
+
+Then run `/cycle` to drive an end-to-end demo of the workflow.
+
 ## Commands
 
 | Command | Description |
@@ -57,6 +66,23 @@ Workflow phase prerequisites are enforced by hook-based gates. Running `/impleme
 
 Pipeline skills auto-engage based on intent — describing a bug, feature, review, refactor, or release triggers the matching skill before any other response. The `SessionStart` hook (`.claude/hooks/session-start.sh`) loads the `using-pipeline` meta-skill at session start, which carries the intent → skill mapping. Explicit slash commands (`/plan`, `/implement`, etc.) remain available and behave identically.
 
+## Skills and Agents
+
+Skills are auto-invoked by Claude based on their description. Agents are delegated to via the Task tool.
+
+| Skill | Triggered by | Purpose |
+|---|---|---|
+| `requirement-analysis` | `/plan` (via `planner`) | FC/IS-aligned implementation specs |
+| `fcis-architecture` | layer classification, design | Enforces core/shell/boundary separation |
+| `code-review` | `/review`, post-`/implement` | FC/IS + security + correctness lenses on a diff |
+| `static-analysis` | `/verify` | Language-detected verification gates |
+| `test-gen` | `/test` (via `tester`) | Property + contract tests |
+| `refactor` | `/refactor` | Zero-behavior-change refactoring |
+
+Agents live under `.claude/agents/` (`planner`, `implementer`, `reviewer`, `tester`, `verifier`, `auditor`, `researcher`). Each has a `maxTurns` cap; if an agent stops mid-task, rerun the command or raise `maxTurns` in its frontmatter.
+
+Add a custom skill at `.claude/skills/<name>/skill.md` with `name:` and `description:` frontmatter. The description determines when Claude invokes it — be specific, list trigger phrases, and add "do not invoke for X" guards. Validate with `bash scripts/validate-claude-config.sh`.
+
 ## CI / GitHub Actions
 
 Three workflows ship in `.github/workflows/`:
@@ -69,4 +95,8 @@ Three workflows ship in `.github/workflows/`:
 
 ## Environment Variables
 
-See [docs/env-vars.md](docs/env-vars.md) for the full reference.
+See [docs/env-vars.md](docs/env-vars.md) for the full reference. Notable knobs:
+
+- `HOOKS_FAST=1` — opt into change-scoped fast-path hooks (defaults to `0`, full-run, in `run-verification-gates.sh`).
+- `WORKFLOW_GATES_SKIP=1` — bypass workflow-state gating entirely.
+- `VERIFY_TYPECHECK_CMD`, `VERIFY_LINT_CMD`, `VERIFY_SECURITY_CMD`, `VERIFY_PROPERTY_CMD`, `VERIFY_CONTRACT_CMD`, `VERIFY_FULL_CMD` — override gate commands per project.

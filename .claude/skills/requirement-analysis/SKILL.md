@@ -1,6 +1,6 @@
 ---
 name: requirement-analysis
-description: Use when the user reports a bug, test failure, regression, unexpected behavior, or a new feature/spec request — phrases like "fix this bug", "this is broken", "something's off", "add a feature for…", "how should we handle…", "design a spec for…" — before proposing any fix or implementation. Produces FC/IS-aligned specs with parse-at-boundary contracts.
+description: Use when the user reports a bug, test failure, regression, unexpected behavior, or a new feature/spec request — phrases like "fix this bug", "this is broken", "something's off", "add a feature for…", "how should we handle…", "design a spec for…" — before proposing any fix or implementation. Produces FC/IS-aligned specs with parse-at-boundary contracts. Outputs boundary-parser map, risk tier, acceptance criteria, and core/shell/boundary layer classification. Do not invoke for project-wide audits or post-implementation review.
 ---
 
 # Requirement Analysis
