@@ -64,7 +64,10 @@ These are the thoughts that mean **STOP — you are skipping the pipeline**. Eve
 
 ## How to invoke
 
-In Claude Code, use the `Skill` tool with the skill name (e.g. `code-review`, `requirement-analysis`). For workflow phases that have slash commands (`/plan`, `/implement`, `/review`, `/test`, `/verify`, `/refactor`, `/audit`, `/cycle`), invoke the corresponding skill of the same name. Never use `Read` to load `SKILL.md` files manually.
+- **User typed a slash command** (`/plan`, `/audit`, `/cycle`, …): the harness already dispatches it. Do not narrate or attempt to re-invoke via the `Skill` tool — just let it run.
+- **User expressed an intent without a slash command**: invoke the matching skill via the `Skill` tool (e.g. `code-review`, `requirement-analysis`). For phases that ship as slash commands, the skill listing exposes them under the same name (`audit`, `plan`, `verify`, …) — invoke that skill name directly.
+
+Never use `Read` to load `SKILL.md` files manually.
 
 ## Non-coding requests
 
