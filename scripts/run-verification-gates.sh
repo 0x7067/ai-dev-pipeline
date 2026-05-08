@@ -4,7 +4,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 # shellcheck source=scripts/harness-lib.sh
 source "${SCRIPT_DIR}/harness-lib.sh"
-harness_cd_repo_root
+
+# Zero-setup support: if invoked from a consuming repo that has not vendored
+# the gate runner (i.e. the script lives under ${CLAUDE_PLUGIN_ROOT}/scripts),
+# stay in the consuming repo's CWD instead of cd'ing to the plugin install.
+# Vendored installs (script lives in the repo) keep the original behavior.
+verify_gates_repo_root="$(cd "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd -P)"
+if [ -f "${PWD}/scripts/run-verification-gates.sh" ] || [ "${PWD}" = "${verify_gates_repo_root}" ]; then
+  harness_cd_repo_root
+fi
+unset verify_gates_repo_root
 
 # ------------------------------------------------------------------------------
 # Streaming output: each gate prints a ▶/✓/✗ line as it runs, so subagents and

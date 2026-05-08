@@ -4,18 +4,18 @@ A reusable Claude Code workflow plugin for structured AI-assisted development. E
 
 ## Installation
 
-Install via the Claude Code plugin system, then run `/setup` in any project to scaffold scripts, rules, and templates.
+**Install from the marketplace. That's it.** As of v0.4.0, every command, agent, skill, hook, and template resolves directly from the plugin install. No scaffolding step. Run `/ship` (or `/plan`) immediately.
 
-After `/setup`, verify the scaffolding:
+> **Want CI to run the gates?** Run `/setup` once. CI runners do not load Claude Code plugins, so the canonical gate runner (`scripts/run-verification-gates.sh`) and its dependencies must be vendored into your repo for CI authority per `.claude/rules/release-and-verification.md`. `/setup` is the explicit "vendor for CI" operation; it is opt-in and not required for interactive use.
+
+After vendoring (only if you ran `/setup`), verify the scaffolding:
 
 ```sh
 bash scripts/validate-claude-config.sh   # confirms settings.json + cross-refs + boundary + version-sync
 bash scripts/smoke-bootstrap.sh          # confirms required files and hook executability
 ```
 
-Harness scripts are root-relative and can be run from any directory inside the repository.
-
-Then run `/ship` to drive an end-to-end demo of the workflow.
+Vendored copies always take precedence over plugin-shipped copies, so edits to vendored artifacts persist across plugin upgrades.
 
 ## Commands
 

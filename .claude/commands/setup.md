@@ -1,6 +1,20 @@
 ---
-description: "Ops: Scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo."
+description: "Ops: Vendor ai-dev-pipeline artifacts (scripts, templates, rules, CI) into the current repo. Opt-in; required only for CI gate authority."
 context: fork
+---
+
+## When do I need this?
+
+**You don't need to run `/setup` for interactive use.** As of v0.4.0, `ai-dev-pipeline` is a zero-setup install: every command, agent, skill, and template resolves directly from `${CLAUDE_PLUGIN_ROOT}` after marketplace install. `/plan`, `/implement`, `/review`, `/test`, `/verify`, `/refactor`, `/ship`, and `/audit` all work immediately, with no scaffolding step.
+
+Run `/setup` only when one of the following applies:
+
+1. **CI gate authority.** Per `.claude/rules/release-and-verification.md`, a change is "verified" only when `scripts/run-verification-gates.sh` exits 0 in CI on the merge commit. CI runners do not load Claude Code plugins, so the gate runner and its dependencies must be vendored into the consuming repo for CI to invoke them. If you want CI to run the canonical gates, vendor once with `/setup`.
+2. **Pin a snapshot.** You want the rules, templates, or gate runner checked into version control so a plugin upgrade cannot silently change behavior. Vendored copies always take precedence over plugin-shipped copies.
+3. **Edit-and-keep customization.** You intend to edit a rule or template and have those edits persist independently of the plugin.
+
+If none of those apply, skip `/setup` and just use the commands.
+
 ---
 
 Scaffold the ai-dev-pipeline project artifacts into the current working directory.
@@ -56,4 +70,4 @@ Copy the following from `${CLAUDE_PLUGIN_ROOT}` into the project, skipping any f
    !docs/templates/
    ```
 
-After scaffolding, print a summary of what was copied, what was skipped, and remind the user to review and commit the new files.
+After scaffolding, print a summary of what was copied, what was skipped, and remind the user to review and commit the new files. Note that vendored copies will now take precedence over plugin-shipped copies — edits to vendored artifacts persist across plugin upgrades, but stale vendored copies will not auto-update when the plugin upgrades.

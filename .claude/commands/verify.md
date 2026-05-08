@@ -4,7 +4,7 @@ description: Advanced — Run verification gates and produce go/no-go decision. 
 
 You are the orchestrator for `/verify`. Do NOT run gates directly — delegate to the `verifier` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".
 
-**Prerequisite:** Project scripts must exist. If `scripts/run-verification-gates.sh` is missing, run `/setup` first to scaffold them.
+**Prerequisite:** None. The verifier resolves `scripts/run-verification-gates.sh` from the repo or, if absent, from the plugin install path via `${CLAUDE_PLUGIN_ROOT}` (zero-setup default). Run `/setup` only if you need the script vendored into the repo for CI gate authority.
 
 Steps:
 

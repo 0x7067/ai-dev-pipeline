@@ -30,8 +30,10 @@ The primary user-facing surface is five commands:
 | Any code change: "implement", "build", "add", "fix", "ship", "release", "ready to merge", "verify", "is this done", bug reports, failing tests | `/ship` (default `adaptive`; pass `strict` to force unconditional plan approval) |
 | "refactor", "clean up", "restructure", "extract", "rename", "split this up", "tidy" | `/refactor` |
 | "audit", "health check", "overall state of…", project-wide review with no code change | `/audit` |
-| First-time project setup, scaffold scripts/rules/templates | `/setup` |
+| Vendor pipeline artifacts into a repo so CI can run gates (opt-in; not required for interactive use) | `/setup` |
 | Clear workflow state between tasks | `/reset` |
+
+> **Zero-setup default**: as of v0.4.0, the pipeline works directly from the marketplace install with no scaffolding step. `/setup` is opt-in and primarily exists to satisfy CI gate authority (CI does not load Claude Code plugins). Do not suggest `/setup` as a precondition for interactive commands.
 
 > Advanced: per-phase commands (`/plan`, `/implement`, `/review`, `/test`, `/verify`, `/research`) remain available for re-running a single phase. Prefer `/ship` for the full flow. Their `description:` front-matter is prefixed with "Advanced —" so the command picker groups them below the primary surface.
 
