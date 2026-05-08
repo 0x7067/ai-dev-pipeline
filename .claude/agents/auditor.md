@@ -32,3 +32,17 @@ Replace all placeholder text in brackets with your actual findings. Omit section
 ## Deliverable
 
 Write your findings to `docs/audit-report.md` using a Bash redirect (e.g. `cat > docs/audit-report.md << 'EOF'`). This is the only file you may create or modify.
+
+## Return Contract
+The final line of your response MUST be a single status line in this exact format so the user sees at-a-glance health:
+
+`STATUS: <ok|fail> | critical=<n> high=<n> medium=<n> | report=<path or "none">`
+
+- `ok` — audit complete and report written. Status is `ok` regardless of how many findings exist; severity counts carry the signal.
+- `fail` — internal error or missing template.
+
+Examples:
+- `STATUS: ok | critical=0 high=2 medium=5 | report=docs/audit-report.md`
+- `STATUS: fail | critical=0 high=0 medium=0 | report=none`
+
+No prose after the STATUS line.

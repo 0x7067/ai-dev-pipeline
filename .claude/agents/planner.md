@@ -38,3 +38,18 @@ Replace placeholder text with concrete plan content. Omit sections that do not a
 - Set risk tier (`low|medium|high`) with rationale.
 - Define human approval checkpoints before implementation.
 - Include deterministic verification command order in the plan.
+
+## Return Contract
+The final line of your response MUST be a single status line in this exact format so the orchestrator can echo it to the user:
+
+`STATUS: <ok|fail|blocked> | risk=<low|medium|high|unknown> | <summary, ≤60 chars> | report=<path or "none">`
+
+- `ok` — plan written.
+- `fail` — internal error or missing template.
+- `blocked` — cannot plan without more user input.
+
+Examples:
+- `STATUS: ok | risk=medium | OAuth PKCE plan; 3 boundary parsers; spec written | report=docs/current-plan.md`
+- `STATUS: fail | risk=unknown | template missing: current-plan-template.md | report=none`
+
+No prose after the STATUS line.

@@ -6,6 +6,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 source "${SCRIPT_DIR}/harness-lib.sh"
 harness_cd_repo_root
 
+# ------------------------------------------------------------------------------
+# Streaming output: each gate prints a ▶/✓/✗ line as it runs, so subagents and
+# humans see progress in real time instead of waiting for the whole sequence
+# to finish. Bash's echo/printf is line-buffered on newline; we additionally
+# flush after every marker so output streams through pipes promptly.
+# ------------------------------------------------------------------------------
+
+emit() {
+  printf '%s\n' "$*"
+  # Best-effort flush; harmless if /dev/stdout is not a regular fd.
+  { command sync || true; } >/dev/null 2>&1
+}
+
 run() {
   echo "verify-gates: $*"
   "$@"
@@ -55,36 +68,55 @@ run_package_script() {
   return 1
 }
 
-run_if_set() {
+# is_override_set: returns 0 iff the named env var is non-empty.
+# Used to distinguish "user configured an explicit command" from "no override,
+# fall back to default detection".
+is_override_set() {
+  local cmd_var="$1"
+  [ -n "${!cmd_var:-}" ]
+}
+
+# run_override: runs the command stored in the named env var.
+# Caller must have already verified the var is set via is_override_set.
+# Returns the command's exit code; an override that fails is authoritative —
+# callers MUST NOT fall back to default detection on failure, otherwise an
+# explicit user override gets silently shadowed by the default hook.
+run_override() {
   local label="$1"
   local cmd_var="$2"
-
-  if [ -n "${!cmd_var:-}" ]; then
-    echo "==> ${label}"
-    run bash -c "${!cmd_var}"
-    return $?
-  fi
-
-  return 1
+  echo "==> ${label}"
+  run bash -c "${!cmd_var}"
 }
 
 run_typecheck() {
-  if run_if_set "Type/compile" "VERIFY_TYPECHECK_CMD"; then return 0; fi
+  if is_override_set "VERIFY_TYPECHECK_CMD"; then
+    run_override "Type/compile" "VERIFY_TYPECHECK_CMD"
+    return $?
+  fi
   run bash .claude/hooks/type-check.sh
 }
 
 run_lint() {
-  if run_if_set "Lint" "VERIFY_LINT_CMD"; then return 0; fi
+  if is_override_set "VERIFY_LINT_CMD"; then
+    run_override "Lint" "VERIFY_LINT_CMD"
+    return $?
+  fi
   run bash .claude/hooks/lint-on-edit.sh
 }
 
 run_security() {
-  if run_if_set "Security" "VERIFY_SECURITY_CMD"; then return 0; fi
+  if is_override_set "VERIFY_SECURITY_CMD"; then
+    run_override "Security" "VERIFY_SECURITY_CMD"
+    return $?
+  fi
   run bash scripts/security-scan.sh
 }
 
 run_property() {
-  if run_if_set "Property tests" "VERIFY_PROPERTY_CMD"; then return 0; fi
+  if is_override_set "VERIFY_PROPERTY_CMD"; then
+    run_override "Property tests" "VERIFY_PROPERTY_CMD"
+    return $?
+  fi
 
   if has_package_script "test:property"; then
     run_package_script "test:property"
@@ -113,7 +145,10 @@ run_property() {
 }
 
 run_contract() {
-  if run_if_set "Contract tests" "VERIFY_CONTRACT_CMD"; then return 0; fi
+  if is_override_set "VERIFY_CONTRACT_CMD"; then
+    run_override "Contract tests" "VERIFY_CONTRACT_CMD"
+    return $?
+  fi
 
   if has_package_script "test:contract"; then
     run_package_script "test:contract"
@@ -142,7 +177,10 @@ run_contract() {
 }
 
 run_full_suite() {
-  if run_if_set "Full suite" "VERIFY_FULL_CMD"; then return 0; fi
+  if is_override_set "VERIFY_FULL_CMD"; then
+    run_override "Full suite" "VERIFY_FULL_CMD"
+    return $?
+  fi
 
   if has_package_script "test"; then
     run_package_script "test"
@@ -206,23 +244,35 @@ write_retry_hint() {
   printf '{"gate":"%s","exit_code":%s,"attempt":%s}\n' "$gate" "$exit_code" "$attempt" >> "$VERIFY_RETRY_HINT_FILE"
 }
 
+# Bash's $SECONDS builtin gives us 1-second granularity portably (macOS + Linux).
+# That's good enough for gate-level timing — gates take seconds to minutes.
 run_gate() {
   local label="$1"
   local fn="$2"
   local attempt=0
   local rc=0
+  local start_s
+  local elapsed_s
   while :; do
+    start_s=$SECONDS
+    if [ "$attempt" -eq 0 ]; then
+      emit "▶ ${label} starting"
+    else
+      emit "↻ ${label} retry ${attempt}/${MAX_VERIFY_RETRIES}"
+    fi
     rc=0
     "$fn" || rc=$?
+    elapsed_s=$((SECONDS - start_s))
     if [ "$rc" -eq 0 ]; then
+      emit "✓ ${label} ok (${elapsed_s}s)"
       return 0
     fi
+    emit "✗ ${label} failed rc=${rc} (${elapsed_s}s)"
     write_retry_hint "$label" "$rc" "$attempt"
     if [ "$attempt" -ge "$MAX_VERIFY_RETRIES" ]; then
       return "$rc"
     fi
     attempt=$((attempt + 1))
-    echo "verify-gates: ${label} failed (rc=${rc}); retry ${attempt}/${MAX_VERIFY_RETRIES}"
   done
 }
 
@@ -230,9 +280,16 @@ run_gate() {
 mkdir -p "$(dirname "$VERIFY_RETRY_HINT_FILE")" 2>/dev/null || true
 : > "$VERIFY_RETRY_HINT_FILE" 2>/dev/null || true
 
+OVERALL_START_S=$SECONDS
+emit "▶ verification gates starting (6 gates)"
+
+# Run sequentially. set -e propagates the first non-zero rc to the caller.
 run_gate typecheck run_typecheck
 run_gate lint run_lint
 run_gate security run_security
 run_gate property run_property
 run_gate contract run_contract
 run_gate full_suite run_full_suite
+
+OVERALL_ELAPSED_S=$((SECONDS - OVERALL_START_S))
+emit "✓ all verification gates passed (${OVERALL_ELAPSED_S}s)"

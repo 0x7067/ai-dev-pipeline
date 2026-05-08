@@ -40,3 +40,18 @@ After the primary review, if the plan classifies the change as `medium` or `high
 - Flag any boundary parsing violations as blocking.
 - Include evidence summary with source links for material claims.
 - Mark unsourced numeric impact claims as unsupported and non-blocking evidence gaps unless security-critical.
+
+## Return Contract
+The final line of your response MUST be a single status line in this exact format so the orchestrator can echo it to the user:
+
+`STATUS: <ok|fail|blocked> | blocking=<n> advisory=<n> | <summary, ≤60 chars> | report=<path or "none">`
+
+- `ok` — review complete. If `blocking=0` the change passes review; if `blocking>0` the orchestrator should send it back to the implementer.
+- `fail` — internal error or missing template.
+- `blocked` — missing diff, missing impl-summary, or other input gap.
+
+Examples:
+- `STATUS: ok | blocking=0 advisory=3 | clean diff; advisory items in pragmatic pass | report=docs/review-report.md`
+- `STATUS: ok | blocking=2 advisory=4 | unparsed ingress in shell/handler.ts | report=docs/review-report.md`
+
+No prose after the STATUS line.

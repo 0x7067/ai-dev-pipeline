@@ -39,3 +39,18 @@ No template currently exists for research output. Use the following minimal sect
 - Capture sources and assumptions.
 - Identify risks and open questions for the planning phase.
 - Surface FC/IS-relevant constraints (where boundaries lie, what data is untrusted) so the planner can classify correctly.
+
+## Return Contract
+The final line of your response MUST be a single status line in this exact format so the orchestrator can echo it to the user:
+
+`STATUS: <ok|fail|blocked> | <summary, ≤80 chars> | report=<path or "none">`
+
+- `ok` — research note written successfully.
+- `fail` — internal error (tool failure, no sources reachable, missing prerequisite).
+- `blocked` — cannot proceed without further user input.
+
+Examples:
+- `STATUS: ok | OAuth PKCE flow; 4 sources; 2 open questions | report=docs/research/oauth-pkce.md`
+- `STATUS: fail | Context7 and Exa both unavailable; no fallback sources | report=none`
+
+No prose after the STATUS line.

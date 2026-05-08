@@ -38,3 +38,18 @@ Replace placeholder text with concrete content. Omit sections that do not apply 
 - Avoid raw ingress data crossing into core.
 - Keep implementation within approved scope budget; record deferrals explicitly.
 - Add rollback notes for risky or cross-cutting changes.
+
+## Return Contract
+The final line of your response MUST be a single status line in this exact format so the orchestrator can echo it to the user:
+
+`STATUS: <ok|fail|blocked> | files=<n> | <summary, ≤60 chars> | report=<path or "none">`
+
+- `ok` — implementation complete and summary written.
+- `fail` — internal error, scope blown, or unrecoverable build break.
+- `blocked` — missing plan, missing template, or input that needs user resolution.
+
+Examples:
+- `STATUS: ok | files=7 | parser + core + shell wired; 1 deferral noted | report=docs/impl-summary.md`
+- `STATUS: blocked | files=0 | docs/current-plan.md not found; run /plan first | report=none`
+
+No prose after the STATUS line.

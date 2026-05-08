@@ -36,3 +36,18 @@ Replace placeholder text with concrete content. Omit sections that do not apply 
 - Add boundary parser contract tests.
 - Mark failures as blocking if invariants/contracts fail.
 - Record retry/flake triage notes when reruns are needed.
+
+## Return Contract
+The final line of your response MUST be a single status line in this exact format so the orchestrator can echo it to the user:
+
+`STATUS: <ok|fail|blocked> | added=<n> failing=<n> | <summary, ≤60 chars> | report=<path or "none">`
+
+- `ok` — tests written and the suite passes (`failing=0`). If `failing>0`, the orchestrator should treat it as blocking and halt.
+- `fail` — internal error or missing template.
+- `blocked` — cannot run tests (missing runner, missing prerequisite).
+
+Examples:
+- `STATUS: ok | added=12 failing=0 | property + contract tests green | report=docs/test-report.md`
+- `STATUS: ok | added=8 failing=2 | parser round-trip fails on UTF-16 input | report=docs/test-report.md`
+
+No prose after the STATUS line.

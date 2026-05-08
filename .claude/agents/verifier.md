@@ -39,3 +39,19 @@ Replace placeholder text with concrete results. Omit sections that do not apply 
 - Provide a go/no-go summary.
 - Classify and record risk tier (`low|medium|high`) for the change set.
 - Verify required human approvals are present for plan, medium/high-risk changes, and release.
+- As you run gates, the canonical runner emits per-gate `▶`/`✓`/`✗` lines on stdout; surface those lines to the user as they appear so progress is visible during the run.
+
+## Return Contract
+The final line of your response MUST be a single status line in this exact format so the orchestrator can echo it to the user:
+
+`STATUS: <go|no-go|fail> | risk=<low|medium|high|unknown> | gates=<passed>/<total> | report=<path or "none">`
+
+- `go` — all blocking gates pass and required approvals are present.
+- `no-go` — at least one blocking gate failed or required approval is missing.
+- `fail` — internal error (script missing, template missing, runner crashed).
+
+Examples:
+- `STATUS: go | risk=medium | gates=6/6 | report=docs/verify-report.md`
+- `STATUS: no-go | risk=high | gates=4/6 (lint, security failed) | report=docs/verify-report.md`
+
+No prose after the STATUS line.
