@@ -27,3 +27,9 @@ Steps:
    - Otherwise → `✗ reviewer — <everything after "STATUS: ">`
 
 5. Expected output is `${RUN_DIR}/review-report.md`. The reviewer runs the pragmatic-review-checklist second pass automatically for `medium`/`high` risk changes; do not invoke it from here.
+
+6. **End-of-run artifact summary.** As the very last output, render the
+   end-of-run artifact summary block per
+   `docs/templates/end-of-run-summary-template.md`. Use absolute paths and
+   only list artifacts that exist on disk. The same block is shared verbatim
+   across `/ship`, `/review`, `/refactor`, `/audit`, `/research`.

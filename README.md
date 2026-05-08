@@ -115,3 +115,31 @@ See [docs/env-vars.md](docs/env-vars.md) for the full reference. Notable knobs:
 - `HARNESS_JS_PACKAGE_MANAGER=pnpm` — force a JavaScript package manager when auto-detection is not enough.
 
 See [docs/harness-engineering.md](docs/harness-engineering.md) for the harness portability notes and source references behind these defaults.
+
+## Tuning
+
+### Verifier retry-hint envelope
+
+`scripts/run-verification-gates.sh` supports an opt-in bounded retry envelope
+controlled by two environment variables:
+
+- `MAX_VERIFY_RETRIES` (default `0`) — how many times each gate may retry
+  after a non-zero exit. `0` preserves the historical fail-fast behavior;
+  `1` enables one `verify → fix → verify` loop per gate.
+- `VERIFY_RETRY_HINT_FILE` — where the runner writes a single-line JSON hint
+  (`{"gate":"<label>","exit_code":<n>,"attempt":<n>}`) on every failure, for
+  the `verify` skill to consume on the next pass. Defaults to
+  `${RUN_DIR}/.verify-retry.json` when a run is active, otherwise
+  `docs/.verify-retry.json`.
+
+Example — let the verifier auto-retry once per gate, with the hint written
+under the active run dir:
+
+```sh
+MAX_VERIFY_RETRIES=1 bash scripts/run-verification-gates.sh
+# on failure: cat "${RUN_DIR}/.verify-retry.json"
+# → {"gate":"lint","exit_code":1,"attempt":0}
+```
+
+Authoritative semantics live in `.claude/rules/release-and-verification.md`
+under "Canonical Gate Runner".

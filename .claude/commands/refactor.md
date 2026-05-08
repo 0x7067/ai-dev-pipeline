@@ -33,7 +33,7 @@ Same as `/ship`: print `▶ <phase> starting (<n>/<total>)` before, echo `✓` o
 
 3. **Plan (2/5).** Invoke `planner` per the phase contract with refactor framing. The plan must describe structural changes only; any functional diff is a blocking violation that the planner must surface.
 
-4. **Plan approval gate.** Halt and print `⏸ refactor plan approval required (run=$RUN_ID) — reply "approve" to continue`. Wait for explicit user approval before any code edits.
+4. **Plan approval gate.** Halt and print `⏸ refactor plan approval required (run=$RUN_ID) — reply "approve" to continue, "reject" to stop`. Wait for explicit user approval before any code edits.
 
 5. **Implement (3/5).** Invoke `implementer` per the phase contract.
 
@@ -43,3 +43,12 @@ Same as `/ship`: print `▶ <phase> starting (<n>/<total>)` before, echo `✓` o
 
 ## Stop conditions
 Stop immediately on any unresolved blocking finding. The pre-refactor gate failing is non-recoverable: a refactor cannot start from a red baseline.
+
+## End-of-run artifact summary
+
+After all phases finish (success, halt, or stop condition), render the
+end-of-run artifact summary block as the very last output. Follow
+`docs/templates/end-of-run-summary-template.md` exactly: absolute paths,
+checklist of produced artifacts, and only print lines for artifacts that
+exist on disk. The block is shared verbatim across `/ship`, `/review`,
+`/refactor`, `/audit`, `/research`.

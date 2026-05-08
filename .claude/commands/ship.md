@@ -61,10 +61,10 @@ For every phase X with subagent name `<agent>`:
 2. **Plan (2/8).** Invoke `planner` per the phase contract. Capture risk tier from its STATUS line (`risk=<low|medium|high>`) and `change-type` from the plan's front-matter or planner STATUS (`trivial=true|false`).
 
 3. **Plan approval gate.**
-   - If `mode=strict`: halt unconditionally. Print `⏸ plan approval required (run=$RUN_ID, mode=strict) — reply "approve" to continue, anything else to stop`. Wait for explicit user approval.
+   - If `mode=strict`: halt unconditionally. Print `⏸ plan approval required (run=$RUN_ID, mode=strict) — reply "approve" to continue, "reject" to stop`. Wait for explicit user approval.
    - If `mode=adaptive`:
-     - For `risk=medium` or `risk=high`: halt and print `⏸ plan approval required (run=$RUN_ID, risk=<tier>) — reply "approve" to continue, anything else to stop`. Wait for explicit user approval.
-     - For `risk=low`: print `↷ plan approval auto-granted (run=$RUN_ID, mode=adaptive, risk=low)` and continue.
+     - For `risk=medium` or `risk=high`: halt and print `⏸ plan approval required (run=$RUN_ID, risk=<tier>) — reply "approve" to continue, "reject" to stop`. Wait for explicit user approval.
+     - For `risk=low`: print `⏵ plan auto-approved (adaptive mode, risk=low) — pass /ship strict to force approval` and continue.
 
 4. **Trivial-change classification.**
    Inspect `${RUN_DIR}/current-plan.md` front-matter for `change-type: trivial` AND/OR check planner STATUS for `trivial=true`. If either signal is present, the change is classified `trivial`:
@@ -92,14 +92,24 @@ For every phase X with subagent name `<agent>`:
    - If `blocking=0`, continue.
    - If `blocking>0`, return to step 6 (implementer) and loop. Maximum 2 review→implement loops; on the 3rd unresolved blocking review, print `✗ review loop exceeded — halting` and stop.
 
-8. **Verify (6/8).** Invoke `verifier` per the phase contract. The verifier itself runs `scripts/run-verification-gates.sh`, which streams per-gate `▶`/`✓`/`✗` lines.
+8. **Verify (6/8).** Invoke `verifier` per the phase contract. The verifier itself runs `scripts/run-verification-gates.sh`, which streams per-gate `▶`/`✓`/`✗` lines. Note: an opt-in `verify → fix → verify` envelope is available via `MAX_VERIFY_RETRIES` and `VERIFY_RETRY_HINT_FILE`; see `.claude/rules/release-and-verification.md` ("Canonical Gate Runner") and the README "Tuning" section for details.
 
 9. **Final smoke gate (7/8).** Print `▶ smoke gate starting` and run:
    `REPORT_QUALITY_REQUIRE_CONTENT=1 WORKFLOW_REQUIRE_ARTIFACTS=1 bash scripts/smoke-bootstrap.sh`
    Print `✓ smoke gate ok` or `✗ smoke gate failed (rc=<code>)`.
 
-10. **Release approval gate (8/8).** If verifier STATUS is `go` and smoke gate passed, halt and print `⏸ release approval required (run=$RUN_ID) — reply "ship" to mark Go, anything else to stop`. Only mark the final Go decision after explicit user approval.
+10. **Release approval gate (8/8).** If verifier STATUS is `go` and smoke gate passed, halt and print `⏸ release approval required (run=$RUN_ID) — reply "approve" to continue, "reject" to stop`. Only mark the final Go decision after explicit user approval.
 
 ## Stop conditions
 
 Stop immediately on any unresolved blocking outcome. Print a final summary of which phases completed and which did not.
+
+## End-of-run artifact summary
+
+After all phases finish (success, halt, or stop condition), render the
+end-of-run artifact summary block as the very last output. Follow
+`docs/templates/end-of-run-summary-template.md` exactly: absolute paths,
+checklist of produced artifacts (plan, specs, research, test-report,
+review-report, verify-report, impl-summary, refactor-report, audit-report),
+and only print lines for artifacts that exist on disk. The block is shared
+verbatim across `/ship`, `/review`, `/refactor`, `/audit`, `/research`.

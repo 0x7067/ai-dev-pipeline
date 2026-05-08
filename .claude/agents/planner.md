@@ -31,7 +31,7 @@ resolve:
   1: docs/templates/current-plan-template.md (repo wins)
   2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/current-plan-template.md (zero-setup fallback)
 missing-both:
-  stderr: `planner: ERROR: current-plan-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
+  stderr: `planner: ERROR: current-plan-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install? Run the 'setup' skill to vendor missing artifacts: invoke Skill tool with skill='setup'.`
   then: abort, do NOT write ${RUN_DIR}/current-plan.md
 follow: exact — section order, headings, required fields
 required-fields: FC/IS layer mapping | boundary parsers | acceptance criteria | invariants | risk tier | approval checkpoints | verification command order

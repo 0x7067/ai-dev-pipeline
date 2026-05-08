@@ -30,6 +30,12 @@ emit() {
 
 run() {
   echo "verify-gates: $*"
+  # If a gate-scoped resolved-command file is requested, record the
+  # canonical argv so failure-path output can echo it back to the user.
+  # Best-effort: missing file or write failure must not disrupt the gate.
+  if [ -n "${GATE_RESOLVED_CMD_FILE:-}" ]; then
+    printf '%s\n' "$*" > "$GATE_RESOLVED_CMD_FILE" 2>/dev/null || true
+  fi
   "$@"
 }
 
@@ -94,6 +100,9 @@ run_override() {
   local label="$1"
   local cmd_var="$2"
   echo "==> ${label}"
+  if [ -n "${GATE_RESOLVED_CMD_FILE:-}" ]; then
+    printf '%s\n' "${!cmd_var}" > "$GATE_RESOLVED_CMD_FILE" 2>/dev/null || true
+  fi
   run bash -c "${!cmd_var}"
 }
 
@@ -275,6 +284,51 @@ write_retry_hint() {
   mv "$tmp" "$VERIFY_RETRY_HINT_FILE"
 }
 
+# Resolve a per-run scratch dir for the gate logs. Prefer ${RUN_DIR},
+# fall back to a mktemp dir so the runner stays usable when invoked
+# without an active run (smoke tests, CI bootstrap, etc.).
+GATE_LOG_DIR=""
+GATE_LOG_DIR_IS_TEMP=0
+if [ -n "${RUN_DIR:-}" ]; then
+  GATE_LOG_DIR="${RUN_DIR}"
+  mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
+elif [ -n "${RUN_ID:-}" ]; then
+  GATE_LOG_DIR="docs/runs/${RUN_ID}"
+  mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
+else
+  GATE_LOG_DIR="$(mktemp -d -t verify-gates.XXXXXX)"
+  GATE_LOG_DIR_IS_TEMP=1
+fi
+
+cleanup_gate_log_dir() {
+  if [ "$GATE_LOG_DIR_IS_TEMP" = "1" ] && [ -n "$GATE_LOG_DIR" ] && [ -d "$GATE_LOG_DIR" ]; then
+    rm -rf "$GATE_LOG_DIR"
+  fi
+}
+trap cleanup_gate_log_dir EXIT
+
+# emit_failure_diagnostics <label>
+#   On gate failure, surface the resolved command, the captured log path
+#   (when available), and a one-line "rerun locally with: ..." hint so the
+#   user can reproduce the failure without re-reading the runner internals.
+#   Best-effort: missing files render as "(unknown)" rather than aborting.
+emit_failure_diagnostics() {
+  local label="$1"
+  local cmd_file="${GATE_LOG_DIR}/.gate-${label}.cmd"
+  local log_file="${GATE_LOG_DIR}/.gate-${label}.log"
+  local resolved="(unknown — gate did not register a command)"
+  if [ -s "$cmd_file" ]; then
+    resolved="$(head -n1 "$cmd_file" 2>/dev/null)"
+  fi
+  emit "  resolved command: ${resolved}"
+  if [ -f "$log_file" ]; then
+    emit "  captured log:     ${log_file}"
+  else
+    emit "  captured log:     (none — sequential gate streamed to stdout above)"
+  fi
+  emit "  rerun locally with: ${resolved}"
+}
+
 # Bash's $SECONDS builtin gives us 1-second granularity portably (macOS + Linux).
 # That's good enough for gate-level timing — gates take seconds to minutes.
 run_gate() {
@@ -284,6 +338,8 @@ run_gate() {
   local rc=0
   local start_s
   local elapsed_s
+  local cmd_file="${GATE_LOG_DIR}/.gate-${label}.cmd"
+  : > "$cmd_file" 2>/dev/null || true
   while :; do
     start_s=$SECONDS
     if [ "$attempt" -eq 0 ]; then
@@ -292,13 +348,14 @@ run_gate() {
       emit "↻ ${label} retry ${attempt}/${MAX_VERIFY_RETRIES}"
     fi
     rc=0
-    "$fn" || rc=$?
+    GATE_RESOLVED_CMD_FILE="$cmd_file" "$fn" || rc=$?
     elapsed_s=$((SECONDS - start_s))
     if [ "$rc" -eq 0 ]; then
       emit "✓ ${label} ok (${elapsed_s}s)"
       return 0
     fi
     emit "✗ ${label} failed rc=${rc} (${elapsed_s}s)"
+    emit_failure_diagnostics "$label"
     write_retry_hint "$label" "$rc" "$attempt"
     if [ "$attempt" -ge "$MAX_VERIFY_RETRIES" ]; then
       return "$rc"
@@ -327,29 +384,6 @@ mkdir -p "$(dirname "$VERIFY_RETRY_HINT_FILE")" 2>/dev/null || true
 # parallelizing them is out of scope for this change.
 # ------------------------------------------------------------------------------
 
-# Resolve a per-run scratch dir for the gate logs. Prefer ${RUN_DIR},
-# fall back to a mktemp dir so the runner stays usable when invoked
-# without an active run (smoke tests, CI bootstrap, etc.).
-GATE_LOG_DIR=""
-GATE_LOG_DIR_IS_TEMP=0
-if [ -n "${RUN_DIR:-}" ]; then
-  GATE_LOG_DIR="${RUN_DIR}"
-  mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
-elif [ -n "${RUN_ID:-}" ]; then
-  GATE_LOG_DIR="docs/runs/${RUN_ID}"
-  mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
-else
-  GATE_LOG_DIR="$(mktemp -d -t verify-gates.XXXXXX)"
-  GATE_LOG_DIR_IS_TEMP=1
-fi
-
-cleanup_gate_log_dir() {
-  if [ "$GATE_LOG_DIR_IS_TEMP" = "1" ] && [ -n "$GATE_LOG_DIR" ] && [ -d "$GATE_LOG_DIR" ]; then
-    rm -rf "$GATE_LOG_DIR"
-  fi
-}
-trap cleanup_gate_log_dir EXIT
-
 # run_gate_to_log <label> <fn>
 #   Same retry / timing semantics as run_gate, but every byte of gate
 #   output is funneled into ${GATE_LOG_DIR}/.gate-<label>.log and the
@@ -360,12 +394,14 @@ run_gate_to_log() {
   local fn="$2"
   local log="${GATE_LOG_DIR}/.gate-${label}.log"
   local rc_file="${GATE_LOG_DIR}/.gate-${label}.rc"
+  local cmd_file="${GATE_LOG_DIR}/.gate-${label}.cmd"
   local attempt=0
   local rc=0
   local start_s
   local elapsed_s
   : > "$log"
   : > "$rc_file"
+  : > "$cmd_file"
   while :; do
     start_s=$SECONDS
     if [ "$attempt" -eq 0 ]; then
@@ -374,7 +410,7 @@ run_gate_to_log() {
       printf '↻ %s retry %s/%s\n' "$label" "$attempt" "$MAX_VERIFY_RETRIES" >> "$log"
     fi
     rc=0
-    "$fn" >> "$log" 2>&1 || rc=$?
+    GATE_RESOLVED_CMD_FILE="$cmd_file" "$fn" >> "$log" 2>&1 || rc=$?
     elapsed_s=$((SECONDS - start_s))
     if [ "$rc" -eq 0 ]; then
       printf '✓ %s ok (%ss)\n' "$label" "$elapsed_s" >> "$log"
@@ -447,12 +483,15 @@ emit "↦ read-only gates joined (${parallel_elapsed_s}s wall; rc typecheck=${rc
 # Aggregate. First non-zero rc, in fixed order, is what we exit with.
 # This preserves "any read-only gate failure stops the test gates"
 # semantics from the sequential form.
-for rc in "$rc_typecheck" "$rc_lint" "$rc_security"; do
-  if [ "$rc" != "0" ]; then
+for pair in "typecheck:$rc_typecheck" "lint:$rc_lint" "security:$rc_security"; do
+  _label="${pair%%:*}"; _rc="${pair#*:}"
+  if [ "$_rc" != "0" ]; then
+    emit_failure_diagnostics "$_label"
     emit "✗ verification gates failed in read-only block"
-    exit "$rc"
+    exit "$_rc"
   fi
 done
+unset _label _rc
 
 # --- sequential block: property → contract → full_suite ---
 run_gate property run_property
