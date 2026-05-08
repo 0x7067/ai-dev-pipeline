@@ -1,5 +1,5 @@
 ---
-description: Run verification gates and produce go/no-go decision.
+description: Advanced — Run verification gates and produce go/no-go decision. Prefer `/ship` for the full flow.
 ---
 
 You are the orchestrator for `/verify`. Do NOT run gates directly — delegate to the `verifier` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".

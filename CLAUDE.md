@@ -11,12 +11,11 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 - Keep evidence quality high: official docs first, limited external sources, no unsourced numeric claims.
 
 ## Default Command Flow
-1. `/plan`
-2. `/implement`
-3. `/review`
-4. `/test`
-5. `/verify`
-6. `/cycle` (orchestrates all phases)
+- Recommended: `/ship` — orchestrates the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release) with risk-adaptive approval gates by default. Pass `/ship strict` to make the plan-approval gate unconditional.
+
+> Footnote: per-phase commands (`/plan`, `/implement`, `/review`, `/test`, `/verify`, `/research`) remain available as advanced escape hatches for re-running a single phase. They are demoted in their `description:` front-matter to "Advanced —" so the command picker groups them below the primary surface.
+
+> Migration: `/cycle` and `/autopilot` were merged into `/ship`. `/ship` defaults to the previous `/autopilot` (risk-adaptive) behavior; `/ship strict` reproduces the previous `/cycle` behavior.
 
 ## Proactive Invocation
 When the user describes a coding intent — fixing a bug, adding a feature, reviewing, refactoring, shipping — Claude must invoke the matching pipeline skill, command, or agent **proactively**, before producing any other response, rather than waiting for an explicit slash command. The `using-pipeline` meta-skill (`.claude/skills/using-pipeline/SKILL.md`) is the source of truth for intent → skill mapping and the anti-rationalization rules; it is auto-loaded at session start by the `SessionStart` hook in `.claude/hooks/session-start.sh`.

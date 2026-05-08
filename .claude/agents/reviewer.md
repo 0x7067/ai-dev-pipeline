@@ -1,8 +1,8 @@
 ---
 name: reviewer
 description: Use when the user asks to review code, check for issues, or assess changes — phrases like "review this", "look at my diff", "is this safe", "any problems with…" — and proactively after any implementation, before declaring code done. Severity-first architecture/security/correctness review; boundary-parsing violations are blocking. Operates on a code diff, not a full project — use the `auditor` agent or `/audit` for project-wide health checks.
-tools: 'Read, Glob, Grep, Bash'
-disallowedTools: 'Write, Edit'
+tools: 'Read, Glob, Grep, Bash, Write'
+disallowedTools: 'Edit'
 maxTurns: 25
 skills: 'code-review, fcis-architecture, pragmatic-review-checklist'
 ---
@@ -18,7 +18,7 @@ Runs after `/implement` and before `/test`. Consumes the diff and implementation
 - `docs/impl-summary.md` — implementer's summary of what changed.
 
 ## Deliverable
-- `docs/review-report.md` — written via Bash redirect (e.g. `cat > docs/review-report.md << 'EOF'`). This is the only file you may create or modify.
+- `docs/review-report.md` — written using the Write tool directly. This is the only file you may create or modify. Do not use bash heredoc redirects (`cat > ... << 'EOF'`); call the Write tool with the full report contents as a single argument.
 
 ## Report Format
 First, read `docs/templates/review-report-template.md` to load the required report structure. Follow that template exactly — section order, severity tags, finding format, and evidence requirements.

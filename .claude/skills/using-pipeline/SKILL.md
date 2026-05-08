@@ -19,23 +19,36 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 `ai-dev-pipeline` enforces a deterministic Functional Core / Imperative Shell workflow with explicit human approval gates (see `.claude/rules/release-and-verification.md`). Skipping the pipeline — by jumping straight to edits, "quick fixes", or ad-hoc reasoning — bypasses risk-tier classification, parse-at-boundary enforcement, and the gate runner. The whole point of this repo is that those gates run.
 
-## Intent → skill/command mapping
+## Intent → command mapping
 
 Match what the user actually says. When the user types one of these signals, invoke the matching pipeline entry-point as your **first action**, before any other tool call or reply.
 
+The primary user-facing surface is five commands:
+
 | User intent / phrasing | Invoke |
 |---|---|
-| "plan", "design", "how should we…", "what's the approach for…" | `/plan` (or `requirement-analysis` skill) |
-| "implement", "build", "add", "write the code for…" | `/plan` first (gate), then `/implement` |
-| "bug", "failing test", "broken", "regression", "something's off", "not working" | `requirement-analysis` skill, then `/plan` |
-| "review", "look at this", "is this OK", "check my code" | `code-review` skill (or `/review`) |
-| "refactor", "clean up", "restructure", "extract", "rename" | `/refactor` |
-| "ship", "release", "ready to merge", "verify", "is this done" | `/verify`, then `static-analysis` |
-| "test", "coverage", "property test", "contract test" | `test-gen` skill (or `/test`) |
-| "audit", "health check", "overall state of…" | `/audit` |
-| "research", "investigate", "what does X do", high-risk/unfamiliar area | `research` skill |
+| Any code change: "implement", "build", "add", "fix", "ship", "release", "ready to merge", "verify", "is this done", bug reports, failing tests | `/ship` (default `adaptive`; pass `strict` to force unconditional plan approval) |
+| "refactor", "clean up", "restructure", "extract", "rename", "split this up", "tidy" | `/refactor` |
+| "audit", "health check", "overall state of…", project-wide review with no code change | `/audit` |
+| First-time project setup, scaffold scripts/rules/templates | `/setup` |
+| Clear workflow state between tasks | `/reset` |
 
-When in doubt between two: process skills (requirement-analysis, research) come **before** implementation skills.
+> Advanced: per-phase commands (`/plan`, `/implement`, `/review`, `/test`, `/verify`, `/research`) remain available for re-running a single phase. Prefer `/ship` for the full flow. Their `description:` front-matter is prefixed with "Advanced —" so the command picker groups them below the primary surface.
+
+When in doubt between two: process skills (requirement-analysis, research) come **before** implementation skills, but for any user-visible action prefer the command surface above.
+
+### Agent-internal reference skills
+
+The following skills are reference/process material that the pipeline agents invoke internally; users should not need to call them directly:
+
+- `requirement-analysis` — used by `planner`
+- `fcis-architecture` — used by `planner` and `reviewer`
+- `code-review` — used by `reviewer`
+- `pragmatic-review-checklist` — used by `reviewer` (advisory second pass on medium/high risk)
+- `static-analysis` — used by `verifier`
+- `test-gen` — used by `tester`
+- `refactor` — used by `/refactor`
+- `research` — used by `researcher`
 
 ## Required gates
 
@@ -64,7 +77,7 @@ These are the thoughts that mean **STOP — you are skipping the pipeline**. Eve
 
 ## How to invoke
 
-- **User typed a slash command** (`/plan`, `/audit`, `/cycle`, …): the harness already dispatches it. Do not narrate or attempt to re-invoke via the `Skill` tool — just let it run.
+- **User typed a slash command** (`/ship`, `/plan`, `/audit`, …): the harness already dispatches it. Do not narrate or attempt to re-invoke via the `Skill` tool — just let it run.
 - **User expressed an intent without a slash command**: invoke the matching skill via the `Skill` tool (e.g. `code-review`, `requirement-analysis`). For phases that ship as slash commands, the skill listing exposes them under the same name (`audit`, `plan`, `verify`, …) — invoke that skill name directly.
 
 Never use `Read` to load `SKILL.md` files manually.

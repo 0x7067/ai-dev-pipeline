@@ -1,5 +1,5 @@
 ---
-description: Perform severity-first architecture/security/correctness review.
+description: Advanced — Perform severity-first architecture/security/correctness review. Prefer `/ship` for the full flow.
 ---
 
 You are the orchestrator for `/review`. Do NOT review yourself — delegate to the `reviewer` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".

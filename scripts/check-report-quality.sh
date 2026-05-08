@@ -73,7 +73,48 @@ require_pattern() {
 }
 
 normalize_value() {
-  printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]'
+  # Trim surrounding whitespace, then strip leading/trailing markdown emphasis
+  # wrappers (backticks, asterisks, underscores, single/double quotes), then
+  # lowercase. Stripping is symmetric and only touches the outermost characters
+  # — interior characters are preserved. Idempotent.
+  printf '%s' "$1" \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+    | sed 's/^[`*_"'"'"']*//; s/[`*_"'"'"']*$//' \
+    | tr '[:upper:]' '[:lower:]'
+}
+
+official_sources_present() {
+  # Returns 0 iff the file has an `Official sources:` line with either:
+  #   (a) a non-empty inline value on the same line, OR
+  #   (b) at least one indented `-` sub-bullet with non-empty text in the
+  #       block immediately following (terminated by a blank line or any
+  #       non-indented line).
+  local file="$1"
+  awk '
+    BEGIN { found = 0 }
+    /^- Official sources:[[:space:]]*$/ {
+      # Header with no inline value — scan following indented sub-bullets.
+      in_block = 1
+      next
+    }
+    /^- Official sources:[[:space:]]+[^[:space:]]/ {
+      found = 1
+      exit
+    }
+    in_block == 1 {
+      if ($0 ~ /^[[:space:]]*$/) { in_block = 0; next }
+      if ($0 ~ /^[[:space:]]+-[[:space:]]+[^[:space:]]/) { found = 1; exit }
+      # Non-indented line ends the block.
+      if ($0 !~ /^[[:space:]]/) { in_block = 0 }
+    }
+    END { exit (found ? 0 : 1) }
+  ' "$file"
+}
+
+evidence_block_has_local_file() {
+  # Returns 0 iff the piped stdin has at least one citation-shaped local-file
+  # token: a path with one of the recognized source extensions.
+  match_stdin '[A-Za-z0-9_./-]+\.(md|yaml|yml|json|ts|tsx|js|py|go|rs|sh|toml)([^A-Za-z0-9]|$)'
 }
 
 is_unset_value() {
@@ -86,7 +127,11 @@ validate_approval_value() {
   local file="$1"
   local label="$2"
   local raw_value="$3"
-  local allow_not_required="$4"
+  # Mode: 0 = strict (must be approved/rejected/etc); 1 = bare N/A allowed
+  # (legacy, used for elevated-risk slot on low-risk plans); 2 = N/A allowed
+  # only with rationale (`N/A — <rationale>`), used for Plan/Release on
+  # low-risk plans.
+  local na_mode="$4"
   local value
 
   value="$(normalize_value "$raw_value")"
@@ -100,7 +145,14 @@ validate_approval_value() {
     return
   fi
 
-  if [ "$allow_not_required" = "1" ] && [[ "$value" =~ ^n/?a$|^na$|^not[[:space:]]+required$ ]]; then
+  if [ "$na_mode" = "1" ] && [[ "$value" =~ ^n/?a$|^na$|^not[[:space:]]+required$ ]]; then
+    return
+  fi
+
+  # Mode 1 also accepts the rationale form for symmetry.
+  # Mode 2 requires the rationale form: `N/A — <rationale>` or `N/A - <rationale>`.
+  if [[ "$na_mode" = "1" || "$na_mode" = "2" ]] \
+     && [[ "$value" =~ ^n/?a[[:space:]]*[—-][[:space:]]*[^[:space:]] ]]; then
     return
   fi
 
@@ -117,13 +169,31 @@ check_review_report() {
   require_heading "$file" '## Residual Risks'
   require_heading "$file" '## Recommendation'
 
-  require_pattern "$file" '^- Official sources:[[:space:]]+[^[:space:]]' 'Official sources'
+  if ! official_sources_present "$file"; then
+    fail "$file missing or empty field: Official sources"
+  fi
   require_pattern "$file" '^- Unsourced claims rejected:[[:space:]]+[^[:space:]]' 'Unsourced claims rejected'
+
+  # Risk-tier-aware evidence citation check. If the report carries a
+  # `- Risk tier:` line and it normalizes to `low`, accept either an http(s)
+  # URL or at least one local-file citation. Otherwise (medium/high or no
+  # risk tier present), require an http(s) URL — preserving prior behavior.
+  local risk_tier
+  risk_tier="$(sed -n 's/^- Risk tier:[[:space:]]*//p' "$file" | head -n1)"
+  risk_tier="$(normalize_value "$risk_tier")"
 
   local evidence_block
   evidence_block="$(awk '/^## Evidence$/{flag=1;next} /^## /&&flag{exit} flag{print}' "$file")"
-  if ! printf '%s\n' "$evidence_block" | match_stdin 'https?://'; then
-    fail "$file evidence section must include at least one citation URL"
+
+  if [ "$risk_tier" = "low" ]; then
+    if ! { printf '%s\n' "$evidence_block" | match_stdin 'https?://'; } \
+       && ! { printf '%s\n' "$evidence_block" | evidence_block_has_local_file; }; then
+      fail "$file evidence section must include at least one citation URL or local-file citation"
+    fi
+  else
+    if ! printf '%s\n' "$evidence_block" | match_stdin 'https?://'; then
+      fail "$file evidence section must include at least one citation URL"
+    fi
   fi
 }
 
@@ -216,13 +286,16 @@ check_verify_report() {
     return
   fi
 
-  validate_approval_value "$file" "Plan approved" "$plan_approval" 0
-  validate_approval_value "$file" "Release approved" "$release_approval" 0
-
-  if [[ "$risk_tier" = "medium" || "$risk_tier" = "high" ]]; then
-    validate_approval_value "$file" "Elevated-risk implementation approved" "$elevated_risk_approval" 0
-  else
+  if [ "$risk_tier" = "low" ]; then
+    # Plan & Release: N/A allowed only with rationale.
+    validate_approval_value "$file" "Plan approved" "$plan_approval" 2
+    validate_approval_value "$file" "Release approved" "$release_approval" 2
+    # Elevated-risk: bare N/A allowed (legacy convenience for low-risk runs).
     validate_approval_value "$file" "Elevated-risk implementation approved" "$elevated_risk_approval" 1
+  else
+    validate_approval_value "$file" "Plan approved" "$plan_approval" 0
+    validate_approval_value "$file" "Release approved" "$release_approval" 0
+    validate_approval_value "$file" "Elevated-risk implementation approved" "$elevated_risk_approval" 0
   fi
 }
 

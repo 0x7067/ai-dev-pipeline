@@ -27,17 +27,37 @@
 - Advisory:
 
 ## Human Approval Checkpoints
-1. Plan approved:
+<!--
+Convention: each numbered line must be filled. For risk=low changes, the three
+approval slots may be filled with `N/A — <rationale>` (for example
+`N/A — risk=low`) and the Evidence link should point at `docs/current-plan.md`.
+A bare `N/A` or `na` without the dash + rationale is rejected by
+scripts/check-report-quality.sh. For risk=medium or risk=high, all three slots
+require concrete approver/date/evidence values.
+-->
+1. Plan approved: <!-- e.g. approved | N/A — risk=low -->
    - Approver:
    - Date:
    - Evidence link:
-2. Elevated-risk implementation approved (required for `medium` and `high` risk):
+2. Elevated-risk implementation approved (required for `medium` and `high` risk): <!-- e.g. approved | N/A — risk=low -->
    - Approver:
    - Date:
    - Evidence link:
-3. Release approved:
+3. Release approved: <!-- e.g. approved | N/A — risk=low -->
    - Approver:
    - Date:
    - Evidence link:
+
+## Evidence
+- Official sources:
+  - <!-- e.g. .claude/rules/release-and-verification.md -->
+  - <!-- e.g. https://example.com/official-doc -->
+- External sources (if needed, max 2):
+  - <!-- omit if not needed -->
+<!--
+Canonical `Official sources:` form is the sub-bullet form shown above.
+An inline value on the same line is also accepted by
+scripts/check-report-quality.sh, but sub-bullets are preferred.
+-->
 
 ## Residual Risk and Follow-ups

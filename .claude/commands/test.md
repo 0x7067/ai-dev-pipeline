@@ -1,5 +1,5 @@
 ---
-description: Generate/run tests including property-based and boundary contract tests.
+description: Advanced — Generate/run tests including property-based and boundary contract tests. Prefer `/ship` for the full flow.
 ---
 
 You are the orchestrator for `/test`. Do NOT write tests yourself — delegate to the `tester` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".

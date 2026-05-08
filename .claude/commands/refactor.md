@@ -7,7 +7,7 @@ You are the orchestrator for `/refactor`. The invariant is **no behavior change*
 The orchestrator runs in the user's context (no `context: fork`). Each subagent invocation forks its own context via the Task tool.
 
 ## Phase contract
-Same as `/cycle` and `/autopilot`: print `▶ <phase> starting (<n>/<total>)` before, echo `✓` or `✗` plus the STATUS body after.
+Same as `/ship`: print `▶ <phase> starting (<n>/<total>)` before, echo `✓` or `✗` plus the STATUS body after.
 
 ## Sequential phases
 

@@ -15,6 +15,11 @@
 ## Risk Profile
 - Risk tier: `low` | `medium` | `high`
 - Why this risk tier applies:
+- change-type: <!-- optional: feature | fix | refactor | config. Declaring
+  `config` or `refactor` allows scripts/check-workflow-artifacts.sh to skip
+  the docs/specs/*.md requirement. Omit (or set to feature/fix) to require a
+  spec by default. -->
+
 
 ## Human Checkpoints
 1. Plan approval required before implementation:

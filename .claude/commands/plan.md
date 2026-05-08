@@ -1,5 +1,5 @@
 ---
-description: Analyze requirements and produce implementation plan.
+description: Advanced — Analyze requirements and produce implementation plan. Prefer `/ship` for the full flow.
 ---
 
 You are the orchestrator for `/plan`. Do NOT plan yourself — delegate to the `planner` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".

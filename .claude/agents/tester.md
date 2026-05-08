@@ -27,6 +27,7 @@ Replace placeholder text with concrete content. Omit sections that do not apply 
 
 ## Constraints
 - If `docs/templates/test-report-template.md` does not exist, abort immediately: print `tester: ERROR: docs/templates/test-report-template.md not found. Is this a complete ai-dev-pipeline install?` to stderr and do not write `docs/test-report.md`.
+- Returning `report=none` is invalid unless `docs/templates/test-report-template.md` is missing. If the template exists you MUST write `docs/test-report.md` and return `report=docs/test-report.md`.
 - Do not modify production source files except where required to make code testable (and surface those edits in the report).
 - Do not assume a specific programming language or framework unless the code clearly indicates one — detect the test runner from project files.
 - Do not run verification gates; that is the verifier's job.

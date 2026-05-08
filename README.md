@@ -15,22 +15,30 @@ bash scripts/smoke-bootstrap.sh          # confirms required files and hook exec
 
 Harness scripts are root-relative and can be run from any directory inside the repository.
 
-Then run `/cycle` to drive an end-to-end demo of the workflow.
+Then run `/ship` to drive an end-to-end demo of the workflow.
 
 ## Commands
 
+Primary user-facing surface:
+
 | Command | Description |
 |---|---|
-| `/setup` | Scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo |
+| `/ship` | Run the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release) with risk-adaptive approval gates by default. Pass `/ship strict` for unconditional plan approval. Replaces the previous `/cycle` and `/autopilot`. |
+| `/refactor` | Behavior-preserving structural change with pre/post verification gates and human approval |
+| `/audit` | Holistic project audit — structure, conventions, critical issues, and quick wins |
+| `/setup` | Ops: scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo |
+| `/reset` | Ops: reset workflow state — clears all phase completions |
+
+Advanced (escape hatches for re-running a single phase):
+
+| Command | Description |
+|---|---|
 | `/plan` | Analyze requirements and produce an implementation plan |
 | `/research` | Perform upfront research for unclear or high-risk work |
 | `/implement` | Implement changes from the approved plan |
 | `/review` | Severity-first architecture, security, and correctness review |
-| `/audit` | Holistic project audit — structure, conventions, critical issues, and quick wins |
 | `/test` | Generate and run tests including property-based and boundary contract tests |
 | `/verify` | Run verification gates and produce a go/no-go decision |
-| `/cycle` | Run full workflow: plan → implement → review → test → verify |
-| `/autopilot` | Same as `/cycle` with optional research and approval gates |
 
 `/review` is a **merge gate** — operates on code changes, produces blocking/warning/advisory findings. `/audit` is a **project health check** — reviews the whole project periodically or before major architectural decisions.
 
@@ -40,7 +48,7 @@ Then run `/cycle` to drive an end-to-end demo of the workflow.
 /plan → /implement → /review → /test → /verify
 ```
 
-Use `/cycle` to orchestrate all phases, or `/autopilot` to include optional research with approval gates at risk checkpoints.
+Use `/ship` to orchestrate all phases (default `adaptive` mode is risk-conditional with optional research and approval gates; `/ship strict` makes the plan-approval gate unconditional).
 
 ## Multi-Language Support
 
@@ -62,7 +70,7 @@ Workflow phase prerequisites are enforced by hook-based gates. Running `/impleme
 - State is tracked in `.claude/workflow-state.json` (gitignored)
 - Use `/reset` to clear all phase completions and start a new task
 - Set `WORKFLOW_GATES_SKIP=1` to bypass all checks
-- `/cycle` and `/autopilot` orchestrate internally and are not gated
+- `/ship` orchestrates internally and is not gated
 
 ## Proactive Invocation
 

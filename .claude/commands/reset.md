@@ -1,5 +1,5 @@
 ---
-description: Reset workflow state — clears all phase completions. Optionally name the task.
+description: "Ops: Reset workflow state — clears all phase completions. Optionally name the task."
 context: fork
 ---
 

@@ -1,5 +1,5 @@
 ---
-description: Scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo.
+description: "Ops: Scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo."
 context: fork
 ---
 

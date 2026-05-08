@@ -19,7 +19,7 @@ Final stage of the per-change pipeline. Runs after `/test` and before merge/rele
 - Output of `bash scripts/run-verification-gates.sh` (canonical gate runner).
 
 ## Deliverable
-- `docs/verify-report.md` — written via Bash redirect (e.g. `cat > docs/verify-report.md << 'EOF'`). This is the only file you may create or modify.
+- `docs/verify-report.md` — written via Bash redirect (e.g. `cat > docs/verify-report.md << 'EOF'`). This is the only file you may create or modify. (Verifier retains Bash-only file-write because it lacks the Write tool by policy; ensure the redirect actually executes — do not narrate the heredoc without running it.)
 
 ## Report Format
 First, read `docs/templates/verify-report-template.md` to load the required report structure. Follow that template exactly — gate result table, blocking vs advisory split, go/no-go summary, risk tier, approval checklist.
@@ -39,6 +39,7 @@ Replace placeholder text with concrete results. Omit sections that do not apply 
 - Provide a go/no-go summary.
 - Classify and record risk tier (`low|medium|high`) for the change set.
 - Verify required human approvals are present for plan, medium/high-risk changes, and release.
+- When the plan declares `Risk tier: low`, the elevated-risk approval slot is not required, and `Plan approved` and `Release approved` may also be filled with `N/A — risk=low` (or another short rationale beginning with `N/A —`). In that case, populate all three approval slots with `N/A — risk=low` plus an Evidence link pointing at `docs/current-plan.md` rather than leaving them empty or marking them `pending`. For risk=medium or risk=high, all three slots must record concrete approver/date/evidence values.
 - As you run gates, the canonical runner emits per-gate `▶`/`✓`/`✗` lines on stdout; surface those lines to the user as they appear so progress is visible during the run.
 
 ## Return Contract

@@ -1,5 +1,5 @@
 ---
-description: Implement changes from the approved plan.
+description: Advanced — Implement changes from the approved plan. Prefer `/ship` for the full flow.
 ---
 
 You are the orchestrator for `/implement`. Do NOT write code yourself — delegate to the `implementer` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".

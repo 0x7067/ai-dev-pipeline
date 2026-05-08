@@ -1,6 +1,6 @@
 ---
 name: pragmatic-review-checklist
-description: Curated review checklist drawn from The Pragmatic Programmer (20th Ed.) tips that are not enforceable by compiler or linter and need a reading pass on the diff. Invoked by /review as advisory. Use when the user asks for a "second pass" or "pragmatic review", or after the standard code-review skill has run on a non-trivial change.
+description: "Internal — agent-only reference skill. Curated review checklist drawn from The Pragmatic Programmer (20th Ed.) tips that are not enforceable by compiler or linter and need a reading pass on the diff. Invoked automatically by the reviewer agent / `/review` as an advisory second pass on medium/high risk changes; users should not invoke this skill directly."
 ---
 
 # Pragmatic Review Checklist

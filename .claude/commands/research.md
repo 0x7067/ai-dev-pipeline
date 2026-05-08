@@ -1,5 +1,5 @@
 ---
-description: Perform upfront research for unclear or high-risk work.
+description: Advanced — Perform upfront research for unclear or high-risk work. Prefer `/ship` for the full flow.
 ---
 
 You are the orchestrator for `/research`. Do NOT research yourself — delegate to the `researcher` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".
