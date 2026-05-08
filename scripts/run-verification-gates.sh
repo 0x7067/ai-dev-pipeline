@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/harness-lib.sh
+source "${SCRIPT_DIR}/harness-lib.sh"
+harness_cd_repo_root
+
 run() {
   echo "verify-gates: $*"
   "$@"
@@ -38,25 +43,12 @@ has_package_script() {
 
 run_package_script() {
   local script_name="$1"
+  local rc=0
 
-  if command -v bun >/dev/null 2>&1; then
-    run bun run -s "$script_name"
-    return $?
-  fi
-
-  if command -v npm >/dev/null 2>&1; then
-    run npm run -s "$script_name"
-    return $?
-  fi
-
-  if command -v pnpm >/dev/null 2>&1; then
-    run pnpm -s "$script_name"
-    return $?
-  fi
-
-  if command -v yarn >/dev/null 2>&1; then
-    run yarn -s "$script_name"
-    return $?
+  echo "verify-gates: package script: ${script_name}"
+  harness_run_package_script "$script_name" || rc=$?
+  if [ "$rc" -ne 127 ]; then
+    return "$rc"
   fi
 
   echo "verify-gates: ERROR: package.json has ${script_name} script but no supported package manager found"
@@ -96,19 +88,24 @@ run_property() {
 
   if has_package_script "test:property"; then
     run_package_script "test:property"
-    return 0
+    return $?
   fi
   if has_package_script "property:test"; then
     run_package_script "property:test"
-    return 0
+    return $?
   fi
   if has_package_script "property-tests"; then
     run_package_script "property-tests"
-    return 0
+    return $?
   fi
   if has_package_script "property"; then
     run_package_script "property"
-    return 0
+    return $?
+  fi
+
+  if [ "${VERIFY_REQUIRE_PROPERTY:-0}" = "1" ]; then
+    echo "verify-gates: ERROR: VERIFY_REQUIRE_PROPERTY=1 but no property test command was found"
+    return 1
   fi
 
   echo "verify-gates: Property tests skipped (no configured command)"
@@ -120,19 +117,24 @@ run_contract() {
 
   if has_package_script "test:contract"; then
     run_package_script "test:contract"
-    return 0
+    return $?
   fi
   if has_package_script "contract:test"; then
     run_package_script "contract:test"
-    return 0
+    return $?
   fi
   if has_package_script "contract-tests"; then
     run_package_script "contract-tests"
-    return 0
+    return $?
   fi
   if has_package_script "contract"; then
     run_package_script "contract"
-    return 0
+    return $?
+  fi
+
+  if [ "${VERIFY_REQUIRE_CONTRACT:-0}" = "1" ]; then
+    echo "verify-gates: ERROR: VERIFY_REQUIRE_CONTRACT=1 but no contract test command was found"
+    return 1
   fi
 
   echo "verify-gates: Contract tests skipped (no configured command)"
@@ -144,7 +146,7 @@ run_full_suite() {
 
   if has_package_script "test"; then
     run_package_script "test"
-    return 0
+    return $?
   fi
 
   if [ -f Cargo.toml ] && command -v cargo >/dev/null 2>&1; then
@@ -174,6 +176,11 @@ run_full_suite() {
     fi
   fi
 
+  if [ "${VERIFY_REQUIRE_FULL_SUITE:-0}" = "1" ]; then
+    echo "verify-gates: ERROR: VERIFY_REQUIRE_FULL_SUITE=1 but no full-suite test runner was found"
+    return 1
+  fi
+
   echo "verify-gates: Full suite skipped (no configured test runner)"
   return 0
 }
@@ -182,6 +189,14 @@ export HOOKS_FAST="${HOOKS_FAST:-0}"
 
 MAX_VERIFY_RETRIES="${MAX_VERIFY_RETRIES:-0}"
 VERIFY_RETRY_HINT_FILE="${VERIFY_RETRY_HINT_FILE:-docs/.verify-retry.json}"
+VERIFY_REQUIRE_FULL_SUITE="${VERIFY_REQUIRE_FULL_SUITE:-0}"
+VERIFY_REQUIRE_PROPERTY="${VERIFY_REQUIRE_PROPERTY:-0}"
+VERIFY_REQUIRE_CONTRACT="${VERIFY_REQUIRE_CONTRACT:-0}"
+
+if ! harness_is_non_negative_int "$MAX_VERIFY_RETRIES"; then
+  echo "verify-gates: ERROR: MAX_VERIFY_RETRIES must be a non-negative integer"
+  exit 1
+fi
 
 write_retry_hint() {
   local gate="$1"
@@ -211,7 +226,8 @@ run_gate() {
   done
 }
 
-# Reset hint file on each run
+# Reset hint file on each run.
+mkdir -p "$(dirname "$VERIFY_RETRY_HINT_FILE")" 2>/dev/null || true
 : > "$VERIFY_RETRY_HINT_FILE" 2>/dev/null || true
 
 run_gate typecheck run_typecheck

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/harness-lib.sh
+source "${SCRIPT_DIR}/harness-lib.sh"
+harness_cd_repo_root
+
 total=0
 passed=0
 failed=0
@@ -77,6 +82,7 @@ run_check_required_files "required_bootstrap_files" \
   scripts/check-workflow-artifacts.sh \
   scripts/check-crossrefs.sh \
   scripts/check-boundary-violations.sh \
+  scripts/harness-lib.sh \
   scripts/run-verification-gates.sh \
   docs/verification/acceptance-checklist.md \
   docs/templates/workflow-assessment-prompt-template.md \

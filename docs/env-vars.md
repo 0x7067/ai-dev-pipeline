@@ -49,3 +49,15 @@ All scripts respect these environment variables for project-specific customizati
 |---|---|---|
 | `WORKFLOW_GATES_SKIP` | `0` | Set to `1` to bypass workflow phase prerequisite checks |
 | `WORKFLOW_STATE_PATH` | `.claude/workflow-state.json` | Override path for the workflow state file |
+| `MAX_VERIFY_RETRIES` | `0` | Retry count per verification gate; must be a non-negative integer |
+| `VERIFY_RETRY_HINT_FILE` | `docs/.verify-retry.json` | JSON-lines retry telemetry path, created relative to the repo root |
+| `VERIFY_TYPECHECK_CMD` | unset | Override the type/compile gate with a project-specific command |
+| `VERIFY_LINT_CMD` | unset | Override the lint gate with a project-specific command |
+| `VERIFY_SECURITY_CMD` | unset | Override the security gate with a project-specific command |
+| `VERIFY_PROPERTY_CMD` | unset | Override the property-test gate with a project-specific command |
+| `VERIFY_CONTRACT_CMD` | unset | Override the contract-test gate with a project-specific command |
+| `VERIFY_FULL_CMD` | unset | Override the full-suite gate with a project-specific command |
+| `VERIFY_REQUIRE_PROPERTY` | `0` | Set to `1` to fail when no property-test command can be discovered |
+| `VERIFY_REQUIRE_CONTRACT` | `0` | Set to `1` to fail when no contract-test command can be discovered |
+| `VERIFY_REQUIRE_FULL_SUITE` | `0` | Set to `1` to fail when no full-suite runner can be discovered |
+| `HARNESS_JS_PACKAGE_MANAGER` | auto | Force `bun`, `pnpm`, `yarn`, or `npm` for package-script gates |
