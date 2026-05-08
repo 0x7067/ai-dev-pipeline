@@ -235,7 +235,20 @@ run_full_suite() {
 export HOOKS_FAST="${HOOKS_FAST:-0}"
 
 MAX_VERIFY_RETRIES="${MAX_VERIFY_RETRIES:-0}"
-VERIFY_RETRY_HINT_FILE="${VERIFY_RETRY_HINT_FILE:-docs/.verify-retry.json}"
+# Per-run hint file: when an active run is in flight (RUN_DIR set, or
+# resolvable via docs/latest), the hint file lives under that run's dir
+# so concurrent /ship sessions don't stomp each other. Falls back to
+# the historical docs/.verify-retry.json default for repos that haven't
+# minted a run yet.
+if [ -z "${VERIFY_RETRY_HINT_FILE:-}" ]; then
+  if [ -n "${RUN_DIR:-}" ]; then
+    VERIFY_RETRY_HINT_FILE="${RUN_DIR}/.verify-retry.json"
+  elif [ -n "${RUN_ID:-}" ]; then
+    VERIFY_RETRY_HINT_FILE="docs/runs/${RUN_ID}/.verify-retry.json"
+  else
+    VERIFY_RETRY_HINT_FILE="docs/.verify-retry.json"
+  fi
+fi
 VERIFY_REQUIRE_FULL_SUITE="${VERIFY_REQUIRE_FULL_SUITE:-0}"
 VERIFY_REQUIRE_PROPERTY="${VERIFY_REQUIRE_PROPERTY:-0}"
 VERIFY_REQUIRE_CONTRACT="${VERIFY_REQUIRE_CONTRACT:-0}"
@@ -250,7 +263,16 @@ write_retry_hint() {
   local exit_code="$2"
   local attempt="$3"
   mkdir -p "$(dirname "$VERIFY_RETRY_HINT_FILE")" 2>/dev/null || true
-  printf '{"gate":"%s","exit_code":%s,"attempt":%s}\n' "$gate" "$exit_code" "$attempt" >> "$VERIFY_RETRY_HINT_FILE"
+  # Atomic swap (write-tmp + rename) instead of in-place truncate:
+  # parallel read-only gates can call this concurrently on the same
+  # hint path; O_TRUNC + write is not atomic on regular files, so two
+  # racing failures could briefly interleave bytes. The rename is
+  # POSIX-atomic, so a reader always observes one complete JSON object
+  # (last writer wins). Per-process tmp suffix prevents two writers
+  # from racing on the tmp path itself.
+  local tmp="${VERIFY_RETRY_HINT_FILE}.tmp.$$.${RANDOM:-0}"
+  printf '{"gate":"%s","exit_code":%s,"attempt":%s}\n' "$gate" "$exit_code" "$attempt" > "$tmp"
+  mv "$tmp" "$VERIFY_RETRY_HINT_FILE"
 }
 
 # Bash's $SECONDS builtin gives us 1-second granularity portably (macOS + Linux).
@@ -289,13 +311,150 @@ run_gate() {
 mkdir -p "$(dirname "$VERIFY_RETRY_HINT_FILE")" 2>/dev/null || true
 : > "$VERIFY_RETRY_HINT_FILE" 2>/dev/null || true
 
-OVERALL_START_S=$SECONDS
-emit "▶ verification gates starting (6 gates)"
+# ------------------------------------------------------------------------------
+# Parallel read-only gate fan-out
+# ------------------------------------------------------------------------------
+# typecheck / lint / security are CPU-bound and read-only: they don't
+# mutate workspace state and their results don't depend on each other.
+# We fan them out as background jobs writing to per-gate log files and
+# then replay the logs in fixed order (typecheck → lint → security)
+# after the join. Determinism > marginal latency: if any gate fails we
+# still wait for the siblings rather than early-killing them, so log
+# diffs across CI runs stay stable.
+#
+# Test gates (property / contract / full_suite) remain sequential —
+# they often share file-system state (caches, build artifacts) and
+# parallelizing them is out of scope for this change.
+# ------------------------------------------------------------------------------
 
-# Run sequentially. set -e propagates the first non-zero rc to the caller.
-run_gate typecheck run_typecheck
-run_gate lint run_lint
-run_gate security run_security
+# Resolve a per-run scratch dir for the gate logs. Prefer ${RUN_DIR},
+# fall back to a mktemp dir so the runner stays usable when invoked
+# without an active run (smoke tests, CI bootstrap, etc.).
+GATE_LOG_DIR=""
+GATE_LOG_DIR_IS_TEMP=0
+if [ -n "${RUN_DIR:-}" ]; then
+  GATE_LOG_DIR="${RUN_DIR}"
+  mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
+elif [ -n "${RUN_ID:-}" ]; then
+  GATE_LOG_DIR="docs/runs/${RUN_ID}"
+  mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
+else
+  GATE_LOG_DIR="$(mktemp -d -t verify-gates.XXXXXX)"
+  GATE_LOG_DIR_IS_TEMP=1
+fi
+
+cleanup_gate_log_dir() {
+  if [ "$GATE_LOG_DIR_IS_TEMP" = "1" ] && [ -n "$GATE_LOG_DIR" ] && [ -d "$GATE_LOG_DIR" ]; then
+    rm -rf "$GATE_LOG_DIR"
+  fi
+}
+trap cleanup_gate_log_dir EXIT
+
+# run_gate_to_log <label> <fn>
+#   Same retry / timing semantics as run_gate, but every byte of gate
+#   output is funneled into ${GATE_LOG_DIR}/.gate-<label>.log and the
+#   final exit code is written to .gate-<label>.rc. The function itself
+#   prints nothing on stdout/stderr — replay_gate_log prints it later.
+run_gate_to_log() {
+  local label="$1"
+  local fn="$2"
+  local log="${GATE_LOG_DIR}/.gate-${label}.log"
+  local rc_file="${GATE_LOG_DIR}/.gate-${label}.rc"
+  local attempt=0
+  local rc=0
+  local start_s
+  local elapsed_s
+  : > "$log"
+  : > "$rc_file"
+  while :; do
+    start_s=$SECONDS
+    if [ "$attempt" -eq 0 ]; then
+      printf '▶ %s starting\n' "$label" >> "$log"
+    else
+      printf '↻ %s retry %s/%s\n' "$label" "$attempt" "$MAX_VERIFY_RETRIES" >> "$log"
+    fi
+    rc=0
+    "$fn" >> "$log" 2>&1 || rc=$?
+    elapsed_s=$((SECONDS - start_s))
+    if [ "$rc" -eq 0 ]; then
+      printf '✓ %s ok (%ss)\n' "$label" "$elapsed_s" >> "$log"
+      printf '0\n' > "$rc_file"
+      return 0
+    fi
+    printf '✗ %s failed rc=%s (%ss)\n' "$label" "$rc" "$elapsed_s" >> "$log"
+    write_retry_hint "$label" "$rc" "$attempt"
+    if [ "$attempt" -ge "$MAX_VERIFY_RETRIES" ]; then
+      printf '%s\n' "$rc" > "$rc_file"
+      return "$rc"
+    fi
+    attempt=$((attempt + 1))
+  done
+}
+
+replay_gate_log() {
+  local label="$1"
+  local log="${GATE_LOG_DIR}/.gate-${label}.log"
+  if [ -f "$log" ]; then
+    cat "$log"
+  else
+    emit "✗ ${label} log missing"
+  fi
+}
+
+read_gate_rc() {
+  local label="$1"
+  local rc_file="${GATE_LOG_DIR}/.gate-${label}.rc"
+  if [ -f "$rc_file" ] && [ -s "$rc_file" ]; then
+    cat "$rc_file"
+  else
+    # Missing rc file = the background job died before writing it.
+    echo 1
+  fi
+}
+
+OVERALL_START_S=$SECONDS
+emit "▶ verification gates starting (6 gates: 3 parallel read-only + 3 sequential test)"
+
+# --- parallel block: typecheck + lint + security ---
+parallel_start_s=$SECONDS
+emit "▶ read-only gates fan-out (typecheck, lint, security)"
+run_gate_to_log typecheck run_typecheck &
+pid_typecheck=$!
+run_gate_to_log lint run_lint &
+pid_lint=$!
+run_gate_to_log security run_security &
+pid_security=$!
+
+# Wait on each sibling. We DO NOT propagate `wait` exit codes here — the
+# authoritative rc lives in .gate-<label>.rc files written by run_gate_to_log.
+wait "$pid_typecheck" 2>/dev/null || true
+wait "$pid_lint"      2>/dev/null || true
+wait "$pid_security"  2>/dev/null || true
+
+parallel_elapsed_s=$((SECONDS - parallel_start_s))
+
+# Replay in deterministic order: typecheck → lint → security.
+replay_gate_log typecheck
+replay_gate_log lint
+replay_gate_log security
+
+rc_typecheck=$(read_gate_rc typecheck)
+rc_lint=$(read_gate_rc lint)
+rc_security=$(read_gate_rc security)
+
+emit "↦ read-only gates joined (${parallel_elapsed_s}s wall; rc typecheck=${rc_typecheck} lint=${rc_lint} security=${rc_security})"
+
+# Aggregate. First non-zero rc, in fixed order, is what we exit with.
+# This preserves "any read-only gate failure stops the test gates"
+# semantics from the sequential form.
+for rc in "$rc_typecheck" "$rc_lint" "$rc_security"; do
+  if [ "$rc" != "0" ]; then
+    emit "✗ verification gates failed in read-only block"
+    exit "$rc"
+  fi
+done
+
+# --- sequential block: property → contract → full_suite ---
 run_gate property run_property
 run_gate contract run_contract
 run_gate full_suite run_full_suite

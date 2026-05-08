@@ -38,7 +38,7 @@ bash scripts/run-verification-gates.sh
 
 **Abort if any gate fails.** A failing baseline means tests or types are already broken. Fix the baseline before refactoring — do not proceed with a dirty starting state.
 
-Record baseline results (pass/fail per gate) in `docs/refactor-report.md`.
+Record baseline results (pass/fail per gate) in `${RUN_DIR}/refactor-report.md` (the orchestrator sets `RUN_DIR` at /refactor step 0; falls back to `docs/refactor-report.md` only when invoked outside a managed run).
 
 ## 2.5 Coverage Precondition
 
@@ -50,7 +50,7 @@ bash scripts/coverage-precondition.sh <target-file-or-glob>
 
 The script auto-detects an available coverage tool (pytest, `go test -cover`, `cargo llvm-cov`, `cargo tarpaulin`, vitest, jest, or c8) and invokes the tool with its native fail-under threshold flag, trusting the tool's exit code. The single exception is `go test -cover`, which lacks a built-in fail-under flag; for Go we extract the printed `coverage: XX.X%` value and compare it to the threshold (default 80%, override via `COVERAGE_THRESHOLD`).
 
-- **Pass** (exit 0): the coverage report covers the target at or above threshold. A `## Coverage Precondition` section is appended to `docs/.refactor-precondition.md`; fold it into `docs/refactor-report.md`.
+- **Pass** (exit 0): the coverage report covers the target at or above threshold. A `## Coverage Precondition` section is appended to `${RUN_DIR}/.refactor-precondition.md`; fold it into `${RUN_DIR}/refactor-report.md`.
 - **Block** (exit 1): the target is below threshold OR no coverage tool was detected and no `COVERAGE_RATIONALE` was supplied. Halt the refactor — strengthen tests first.
 - **Rationale fallback**: when no tool is detected and an interactive rationale is provided (or `COVERAGE_RATIONALE` is set), the script logs the rationale and exits 0. The rationale appears in the refactor report for audit.
 
@@ -58,7 +58,7 @@ Why this is mandatory: refactoring's "no behavior change" invariant is unprovabl
 
 ## 3. Planning
 
-Produce `docs/current-plan.md` with:
+Produce `${RUN_DIR}/current-plan.md` with:
 
 - What structural changes will be made (rename, extract, move, inline, etc.)
 - Which FC/IS layers are touched and whether any cross-layer movement occurs
@@ -71,7 +71,7 @@ The plan must not introduce new behavior, new error handling for new scenarios, 
 
 **Stop here. Do not write any code until the human approves the plan.**
 
-Present the scope table and `docs/current-plan.md` to the user. Wait for explicit approval. If rejected, revise the plan and re-present.
+Present the scope table and `${RUN_DIR}/current-plan.md` to the user. Wait for explicit approval. If rejected, revise the plan and re-present.
 
 ## 5. Implementation
 
@@ -103,7 +103,7 @@ Compare the structural diff:
 
 ## 7. Output
 
-Write `docs/refactor-report.md` using template: `docs/templates/refactor-report-template.md`.
+Write `${RUN_DIR}/refactor-report.md` using template: `docs/templates/refactor-report-template.md`.
 
 ## Blocking Conditions
 

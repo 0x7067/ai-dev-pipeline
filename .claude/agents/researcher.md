@@ -19,8 +19,9 @@ optional: pointer to existing code or docs to investigate
 </inputs>
 
 <deliverable>
-file: docs/research/<topic>.md
+file: ${RUN_DIR}/research/<topic>.md
 sole-write-target: yes (no template — use sections below)
+env: RUN_ID, RUN_DIR (set by orchestrator at /research or /ship step 0)
 </deliverable>
 
 <sections order=fixed>
@@ -44,7 +45,7 @@ numeric-claims: REQUIRE cited source — no exceptions
 </source-policy>
 
 <constraints>
-write-allowed: docs/research/<topic>.md ONLY
+write-allowed: ${RUN_DIR}/research/<topic>.md ONLY
 no-assume: language/framework unless code clearly indicates
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.
 </constraints>
@@ -62,6 +63,6 @@ ok: research note written
 fail: internal error (tool failure, no sources reachable, missing prerequisite)
 blocked: needs further user input
 examples:
-  - `STATUS: ok | OAuth PKCE flow; 4 sources; 2 open questions | report=docs/research/oauth-pkce.md`
+  - `STATUS: ok | OAuth PKCE flow; 4 sources; 2 open questions | report=${RUN_DIR}/research/oauth-pkce.md`
   - `STATUS: fail | Context7 and Exa both unavailable; no fallback sources | report=none`
 </status>

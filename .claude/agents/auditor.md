@@ -16,8 +16,9 @@ when: pre-major-architectural-decision | periodic-health-check
 
 <task>
 action: holistic project review of current state
-write-allowed: docs/audit-report.md ONLY (via Bash redirect `>`)
+write-allowed: ${RUN_DIR}/audit-report.md ONLY (via Bash redirect `>`)
 modify: nothing else (no code, no other files)
+env: RUN_ID, RUN_DIR (set by orchestrator at /audit step 0)
 </task>
 
 <template name="audit-report-template.md" required=true>
@@ -26,7 +27,7 @@ resolve:
   2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/audit-report-template.md (zero-setup fallback)
 missing-both:
   stderr: `auditor: ERROR: audit-report-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
-  then: abort, do NOT write docs/audit-report.md
+  then: abort, do NOT write ${RUN_DIR}/audit-report.md
 follow: exact — section order, severity tags, finding format, appendix table, severity definitions
 placeholders: replace with real findings | omit non-applicable sections (e.g. Backend/Frontend Structure) — no empty stubs
 </template>
@@ -39,8 +40,8 @@ tone: precise, candid, practical
 </constraints>
 
 <deliverable>
-write: docs/audit-report.md
-how: `cat > docs/audit-report.md << 'EOF'` (Bash redirect)
+write: ${RUN_DIR}/audit-report.md
+how: `cat > ${RUN_DIR}/audit-report.md << 'EOF'` (Bash redirect)
 sole-write-target: yes
 </deliverable>
 
@@ -49,6 +50,6 @@ shape: `STATUS: <ok|fail> | critical=<n> high=<n> medium=<n> | report=<path or "
 ok: report written (any finding count — `ok` regardless of severity totals; counts carry the signal)
 fail: internal error OR missing template
 examples:
-  - `STATUS: ok | critical=0 high=2 medium=5 | report=docs/audit-report.md`
+  - `STATUS: ok | critical=0 high=2 medium=5 | report=${RUN_DIR}/audit-report.md`
   - `STATUS: fail | critical=0 high=0 medium=0 | report=none`
 </status>

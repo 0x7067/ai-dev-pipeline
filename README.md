@@ -92,12 +92,24 @@ Three workflows ship in `.github/workflows/`:
 | `claude-code-review.yml` | Automated Claude code review on opened/updated pull requests |
 | `shellcheck.yml` | Runs ShellCheck across the repo on pull requests and pushes to `main` |
 
+## Run-ID Isolation
+
+Every primary command (`/ship`, `/audit`, `/review`, `/research`, `/refactor`) mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, impl-summaries, review/test/verify reports, refactor reports, gate logs, retry hints — are written under `${RUN_DIR}/`. Discovery is via three pointers maintained atomically by step 0: `docs/latest` (symlink), `docs/latest.txt` (text fallback), and `.claude/workflow-state/active`. This makes concurrent runs (two `/ship` sessions, CI + local, two worktrees) safe by construction.
+
+The read-only verification gates (`typecheck`, `lint`, `security`) run in parallel inside `scripts/run-verification-gates.sh` with deterministic log replay; test gates remain sequential.
+
+See [docs/specs/run-id-isolation.md](docs/specs/run-id-isolation.md) for the full spec and [`.claude/skills/using-pipeline/SKILL.md`](.claude/skills/using-pipeline/SKILL.md) for the resolution contract.
+
 ## Environment Variables
 
 See [docs/env-vars.md](docs/env-vars.md) for the full reference. Notable knobs:
 
+- `RUN_ID`, `RUN_DIR` — the active run-id and its resolved directory; set by orchestrator step 0. Subagents and scripts default their write paths to `${RUN_DIR}/...`.
+- `RUN_RETENTION` — number of run dirs to keep under `docs/runs/` (default `10`). `scripts/prune-runs.sh` honors this; CI=true is a no-op.
+- `REPORT_REVIEW_PATH`, `REPORT_TEST_PATH`, `REPORT_VERIFY_PATH` — path overrides consumed by `scripts/check-report-quality.sh`. Defaults resolve through `${RUN_DIR}/` then `docs/latest/` then the legacy `docs/<report>.md`.
 - `HOOKS_FAST=1` — opt into change-scoped fast-path hooks (defaults to `0`, full-run, in `run-verification-gates.sh`).
 - `WORKFLOW_GATES_SKIP=1` — bypass workflow-state gating entirely.
+- `WORKFLOW_STATE_PATH` — explicit override for the workflow-state JSON file. Hooks otherwise resolve `.claude/workflow-state/<active>.json` via `.claude/workflow-state/active` and fall back to the legacy `.claude/workflow-state.json`.
 - `VERIFY_TYPECHECK_CMD`, `VERIFY_LINT_CMD`, `VERIFY_SECURITY_CMD`, `VERIFY_PROPERTY_CMD`, `VERIFY_CONTRACT_CMD`, `VERIFY_FULL_CMD` — override gate commands per project.
 - `VERIFY_REQUIRE_PROPERTY=1`, `VERIFY_REQUIRE_CONTRACT=1`, `VERIFY_REQUIRE_FULL_SUITE=1` — make optional test discovery failures blocking in strict CI.
 - `HARNESS_JS_PACKAGE_MANAGER=pnpm` — force a JavaScript package manager when auto-detection is not enough.

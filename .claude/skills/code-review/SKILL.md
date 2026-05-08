@@ -12,7 +12,7 @@ description: Use when the user asks to review, check, look at, audit, or assess 
 3. Apply each review lens (below) in order.
 4. Record findings by severity: blocking → warning → advisory.
 5. If no findings, state residual risk explicitly — never leave a silent pass.
-6. Write output to `docs/review-report.md`.
+6. Write output to `${RUN_DIR}/review-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/review-report.md` only when invoked outside a /ship-managed run).
 
 ## Review Lenses
 
@@ -106,7 +106,7 @@ pass the parsed `PriceQuote` domain type to core.
 
 ## Output
 
-- `docs/review-report.md`
+- `${RUN_DIR}/review-report.md` (per-run artifact under `docs/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`).
 - Findings ordered by severity, grouped by lens.
 - Evidence summary with file:line references.
 - Residual risk statement at the end.

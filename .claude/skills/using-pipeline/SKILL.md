@@ -52,6 +52,53 @@ The following skills are reference/process material that the pipeline agents inv
 - `refactor` — used by `/refactor`
 - `research` — used by `researcher`
 
+## Run-ID isolation contract
+
+Every primary command (`/ship`, `/audit`, `/review`, `/research`,
+`/refactor`) mints a `RUN_ID` at step 0 and exports `RUN_ID` and
+`RUN_DIR` (= `docs/runs/<RUN_ID>`) into the environment of every
+subagent it dispatches. All per-run artifacts — plans, specs,
+research notes, impl-summaries, review/test/verify reports, refactor
+reports, gate logs, retry hints — are written under `${RUN_DIR}/`.
+
+This makes concurrent runs (two `/ship` sessions on the same repo, CI
++ local, two worktrees) safe by construction: each run has its own
+artifact tree.
+
+Discovery is done through three pointers, all maintained atomically
+by the orchestrator's step 0:
+
+- `docs/latest` — symlink to the active run's directory.
+- `docs/latest.txt` — text fallback containing the active run-id.
+- `.claude/workflow-state/active` — text file containing the active
+  run-id; consumed by hooks that need to find the per-run
+  workflow-state file.
+
+Resolution order at the consumer side: `RUN_ID` env →
+`.claude/workflow-state/active` → `docs/latest` → `docs/latest.txt`.
+All four go through `scripts/parse-run-id.sh` before any path is
+constructed (parse, don't validate). See
+`docs/specs/run-id-isolation.md` for the full spec.
+
+### Upstream phases are sequential by data dependency
+
+The `/ship` pipeline fans out only the *read-only* verification gates
+(typecheck, lint, security) inside `scripts/run-verification-gates.sh`.
+The upstream phases — `research` → `plan` → `tdd-pre` → `implement` →
+`review` — remain strictly sequential because each phase consumes the
+prior phase's artifact:
+
+- `plan` reads `${RUN_DIR}/research/<topic>.md` (when present).
+- `tdd-pre` reads `${RUN_DIR}/current-plan.md` to encode acceptance
+  criteria as red tests.
+- `implement` reads `${RUN_DIR}/current-plan.md` and (in tdd-post
+  mode) `${RUN_DIR}/test-report.md`.
+- `review` reads `${RUN_DIR}/impl-summary.md` plus the diff.
+
+Parallelizing any of these would force a phase to read an artifact
+its upstream has not yet produced. Do not attempt it without first
+breaking the data dependency.
+
 ## Required gates
 
 Per `.claude/rules/release-and-verification.md`:

@@ -329,9 +329,32 @@ check_one() {
   esac
 }
 
-check_one "docs/review-report.md" review
-check_one "docs/test-report.md" test
-check_one "docs/verify-report.md" verify
+# Per-run report paths.
+#   1. Honor explicit env overrides (REPORT_*_PATH) when set — these
+#      win unconditionally so callers can target a specific run dir.
+#   2. Otherwise, if RUN_DIR is set, default to ${RUN_DIR}/<report>.md.
+#   3. Otherwise, if a docs/latest symlink exists, default to
+#      docs/latest/<report>.md.
+#   4. Otherwise, fall back to the historical docs/<report>.md path so
+#      this script remains usable in repos that haven't minted a run.
+default_report_path() {
+  local name="$1"
+  if [ -n "${RUN_DIR:-}" ]; then
+    printf '%s/%s\n' "$RUN_DIR" "$name"
+  elif [ -L "docs/latest" ] || [ -d "docs/latest" ]; then
+    printf 'docs/latest/%s\n' "$name"
+  else
+    printf 'docs/%s\n' "$name"
+  fi
+}
+
+review_path="${REPORT_REVIEW_PATH:-$(default_report_path review-report.md)}"
+test_path="${REPORT_TEST_PATH:-$(default_report_path test-report.md)}"
+verify_path="${REPORT_VERIFY_PATH:-$(default_report_path verify-report.md)}"
+
+check_one "$review_path" review
+check_one "$test_path" test
+check_one "$verify_path" verify
 
 if [ "$errors" -gt 0 ]; then
   echo "report-quality: FAILED with $errors issue(s)"

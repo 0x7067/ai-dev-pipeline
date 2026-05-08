@@ -122,6 +122,31 @@ detect_pkg_manager() {
   done
 }
 
+# resolve_workflow_state_path: prints the path of the workflow-state JSON
+# file the hooks should read/write. Resolution order, fail-soft:
+#   1. $WORKFLOW_STATE_PATH if explicitly set (orchestrator override).
+#   2. .claude/workflow-state/<active>.json when an active pointer exists
+#      AND the active value parses through scripts/parse-run-id.sh.
+#   3. .claude/workflow-state.json (legacy single-state default).
+# Never echoes an unparsed run-id; falls back to legacy on parse failure.
+resolve_workflow_state_path() {
+  if [ -n "${WORKFLOW_STATE_PATH:-}" ]; then
+    printf '%s\n' "$WORKFLOW_STATE_PATH"
+    return 0
+  fi
+  local active_file=".claude/workflow-state/active"
+  local parser="scripts/parse-run-id.sh"
+  if [ -f "$active_file" ] && [ -f "$parser" ]; then
+    local active
+    active=$(head -n1 "$active_file" 2>/dev/null | tr -d '[:space:]')
+    if [ -n "$active" ] && bash "$parser" "$active" >/dev/null 2>&1; then
+      printf '.claude/workflow-state/%s.json\n' "$active"
+      return 0
+    fi
+  fi
+  printf '.claude/workflow-state.json\n'
+}
+
 # Detect Python package manager (uv > poetry > pip).
 # Lockfile presence + binary availability required; falls back to pip if any Python project marker exists.
 detect_py_pkg_manager() {

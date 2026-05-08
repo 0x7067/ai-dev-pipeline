@@ -7,7 +7,7 @@ description: "Internal — agent-only reference skill. Curated review checklist 
 
 Advisory pass over a diff using behavior-changing tips from *The Pragmatic Programmer* (20th Anniversary Ed.) that are not already enforced by `.claude/rules/*` or by static analysis.
 
-This skill produces an **advisory** section appended to `docs/review-report.md`. Per `release-and-verification.md`, model self-critique never blocks. The blocking decision belongs to the gate runner.
+This skill produces an **advisory** section appended to `${RUN_DIR}/review-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/review-report.md` only when invoked outside a /ship-managed run). Per `release-and-verification.md`, model self-critique never blocks. The blocking decision belongs to the gate runner.
 
 ## When to invoke
 - Auto-invoked by `/review` after the standard `code-review` skill on changes classified `medium` or `high` risk.
@@ -61,7 +61,7 @@ For each changed file, walk the checklist below in order. Group findings by sect
 
 ## Output format
 
-Append to `docs/review-report.md` under a new section:
+Append to `${RUN_DIR}/review-report.md` (per-run artifact under `docs/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`) under a new section:
 
 ```
 ## Pragmatic Review Checklist (advisory)

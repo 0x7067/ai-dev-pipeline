@@ -16,6 +16,31 @@ The orchestrator runs in the user's context (no `context: fork`). Each subagent 
 
 Note: literal `/ship adaptive` is rejected (not silently mapped). The default is selected by passing zero arguments.
 
+## Step 0: mint run-id, prune, export environment
+
+Before any phase runs, the orchestrator MUST execute step 0 in this order. This is what makes concurrent `/ship` sessions safe to run on the same repo.
+
+1. **Mint or import RUN_ID.**
+   - If `RUN_ID` is already set in the environment, validate it through `scripts/parse-run-id.sh` and reuse it.
+   - Else if `GITHUB_RUN_ID` is set (CI), translate it: run
+     `RUN_ID=$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash scripts/mint-run-id.sh)` so the parser-valid timestamp+sha+disambiguator wraps the CI number into the canonical regex (the disambiguator becomes `printf '%02x' $((GITHUB_RUN_ID % 256))`).
+   - Else: `RUN_ID=$(bash scripts/mint-run-id.sh)`.
+2. **Export the run env.** `export RUN_ID` and `export RUN_DIR="docs/runs/${RUN_ID}"`. Every Task subagent invocation in subsequent phases MUST receive these in its environment so all artifact writes go to `${RUN_DIR}/`.
+3. **Create the run directory and update pointers atomically:**
+   ```
+   mkdir -p "$RUN_DIR" "$RUN_DIR/research" "$RUN_DIR/specs" .claude/workflow-state
+   _t="$$.${RANDOM:-0}"
+   ( cd docs && ln -sfn "runs/$RUN_ID" "latest.tmp.$_t" && mv "latest.tmp.$_t" latest )
+   printf '%s\n' "$RUN_ID" > "docs/latest.txt.tmp.$_t" && mv "docs/latest.txt.tmp.$_t" docs/latest.txt
+   printf '%s\n' "$RUN_ID" > ".claude/workflow-state/active.tmp.$_t" \
+     && mv ".claude/workflow-state/active.tmp.$_t" .claude/workflow-state/active
+   ```
+   The `tmp+rename` pattern with a per-process suffix is required: readers must never observe a half-written pointer, and two concurrent `/ship` runs must not consume each other's tmp files.
+4. **Retention.** Run `bash scripts/prune-runs.sh` (no-op when `CI=true`). Default keeps 10 newest runs; never deletes the active or latest run.
+5. **Surface the run-id.** Print `▶ run minted RUN_ID=$RUN_ID RUN_DIR=$RUN_DIR`.
+
+Once step 0 completes, every subsequent approval prompt MUST include the run-id, e.g. `⏸ plan approval required (run=$RUN_ID, risk=medium) …`. Every Task subagent invocation MUST inherit `RUN_ID` and `RUN_DIR`.
+
 ## Phase contract
 
 For every phase X with subagent name `<agent>`:
@@ -36,15 +61,15 @@ For every phase X with subagent name `<agent>`:
 2. **Plan (2/8).** Invoke `planner` per the phase contract. Capture risk tier from its STATUS line (`risk=<low|medium|high>`) and `change-type` from the plan's front-matter or planner STATUS (`trivial=true|false`).
 
 3. **Plan approval gate.**
-   - If `mode=strict`: halt unconditionally. Print `⏸ plan approval required (mode=strict) — reply "approve" to continue, anything else to stop`. Wait for explicit user approval.
+   - If `mode=strict`: halt unconditionally. Print `⏸ plan approval required (run=$RUN_ID, mode=strict) — reply "approve" to continue, anything else to stop`. Wait for explicit user approval.
    - If `mode=adaptive`:
-     - For `risk=medium` or `risk=high`: halt and print `⏸ plan approval required (risk=<tier>) — reply "approve" to continue, anything else to stop`. Wait for explicit user approval.
-     - For `risk=low`: print `↷ plan approval auto-granted (mode=adaptive, risk=low)` and continue.
+     - For `risk=medium` or `risk=high`: halt and print `⏸ plan approval required (run=$RUN_ID, risk=<tier>) — reply "approve" to continue, anything else to stop`. Wait for explicit user approval.
+     - For `risk=low`: print `↷ plan approval auto-granted (run=$RUN_ID, mode=adaptive, risk=low)` and continue.
 
 4. **Trivial-change classification.**
-   Inspect `docs/current-plan.md` front-matter for `change-type: trivial` AND/OR check planner STATUS for `trivial=true`. If either signal is present, the change is classified `trivial`:
-   - Print `↷ TDD skipped (change-type=trivial) — see TDD Skip Rationale in docs/impl-summary.md`.
-   - Skip directly to phase 6 (Implement). The orchestrator MUST emit the following two lines into `docs/impl-summary.md` BEFORE invoking the implementer (preserving any existing content):
+   Inspect `${RUN_DIR}/current-plan.md` front-matter for `change-type: trivial` AND/OR check planner STATUS for `trivial=true`. If either signal is present, the change is classified `trivial`:
+   - Print `↷ TDD skipped (change-type=trivial) — see TDD Skip Rationale in ${RUN_DIR}/impl-summary.md`.
+   - Skip directly to phase 6 (Implement). The orchestrator MUST emit the following two lines into `${RUN_DIR}/impl-summary.md` BEFORE invoking the implementer (preserving any existing content):
      ```
      ## TDD Skip Rationale
 
@@ -59,7 +84,7 @@ For every phase X with subagent name `<agent>`:
    - If `expected_failing` is missing, or `expected_failing != failing`, or `expected_failing == 0`: halt with `✗ tdd-pre invariant violated — expected_failing=<x> failing=<y>; halting`. Do not invoke the implementer.
    - Record the value of `expected_failing` (call it `N`). Snapshot the set of test files newly created by the tester via `git diff --name-only --diff-filter=A` between the pre- and post-tester commits (or working-tree state); pass this set to the implementer as the no-touch list.
 
-6. **Implement (4/8).** Invoke `implementer` per the phase contract. Pass the prior tester report path (`docs/test-report.md`) as input so the implementer can detect tdd-pre mode (presence of `## TDD-Pre Tests` section).
+6. **Implement (4/8).** Invoke `implementer` per the phase contract. Pass the prior tester report path (`${RUN_DIR}/test-report.md`) as input so the implementer can detect tdd-pre mode (presence of `## TDD-Pre Tests` section).
    - For non-trivial changes: verify the implementer's STATUS line includes `made_passing=M` and that `M == N` (the tester's `expected_failing`). If `made_passing` is missing or `M != N`: halt with `✗ tdd-post invariant violated — expected made_passing=<N>, got <M>; halting`.
    - For trivial changes: `made_passing` is not required.
 
@@ -73,7 +98,7 @@ For every phase X with subagent name `<agent>`:
    `REPORT_QUALITY_REQUIRE_CONTENT=1 WORKFLOW_REQUIRE_ARTIFACTS=1 bash scripts/smoke-bootstrap.sh`
    Print `✓ smoke gate ok` or `✗ smoke gate failed (rc=<code>)`.
 
-10. **Release approval gate (8/8).** If verifier STATUS is `go` and smoke gate passed, halt and print `⏸ release approval required — reply "ship" to mark Go, anything else to stop`. Only mark the final Go decision after explicit user approval.
+10. **Release approval gate (8/8).** If verifier STATUS is `go` and smoke gate passed, halt and print `⏸ release approval required (run=$RUN_ID) — reply "ship" to mark Go, anything else to stop`. Only mark the final Go decision after explicit user approval.
 
 ## Stop conditions
 

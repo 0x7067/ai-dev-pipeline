@@ -97,7 +97,7 @@ If a tool is not available, record it as `SKIPPED` (not as a failure).
 
 ## Output Format
 
-Write to `docs/verify-report.md`:
+Write to `${RUN_DIR}/verify-report.md` (per-run artifact under `docs/runs/<id>/`; orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/verify-report.md` only when invoked outside a /ship-managed run):
 
 ```markdown
 # Verification Report

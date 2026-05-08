@@ -17,14 +17,15 @@ runs-before: merge/release
 
 <inputs>
 state: repository (current branch)
-plan: docs/current-plan.md (risk tier + required approvals)
-prior-phases: docs/impl-summary.md, docs/review-report.md, docs/test-report.md
-gate-output: `bash scripts/run-verification-gates.sh` (canonical gate runner)
+plan: ${RUN_DIR}/current-plan.md (risk tier + required approvals)
+prior-phases: ${RUN_DIR}/impl-summary.md, ${RUN_DIR}/review-report.md, ${RUN_DIR}/test-report.md
+gate-output: `bash scripts/run-verification-gates.sh` (canonical gate runner; reads RUN_DIR from env to write per-gate logs)
+env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
 
 <deliverable>
-file: docs/verify-report.md
-how: Bash redirect (e.g. `cat > docs/verify-report.md << 'EOF'`)
+file: ${RUN_DIR}/verify-report.md
+how: Bash redirect (e.g. `cat > ${RUN_DIR}/verify-report.md << 'EOF'`)
 why-bash: verifier lacks Write tool by policy
 critical: redirect MUST actually execute — do NOT narrate the heredoc without running it
 sole-write-target: yes
@@ -36,7 +37,7 @@ resolve:
   2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/verify-report-template.md (zero-setup fallback)
 missing-both:
   stderr: `verifier: ERROR: verify-report-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
-  then: abort, do NOT write docs/verify-report.md
+  then: abort, do NOT write ${RUN_DIR}/verify-report.md
 follow: exact — gate result table, blocking vs advisory split, go/no-go summary, risk tier, approval checklist
 placeholders: replace with concrete results | omit non-applicable sections — no empty stubs
 </template>
@@ -51,7 +52,7 @@ progress-stream: runner emits per-gate `▶`/`✓`/`✗` lines on stdout → SUR
 </gate-runner>
 
 <constraints>
-write-allowed: docs/verify-report.md ONLY
+write-allowed: ${RUN_DIR}/verify-report.md ONLY
 no-author-tests: that is tester's job
 no-assume: language/framework
 </constraints>
@@ -66,7 +67,7 @@ approval-slots-policy:
   risk=low:
     elevated-risk-slot: NOT required
     plan-approved + release-approved: MAY use `N/A — risk=low` (or another short rationale beginning with `N/A —`)
-    rule: populate ALL three slots with `N/A — risk=low` + Evidence link → docs/current-plan.md
+    rule: populate ALL three slots with `N/A — risk=low` + Evidence link → ${RUN_DIR}/current-plan.md
     forbidden: leaving empty | marking `pending`
   risk=medium OR risk=high:
     rule: ALL three slots MUST record concrete approver + date + evidence
@@ -78,6 +79,6 @@ go: ALL blocking gates pass + required approvals present
 no-go: ≥1 blocking gate failed OR required approval missing
 fail: internal error (script missing | template missing | runner crashed)
 examples:
-  - `STATUS: go | risk=medium | gates=6/6 | report=docs/verify-report.md`
-  - `STATUS: no-go | risk=high | gates=4/6 (lint, security failed) | report=docs/verify-report.md`
+  - `STATUS: go | risk=medium | gates=6/6 | report=${RUN_DIR}/verify-report.md`
+  - `STATUS: no-go | risk=high | gates=4/6 (lint, security failed) | report=${RUN_DIR}/verify-report.md`
 </status>

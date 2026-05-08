@@ -37,7 +37,17 @@ set -uo pipefail
 
 THRESHOLD="${COVERAGE_THRESHOLD:-80}"
 TARGET="${1:-}"
-FRAGMENT="${COVERAGE_FRAGMENT_OUT:-docs/.refactor-precondition.md}"
+# Per-run fragment path:
+#   1. COVERAGE_FRAGMENT_OUT env override wins.
+#   2. Else, if RUN_DIR is set (orchestrator step 0), write under it.
+#   3. Else fall back to the legacy docs/ path.
+if [ -n "${COVERAGE_FRAGMENT_OUT:-}" ]; then
+  FRAGMENT="$COVERAGE_FRAGMENT_OUT"
+elif [ -n "${RUN_DIR:-}" ]; then
+  FRAGMENT="${RUN_DIR}/.refactor-precondition.md"
+else
+  FRAGMENT="docs/.refactor-precondition.md"
+fi
 
 # --- Boundary: parse threshold ---
 case "$THRESHOLD" in

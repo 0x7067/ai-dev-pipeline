@@ -20,7 +20,7 @@ description: Use when the user asks for tests, coverage, invariants, property te
 3. Write property-based tests for core invariants.
 4. Write contract tests for boundary parsers.
 5. Add regression tests for known failures.
-6. Run full suite and write output to `docs/test-report.md`.
+6. Run full suite and write output to `${RUN_DIR}/test-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/test-report.md` only when invoked outside a /ship-managed run).
 
 ## Common Invariants to Test
 
@@ -139,7 +139,7 @@ def test_parse_email_rejects_missing_at():
 
 ## Output
 
-- `docs/test-report.md` with:
+- `${RUN_DIR}/test-report.md` (per-run artifact under `docs/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`) with:
   - Coverage summary (core invariants, boundary contracts, regression).
   - Pass/fail counts.
   - Failures marked as blocking if invariants/contracts fail.

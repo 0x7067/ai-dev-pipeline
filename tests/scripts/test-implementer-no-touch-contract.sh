@@ -34,11 +34,13 @@ fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 [ -f "$IMPL_MD" ] || { echo "implementer.md missing at $IMPL_MD" >&2; exit 2; }
 
 # (1) Obligation to read the `## TDD-Pre Tests` section.
+# Path can be the legacy fixed form (docs/test-report.md) or the run-id
+# parameterized form (${RUN_DIR}/test-report.md) — accept both.
 if grep -qE '## TDD-Pre Tests' "$IMPL_MD" \
-   && grep -qiE 'docs/test-report\.md' "$IMPL_MD"; then
-  pass "implementer.md references docs/test-report.md '## TDD-Pre Tests'"
+   && grep -qiE '(docs|\$\{?RUN_DIR\}?)/test-report\.md' "$IMPL_MD"; then
+  pass "implementer.md references test-report.md '## TDD-Pre Tests'"
 else
-  fail "implementer.md does not obligate reading '## TDD-Pre Tests' from docs/test-report.md"
+  fail "implementer.md does not obligate reading '## TDD-Pre Tests' from test-report.md"
 fi
 
 # (2) STATUS line echoes the no-touch list (or its hash/count).

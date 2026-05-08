@@ -18,12 +18,13 @@ produces: blocking + advisory review
 
 <inputs>
 diff: `git diff` + `git status` (current branch state)
-plan: docs/current-plan.md (the plan implementation should conform to)
-summary: docs/impl-summary.md (implementer's change summary)
+plan: ${RUN_DIR}/current-plan.md (the plan implementation should conform to)
+summary: ${RUN_DIR}/impl-summary.md (implementer's change summary)
+env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
 
 <deliverable>
-file: docs/review-report.md
+file: ${RUN_DIR}/review-report.md
 write-tool: Write (call directly with full report as single argument)
 banned: bash heredoc redirects (`cat > ... << 'EOF'`)
 sole-write-target: yes
@@ -35,7 +36,7 @@ resolve:
   2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/review-report-template.md (zero-setup fallback)
 missing-both:
   stderr: `reviewer: ERROR: review-report-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
-  then: abort, do NOT write docs/review-report.md
+  then: abort, do NOT write ${RUN_DIR}/review-report.md
 follow: exact — section order, severity tags, finding format, evidence requirements
 placeholders: replace with concrete findings | omit non-applicable sections — no empty stubs
 </template>
@@ -47,7 +48,7 @@ not-triggered: risk = low (primary review sufficient)
 </pragmatic-second-pass>
 
 <constraints>
-write-allowed: docs/review-report.md ONLY
+write-allowed: ${RUN_DIR}/review-report.md ONLY
 no-assume: language/framework unless code clearly indicates
 no-rewrite: surface findings; let implementer respond
 </constraints>
@@ -68,6 +69,6 @@ ok: review complete
 fail: internal error | missing template
 blocked: missing diff | missing impl-summary | other input gap
 examples:
-  - `STATUS: ok | blocking=0 advisory=3 | clean diff; advisory items in pragmatic pass | report=docs/review-report.md`
-  - `STATUS: ok | blocking=2 advisory=4 | unparsed ingress in shell/handler.ts | report=docs/review-report.md`
+  - `STATUS: ok | blocking=0 advisory=3 | clean diff; advisory items in pragmatic pass | report=${RUN_DIR}/review-report.md`
+  - `STATUS: ok | blocking=2 advisory=4 | unparsed ingress in shell/handler.ts | report=${RUN_DIR}/review-report.md`
 </status>

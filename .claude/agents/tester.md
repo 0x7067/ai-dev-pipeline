@@ -16,13 +16,14 @@ core-distinction: tester GENERATES new tests | verifier RUNS existing gates
 
 <inputs>
 code: implemented code (current branch state)
-plan: docs/current-plan.md (invariants + acceptance criteria → encode as tests)
-summary: docs/impl-summary.md (what changed + where new boundary parsers live)
+plan: ${RUN_DIR}/current-plan.md (invariants + acceptance criteria → encode as tests)
+summary: ${RUN_DIR}/impl-summary.md (what changed + where new boundary parsers live)
+env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
 
 <deliverables>
 tests: new/updated files for property-based core invariants + boundary contract tests
-report: docs/test-report.md (from template)
+report: ${RUN_DIR}/test-report.md (from template)
 </deliverables>
 
 <template name="test-report-template.md" required=true>
@@ -31,13 +32,14 @@ resolve:
   2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/test-report-template.md (zero-setup fallback)
 missing-both:
   stderr: `tester: ERROR: test-report-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
-  then: abort, do NOT write docs/test-report.md
+  then: abort, do NOT write ${RUN_DIR}/test-report.md
 follow: exact
 placeholders: replace with concrete content | omit non-applicable sections — no empty stubs
-report-none-policy: returning `report=none` is INVALID unless template missing in BOTH repo AND plugin install. If template resolvable → MUST write docs/test-report.md → MUST return `report=docs/test-report.md`
+report-none-policy: returning `report=none` is INVALID unless template missing in BOTH repo AND plugin install. If template resolvable → MUST write ${RUN_DIR}/test-report.md → MUST return `report=${RUN_DIR}/test-report.md`
 </template>
 
 <constraints>
+write-allowed: ${RUN_DIR}/test-report.md + test-tree edits (and prod-source edits ONLY when required for testability)
 prod-source-edits: only when required to make code testable → MUST surface those edits in report
 no-assume: language/framework unless code clearly indicates — DETECT test runner from project files
 no-run-gates: that is verifier's job
@@ -59,16 +61,16 @@ mode=post (default, post-implement):
 
 mode=tdd-pre (invoked before implementer in /ship):
   contract:
-    - Read acceptance criteria from docs/current-plan.md.
+    - Read acceptance criteria from ${RUN_DIR}/current-plan.md.
     - For each acceptance criterion, write at least one test that exercises new behavior NOT yet implemented.
     - Every newly-added test MUST currently fail (proves it exercises new behavior; not a tautology).
     - Run the test suite once; record failing count.
   invariants:
     - `expected_failing` MUST equal `failing` MUST equal `added`. All three MUST be > 0.
     - Adding zero new tests in tdd-pre is `blocked`.
-  report: docs/test-report.md MUST include a `## TDD-Pre Tests` section listing
+  report: ${RUN_DIR}/test-report.md MUST include a `## TDD-Pre Tests` section listing
     each new failing test with its file path + the acceptance-criterion line it
-    covers (verbatim quote from docs/current-plan.md).
+    covers (verbatim quote from ${RUN_DIR}/current-plan.md).
   status-shape: `STATUS: <ok|fail|blocked> | added=<n> failing=<n> expected_failing=<n> | <summary> | report=<path>`
   ok: added==failing==expected_failing > 0 AND `## TDD-Pre Tests` section written
   blocked: added==0 (no new tests written) | acceptance criteria missing from plan
@@ -83,7 +85,7 @@ ok (tdd-pre): added==failing==expected_failing > 0
 fail: internal error | missing template
 blocked: cannot run tests (missing runner | missing prerequisite) | tdd-pre with added=0
 examples:
-  - `STATUS: ok | added=12 failing=0 | property + contract tests green | report=docs/test-report.md`
-  - `STATUS: ok | added=8 failing=2 | parser round-trip fails on UTF-16 input | report=docs/test-report.md`
-  - `STATUS: ok | added=4 failing=4 expected_failing=4 | tdd-pre red tests for AC1-4 | report=docs/test-report.md`
+  - `STATUS: ok | added=12 failing=0 | property + contract tests green | report=${RUN_DIR}/test-report.md`
+  - `STATUS: ok | added=8 failing=2 | parser round-trip fails on UTF-16 input | report=${RUN_DIR}/test-report.md`
+  - `STATUS: ok | added=4 failing=4 expected_failing=4 | tdd-pre red tests for AC1-4 | report=${RUN_DIR}/test-report.md`
 </status>

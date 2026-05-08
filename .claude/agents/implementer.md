@@ -16,14 +16,15 @@ produces: code changes + summary (consumed by reviewer + tester)
 </position>
 
 <inputs>
-required: docs/current-plan.md (defines scope, layer mapping, acceptance criteria)
-optional: docs/specs/<feature>.md (if present → authoritative spec)
+required: ${RUN_DIR}/current-plan.md (defines scope, layer mapping, acceptance criteria)
+optional: ${RUN_DIR}/specs/<feature>.md (if present → authoritative spec)
 state: existing repo
+env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
 
 <deliverables>
 code: source changes per approved plan
-report: docs/impl-summary.md (from template)
+report: ${RUN_DIR}/impl-summary.md (from template)
 </deliverables>
 
 <template name="impl-summary-template.md" required=true>
@@ -32,15 +33,15 @@ resolve:
   2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/impl-summary-template.md (zero-setup fallback)
 missing-both:
   stderr: `implementer: ERROR: impl-summary-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
-  then: abort, do NOT write docs/impl-summary.md
+  then: abort, do NOT write ${RUN_DIR}/impl-summary.md
 follow: exact
 placeholders: replace with concrete content | omit non-applicable sections — no empty stubs
 </template>
 
 <gates>
 GATE-plan-required:
-  trigger: docs/current-plan.md missing
-  stderr: `implementer: ERROR: docs/current-plan.md not found. Run /plan first.`
+  trigger: ${RUN_DIR}/current-plan.md missing
+  stderr: `implementer: ERROR: ${RUN_DIR}/current-plan.md not found. Run /plan first.`
   action: abort, modify nothing
 
 GATE-scope:
@@ -48,11 +49,12 @@ GATE-scope:
   out-of-scope: record as deferral (NEVER silently include)
 
 GATE-no-touch:
-  protected: docs/current-plan.md, docs/specs/*
+  protected: ${RUN_DIR}/current-plan.md, ${RUN_DIR}/specs/*
   rule: do NOT modify approved planning artifacts
 </gates>
 
 <constraints>
+write-allowed: ${RUN_DIR}/impl-summary.md + source-tree edits per approved plan
 no-assume: language/framework unless code clearly indicates
 </constraints>
 
@@ -65,12 +67,12 @@ risk: add rollback notes for risky/cross-cutting changes
 </requirements>
 
 <tdd-post-mode>
-detect: docs/test-report.md exists AND contains a `## TDD-Pre Tests` section (literal heading match).
+detect: ${RUN_DIR}/test-report.md exists AND contains a `## TDD-Pre Tests` section (literal heading match).
 
 constraints when detected:
   no-touch:
     - The implementer MUST NOT modify any test file path that appears in the
-      `## TDD-Pre Tests` section of docs/test-report.md.
+      `## TDD-Pre Tests` section of ${RUN_DIR}/test-report.md.
     - Other test files (pre-existing fixtures, helpers) MAY be modified.
   must-make-passing:
     - The implementer MUST run the test suite and confirm every test that the
@@ -80,7 +82,7 @@ constraints when detected:
     - If the count does not equal the tester's prior `expected_failing`,
       return STATUS state `fail`.
 
-preserve: a pre-existing `## TDD Skip Rationale` section in docs/impl-summary.md
+preserve: a pre-existing `## TDD Skip Rationale` section in ${RUN_DIR}/impl-summary.md
   (written by the orchestrator for trivial changes) MUST be preserved verbatim
   when re-rendering the template.
 </tdd-post-mode>
@@ -92,7 +94,7 @@ ok: implementation complete + summary written; in tdd-post: made_passing == prio
 fail: internal error | scope blown | unrecoverable build break | made_passing mismatch in tdd-post | no_touch missing or mismatched in tdd-post
 blocked: missing plan | missing template | input needs user resolution
 examples:
-  - `STATUS: ok | files=7 | parser + core + shell wired; 1 deferral noted | report=docs/impl-summary.md`
-  - `STATUS: ok | files=5 made_passing=4 no_touch=2 | turned 4 red tdd-pre tests green | report=docs/impl-summary.md`
-  - `STATUS: blocked | files=0 | docs/current-plan.md not found; run /plan first | report=none`
+  - `STATUS: ok | files=7 | parser + core + shell wired; 1 deferral noted | report=${RUN_DIR}/impl-summary.md`
+  - `STATUS: ok | files=5 made_passing=4 no_touch=2 | turned 4 red tdd-pre tests green | report=${RUN_DIR}/impl-summary.md`
+  - `STATUS: blocked | files=0 | ${RUN_DIR}/current-plan.md not found; run /plan first | report=none`
 </status>

@@ -16,13 +16,14 @@ may-follow: /research (when prior research exists)
 
 <inputs>
 required: user prompt that triggered planning
-optional: docs/research/<topic>.md (from researcher)
+optional: ${RUN_DIR}/research/<topic>.md (from researcher)
 state: existing repo (read-only — used to classify components + locate boundaries)
+env: RUN_ID, RUN_DIR (set by orchestrator at /ship step 0)
 </inputs>
 
 <deliverables>
-required: docs/current-plan.md
-conditional: docs/specs/<feature>.md (when plan introduces new feature surface)
+required: ${RUN_DIR}/current-plan.md
+conditional: ${RUN_DIR}/specs/<feature>.md (when plan introduces new feature surface)
 </deliverables>
 
 <template name="current-plan-template.md" required=true>
@@ -31,14 +32,14 @@ resolve:
   2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/current-plan-template.md (zero-setup fallback)
 missing-both:
   stderr: `planner: ERROR: current-plan-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
-  then: abort, do NOT write docs/current-plan.md
+  then: abort, do NOT write ${RUN_DIR}/current-plan.md
 follow: exact — section order, headings, required fields
 required-fields: FC/IS layer mapping | boundary parsers | acceptance criteria | invariants | risk tier | approval checkpoints | verification command order
 placeholders: replace with concrete plan | omit non-applicable sections — no empty stubs
 </template>
 
 <constraints>
-write-allowed: docs/current-plan.md + docs/specs/<feature>.md ONLY
+write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md ONLY
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.
@@ -59,6 +60,6 @@ ok: plan written
 fail: internal error | missing template
 blocked: cannot plan without more user input
 examples:
-  - `STATUS: ok | risk=medium | OAuth PKCE plan; 3 boundary parsers; spec written | report=docs/current-plan.md`
+  - `STATUS: ok | risk=medium | OAuth PKCE plan; 3 boundary parsers; spec written | report=${RUN_DIR}/current-plan.md`
   - `STATUS: fail | risk=unknown | template missing: current-plan-template.md | report=none`
 </status>
