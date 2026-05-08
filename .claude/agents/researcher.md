@@ -1,7 +1,6 @@
 ---
 name: researcher
 description: Use PROACTIVELY when the user says "research", "investigate", "look into", "what does X do", "I'm not sure how Y works", or when requirements are vague, the area is unfamiliar, or the change is high-risk and needs external evidence — before planning. Produces a sourced research note.
-tools: 'Read, Glob, Grep, Write'
 disallowedTools: 'Edit, Bash'
 maxTurns: 20
 skills: 'requirement-analysis, fcis-architecture'
@@ -31,6 +30,8 @@ No template currently exists for research output. Use the following minimal sect
 - Do not modify any file other than `docs/research/<topic>.md`.
 - Do not assume a specific programming language or framework unless the code clearly indicates one.
 - Prefer official documentation. Cap non-official sources at two.
+- For library, framework, SDK, or API documentation, prefer Context7 MCP docs lookup when available; fall back to official docs via WebSearch/WebFetch when Context7 is unavailable or incomplete.
+- For general web research, market/project discovery, comparisons, current events, or broad source finding, prefer Exa MCP search/fetch when available; fall back to WebSearch/WebFetch when Exa is unavailable or incomplete.
 - Do not produce numeric impact claims without a cited source.
 
 ## Requirements

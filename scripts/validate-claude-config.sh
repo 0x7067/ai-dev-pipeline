@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/harness-lib.sh
+source "${SCRIPT_DIR}/harness-lib.sh"
+harness_cd_repo_root
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "validate: ERROR: jq is required" >&2
   echo "validate: install jq (e.g. 'brew install jq' or 'apt-get install jq') and retry" >&2

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/harness-lib.sh
+source "${SCRIPT_DIR}/harness-lib.sh"
+harness_cd_repo_root
+
 # Validates that each .claude/skills/*/skill.md has a `description:` field with
 # enough trigger signal for Claude to reliably auto-invoke. Required signals:
 #   - description is at least MIN_LEN chars

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/harness-lib.sh
+source "${SCRIPT_DIR}/harness-lib.sh"
+harness_cd_repo_root
+
 errors=0
 strict_mode="${REPORT_QUALITY_REQUIRE_CONTENT:-0}"
 

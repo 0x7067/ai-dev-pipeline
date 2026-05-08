@@ -13,6 +13,8 @@ bash scripts/validate-claude-config.sh   # confirms settings.json + cross-refs +
 bash scripts/smoke-bootstrap.sh          # confirms required files and hook executability
 ```
 
+Harness scripts are root-relative and can be run from any directory inside the repository.
+
 Then run `/cycle` to drive an end-to-end demo of the workflow.
 
 ## Commands
@@ -100,3 +102,7 @@ See [docs/env-vars.md](docs/env-vars.md) for the full reference. Notable knobs:
 - `HOOKS_FAST=1` — opt into change-scoped fast-path hooks (defaults to `0`, full-run, in `run-verification-gates.sh`).
 - `WORKFLOW_GATES_SKIP=1` — bypass workflow-state gating entirely.
 - `VERIFY_TYPECHECK_CMD`, `VERIFY_LINT_CMD`, `VERIFY_SECURITY_CMD`, `VERIFY_PROPERTY_CMD`, `VERIFY_CONTRACT_CMD`, `VERIFY_FULL_CMD` — override gate commands per project.
+- `VERIFY_REQUIRE_PROPERTY=1`, `VERIFY_REQUIRE_CONTRACT=1`, `VERIFY_REQUIRE_FULL_SUITE=1` — make optional test discovery failures blocking in strict CI.
+- `HARNESS_JS_PACKAGE_MANAGER=pnpm` — force a JavaScript package manager when auto-detection is not enough.
+
+See [docs/harness-engineering.md](docs/harness-engineering.md) for the harness portability notes and source references behind these defaults.
