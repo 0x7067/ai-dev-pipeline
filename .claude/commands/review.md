@@ -1,5 +1,5 @@
 ---
-description: Advanced — Perform severity-first architecture/security/correctness review. Prefer `/ship` for the full flow.
+description: Review existing code, a diff, or a PR — severity-first architecture, security, and correctness findings. Use standalone when you want a review without running the full ship pipeline.
 ---
 
 You are the orchestrator for `/review`. Do NOT review yourself — delegate to the `reviewer` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".

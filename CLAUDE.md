@@ -11,9 +11,16 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 - Keep evidence quality high: official docs first, limited external sources, no unsourced numeric claims.
 
 ## Default Command Flow
-- Recommended: `/ship` — orchestrates the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release) with risk-adaptive approval gates by default. Pass `/ship strict` to make the plan-approval gate unconditional.
 
-> Footnote: per-phase commands (`/plan`, `/implement`, `/review`, `/test`, `/verify`, `/research`) remain available as advanced escape hatches for re-running a single phase. They are demoted in their `description:` front-matter to "Advanced —" so the command picker groups them below the primary surface.
+The slash-command picker exposes exactly five primary entries:
+
+- `/ship` — orchestrates the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release) with risk-adaptive approval gates by default. Pass `/ship strict` for unconditional plan approval.
+- `/review` — review existing code, a diff, or a PR (standalone severity-first review).
+- `/refactor` — behavior-preserving structural change with pre/post verification gates.
+- `/audit` — holistic project audit (structure, conventions, critical issues, quick wins).
+- `/research` — brainstorm, investigate, or get unstuck before any plan exists.
+
+> Other phase logic (planning, implementation, testing, verification, setup, reset) remains reachable via skills and agents (e.g. `requirement-analysis`, `test-gen`, `static-analysis`, `setup`, `reset`). See `.claude/skills/using-pipeline/SKILL.md` for the intent → entry-point mapping.
 
 > Migration: `/cycle` and `/autopilot` were merged into `/ship`. `/ship` defaults to the previous `/autopilot` (risk-adaptive) behavior; `/ship strict` reproduces the previous `/cycle` behavior.
 

@@ -1,5 +1,8 @@
 # Implementation Summary Template
 
+## TDD Skip Rationale
+*(Optional — present only when the orchestrator classified the change as `trivial` and skipped the tdd-pre phase. Implementer MUST preserve this section verbatim if it already exists in the file.)*
+
 ## Changes
 
 ## Scope Budget

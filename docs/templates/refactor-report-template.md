@@ -11,6 +11,17 @@
 |--------|------|-------|---------|
 | ...    | ...  | ...   | ...     |
 
+## Coverage Precondition
+
+| Field | Value |
+|-------|-------|
+| detected_tool | (e.g. `pytest-cov`, `gotest`, `none`) |
+| format | (`lcov` \| `cobertura` \| `jacoco` \| `goprofile` \| `jsonsummary` \| `n/a`) |
+| threshold | `80%` (or `COVERAGE_THRESHOLD` override) |
+| decision | `pass` \| `block` \| `bypass (rationale-fallback)` |
+| offending_files | (file@pct,…) |
+| bypass_rationale | (one line; required when decision is `bypass`) |
+
 ## Pre-Refactor Gate Results
 
 | Gate | Status |

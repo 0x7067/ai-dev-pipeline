@@ -4,11 +4,11 @@ A reusable Claude Code workflow plugin for structured AI-assisted development. E
 
 ## Installation
 
-**Install from the marketplace. That's it.** As of v0.4.0, every command, agent, skill, hook, and template resolves directly from the plugin install. No scaffolding step. Run `/ship` (or `/plan`) immediately.
+**Install from the marketplace. That's it.** As of v0.4.0, every command, agent, skill, hook, and template resolves directly from the plugin install. No scaffolding step. Run `/ship` immediately.
 
-> **Want CI to run the gates?** Run `/setup` once. CI runners do not load Claude Code plugins, so the canonical gate runner (`scripts/run-verification-gates.sh`) and its dependencies must be vendored into your repo for CI authority per `.claude/rules/release-and-verification.md`. `/setup` is the explicit "vendor for CI" operation; it is opt-in and not required for interactive use.
+> **Want CI to run the gates?** Invoke the `setup` skill once. CI runners do not load Claude Code plugins, so the canonical gate runner (`scripts/run-verification-gates.sh`) and its dependencies must be vendored into your repo for CI authority per `.claude/rules/release-and-verification.md`. The `setup` skill is the explicit "vendor for CI" operation; it is opt-in and not required for interactive use.
 
-After vendoring (only if you ran `/setup`), verify the scaffolding:
+After vendoring (only if you ran the `setup` skill), verify the scaffolding:
 
 ```sh
 bash scripts/validate-claude-config.sh   # confirms settings.json + cross-refs + boundary + version-sync
@@ -19,36 +19,23 @@ Vendored copies always take precedence over plugin-shipped copies, so edits to v
 
 ## Commands
 
-Primary user-facing surface:
+The slash-command picker exposes exactly five primary entries:
 
 | Command | Description |
 |---|---|
 | `/ship` | Run the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release) with risk-adaptive approval gates by default. Pass `/ship strict` for unconditional plan approval. Replaces the previous `/cycle` and `/autopilot`. |
-| `/refactor` | Behavior-preserving structural change with pre/post verification gates and human approval |
-| `/audit` | Holistic project audit — structure, conventions, critical issues, and quick wins |
-| `/setup` | Ops: scaffold project-level artifacts (scripts, templates, rules, CI) into the current repo |
-| `/reset` | Ops: reset workflow state — clears all phase completions |
+| `/review` | Review existing code, a diff, or a PR — severity-first architecture, security, and correctness findings (standalone, no full pipeline). |
+| `/refactor` | Behavior-preserving structural change with pre/post verification gates and human approval. |
+| `/audit` | Holistic project audit — structure, conventions, critical issues, and quick wins. |
+| `/research` | Brainstorm, investigate, or get unstuck before any plan exists. |
 
-Advanced (escape hatches for re-running a single phase):
-
-| Command | Description |
-|---|---|
-| `/plan` | Analyze requirements and produce an implementation plan |
-| `/research` | Perform upfront research for unclear or high-risk work |
-| `/implement` | Implement changes from the approved plan |
-| `/review` | Severity-first architecture, security, and correctness review |
-| `/test` | Generate and run tests including property-based and boundary contract tests |
-| `/verify` | Run verification gates and produce a go/no-go decision |
+> Other phase logic remains reachable via skills (no slash). The `setup` and `reset` operations are now skill-only (`setup`, `reset`); per-phase work (`requirement-analysis`, `test-gen`, `static-analysis`, etc.) is invoked by the corresponding skill rather than a dedicated slash command. See `.claude/skills/using-pipeline/SKILL.md`.
 
 `/review` is a **merge gate** — operates on code changes, produces blocking/warning/advisory findings. `/audit` is a **project health check** — reviews the whole project periodically or before major architectural decisions.
 
 ## Workflow
 
-```
-/plan → /implement → /review → /test → /verify
-```
-
-Use `/ship` to orchestrate all phases (default `adaptive` mode is risk-conditional with optional research and approval gates; `/ship strict` makes the plan-approval gate unconditional).
+`/ship` orchestrates the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release). Default `adaptive` mode is risk-conditional with optional research and approval gates; `/ship strict` makes the plan-approval gate unconditional. Individual phase agents (`planner`, `implementer`, `tester`, `verifier`) are dispatched by name from `/ship` and are no longer exposed as standalone slash commands.
 
 ## Multi-Language Support
 
@@ -65,16 +52,16 @@ All examples are stdlib-only and self-contained. The boundary check script (`scr
 
 ## Workflow Enforcement
 
-Workflow phase prerequisites are enforced by hook-based gates. Running `/implement` before `/plan` is blocked, `/review` and `/test` require `/implement`, and `/verify` requires `/test`.
+Workflow phase prerequisites are enforced by hook-based gates on the underlying agents. The implementer phase is blocked before plan approval; reviewer and tester phases require an implementation; verifier requires test completion.
 
 - State is tracked in `.claude/workflow-state.json` (gitignored)
-- Use `/reset` to clear all phase completions and start a new task
+- Invoke the `reset` skill to clear all phase completions and start a new task
 - Set `WORKFLOW_GATES_SKIP=1` to bypass all checks
 - `/ship` orchestrates internally and is not gated
 
 ## Proactive Invocation
 
-Pipeline skills auto-engage based on intent — describing a bug, feature, review, refactor, or release triggers the matching skill before any other response. The `SessionStart` hook (`.claude/hooks/session-start.sh`) loads the `using-pipeline` meta-skill at session start, which carries the intent → skill mapping. Explicit slash commands (`/plan`, `/implement`, etc.) remain available and behave identically.
+Pipeline skills auto-engage based on intent — describing a bug, feature, review, refactor, or release triggers the matching skill before any other response. The `SessionStart` hook (`.claude/hooks/session-start.sh`) loads the `using-pipeline` meta-skill at session start, which carries the intent → skill mapping. The five primary slash commands (`/ship`, `/review`, `/refactor`, `/audit`, `/research`) remain available and behave identically when typed explicitly.
 
 ## Skills and Agents
 
@@ -82,12 +69,14 @@ Skills are auto-invoked by Claude based on their description. Agents are delegat
 
 | Skill | Triggered by | Purpose |
 |---|---|---|
-| `requirement-analysis` | `/plan` (via `planner`) | FC/IS-aligned implementation specs |
+| `requirement-analysis` | `planner` (under `/ship`) | FC/IS-aligned implementation specs |
 | `fcis-architecture` | layer classification, design | Enforces core/shell/boundary separation |
-| `code-review` | `/review`, post-`/implement` | FC/IS + security + correctness lenses on a diff |
-| `static-analysis` | `/verify` | Language-detected verification gates |
-| `test-gen` | `/test` (via `tester`) | Property + contract tests |
+| `code-review` | `/review`, post-implementation | FC/IS + security + correctness lenses on a diff |
+| `static-analysis` | `verifier` (under `/ship`) | Language-detected verification gates |
+| `test-gen` | `tester` (under `/ship`) | Property + contract tests |
 | `refactor` | `/refactor` | Zero-behavior-change refactoring |
+| `setup` | vendoring for CI gate authority | Scaffold scripts/templates/CI into the consuming repo (no slash command) |
+| `reset` | clearing workflow state | Reset `.claude/workflow-state.json` (no slash command) |
 
 Agents live under `.claude/agents/` (`planner`, `implementer`, `reviewer`, `tester`, `verifier`, `auditor`, `researcher`). Each has a `maxTurns` cap; if an agent stops mid-task, rerun the command or raise `maxTurns` in its frontmatter.
 

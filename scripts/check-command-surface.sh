@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Contract assertions for the command-surface consolidation.
+# Contract assertions for the 5-command primary surface.
 #
-# Verifies the post-consolidation invariants documented in
+# Verifies the post-reduction invariants documented in
 # docs/current-plan.md ("Acceptance Criteria") and docs/impl-summary.md:
-#   - /ship exists with strict|adaptive mode dispatch
-#   - /cycle and /autopilot are removed
-#   - per-phase commands are demoted via "Advanced —" description prefix
-#   - ops commands (setup, reset) are prefixed "Ops:"
+#   - .claude/commands/ contains exactly the 5 primary commands
+#   - the 6 deleted per-phase/ops commands are absent
+#   - /ship retains strict|adaptive mode dispatch
 #   - pragmatic-review-checklist skill is marked Internal
-#   - no live (non-migration-note) references to /cycle or /autopilot
+#   - /cycle and /autopilot remain absent
+#   - no live (non-migration-note) references to /cycle, /autopilot, or any
+#     deleted slash command in .claude/{commands,skills,agents}
 #
 # Exit 0 on success, 1 on any failed assertion.
 set -uo pipefail
@@ -34,8 +35,16 @@ else
   fi
 fi
 
-# 2. /cycle.md and /autopilot.md are absent
-for stale in .claude/commands/cycle.md .claude/commands/autopilot.md; do
+# 2. /cycle.md, /autopilot.md, and the 6 deleted per-phase/ops commands are absent.
+for stale in \
+    .claude/commands/cycle.md \
+    .claude/commands/autopilot.md \
+    .claude/commands/plan.md \
+    .claude/commands/implement.md \
+    .claude/commands/test.md \
+    .claude/commands/verify.md \
+    .claude/commands/setup.md \
+    .claude/commands/reset.md; do
   if [ -e "$stale" ]; then
     fail "$stale should have been removed"
   else
@@ -43,36 +52,27 @@ for stale in .claude/commands/cycle.md .claude/commands/autopilot.md; do
   fi
 done
 
-# 3. Per-phase commands carry "Advanced —" description prefix
-for cmd in plan implement review test verify research; do
+# 3. The 5 primary commands are present, and ONLY those 5.
+expected_cmds=(ship review refactor audit research)
+for cmd in "${expected_cmds[@]}"; do
   f=".claude/commands/${cmd}.md"
   if [ ! -f "$f" ]; then
     fail "$f missing"
-    continue
+  else
+    pass "$f present"
   fi
-  # Look for description: line and confirm it starts with "Advanced —"
-  desc=$(awk '/^description:/{sub(/^description:[[:space:]]*"?/,""); sub(/"?$/,""); print; exit}' "$f")
-  case "$desc" in
-    "Advanced —"*) pass "$f description prefixed Advanced —" ;;
-    *)             fail "$f description does not start with 'Advanced —' (got: $desc)" ;;
-  esac
 done
 
-# 4. /setup and /reset descriptions start with "Ops:"
-for cmd in setup reset; do
-  f=".claude/commands/${cmd}.md"
-  if [ ! -f "$f" ]; then
-    fail "$f missing"
-    continue
-  fi
-  desc=$(awk '/^description:/{sub(/^description:[[:space:]]*"?/,""); sub(/"?$/,""); print; exit}' "$f")
-  case "$desc" in
-    "Ops:"*) pass "$f description prefixed Ops:" ;;
-    *)       fail "$f description does not start with 'Ops:' (got: $desc)" ;;
-  esac
-done
+# Count actual *.md files under .claude/commands/ and confirm = 5.
+actual_count=$(find .claude/commands -maxdepth 1 -type f -name '*.md' | wc -l | tr -d '[:space:]')
+if [ "$actual_count" != "5" ]; then
+  fail ".claude/commands contains $actual_count *.md files, expected exactly 5"
+  find .claude/commands -maxdepth 1 -type f -name '*.md' >&2
+else
+  pass ".claude/commands contains exactly 5 *.md files"
+fi
 
-# 5. pragmatic-review-checklist marked Internal
+# 4. pragmatic-review-checklist marked Internal
 prc=.claude/skills/pragmatic-review-checklist/SKILL.md
 if [ ! -f "$prc" ]; then
   fail "$prc missing"
@@ -84,22 +84,41 @@ else
   fi
 fi
 
-# 6. No live references to /cycle or /autopilot in skill/command/agent files.
-# Migration notes inside CLAUDE.md and README.md are intentional and excluded.
-live_hits=$(rg -n --no-heading -e '/cycle\b' -e '/autopilot\b' \
-  .claude/commands .claude/skills .claude/agents 2>/dev/null || true)
-if [ -n "$live_hits" ]; then
-  fail "live /cycle or /autopilot references found in .claude/:"
-  printf '%s\n' "$live_hits" >&2
+# 5. No live re-dispatch references to /cycle, /autopilot, or any deleted
+#    slash command in .claude/{commands,skills}. Agent files (.claude/agents)
+#    use slash-prefixed phase names as frontmatter metadata (`runs-after:`,
+#    `consumed-by:`, etc.) — those are documentation, not live dispatch, and
+#    agent prompts are out of scope per the approved plan.
+live_hits=$(rg -n --no-heading \
+  -e '/cycle\b' \
+  -e '/autopilot\b' \
+  -e '(^|[^a-zA-Z])/plan\b' \
+  -e '(^|[^a-zA-Z])/implement\b' \
+  -e '(^|[^a-zA-Z])/test\b' \
+  -e '(^|[^a-zA-Z])/verify\b' \
+  -e '(^|[^a-zA-Z])/setup\b' \
+  -e '(^|[^a-zA-Z])/reset\b' \
+  .claude/commands .claude/skills 2>/dev/null || true)
+# Filter out path-like matches (e.g. "scripts/run-verification-gates.sh") and
+# the deleted-command path references inside this script's own comments.
+filtered=$(printf '%s\n' "$live_hits" | awk '
+  NF == 0 { next }
+  # Drop lines where any slash token is part of a longer path segment
+  /\/(plan|implement|test|verify|setup|reset|cycle|autopilot)\// { next }
+  { print }
+')
+if [ -n "$filtered" ]; then
+  fail "live deleted-slash-command references found in .claude/:"
+  printf '%s\n' "$filtered" >&2
 else
-  pass "no live /cycle or /autopilot references in .claude/{commands,skills,agents}"
+  pass "no live deleted-slash-command references in .claude/{commands,skills,agents}"
 fi
 
-# Sanity: README.md and CLAUDE.md references should be migration notes only.
+# Sanity: README.md and CLAUDE.md references to /cycle|/autopilot must remain
+# migration notes only.
 for doc in README.md CLAUDE.md; do
   hits=$(rg -n --no-heading -e '/cycle\b' -e '/autopilot\b' "$doc" 2>/dev/null || true)
   if [ -n "$hits" ]; then
-    # Each hit must contain the word "Migration" or "Replaces" or "previous"
     while IFS= read -r line; do
       case "$line" in
         *Migration*|*Replaces*|*previous*) ;;

@@ -40,6 +40,22 @@ bash scripts/run-verification-gates.sh
 
 Record baseline results (pass/fail per gate) in `docs/refactor-report.md`.
 
+## 2.5 Coverage Precondition
+
+After the pre-refactor gate passes and **before** planning, run:
+
+```bash
+bash scripts/coverage-precondition.sh <target-file-or-glob>
+```
+
+The script auto-detects an available coverage tool (pytest, `go test -cover`, `cargo llvm-cov`, `cargo tarpaulin`, vitest, jest, or c8) and invokes the tool with its native fail-under threshold flag, trusting the tool's exit code. The single exception is `go test -cover`, which lacks a built-in fail-under flag; for Go we extract the printed `coverage: XX.X%` value and compare it to the threshold (default 80%, override via `COVERAGE_THRESHOLD`).
+
+- **Pass** (exit 0): the coverage report covers the target at or above threshold. A `## Coverage Precondition` section is appended to `docs/.refactor-precondition.md`; fold it into `docs/refactor-report.md`.
+- **Block** (exit 1): the target is below threshold OR no coverage tool was detected and no `COVERAGE_RATIONALE` was supplied. Halt the refactor — strengthen tests first.
+- **Rationale fallback**: when no tool is detected and an interactive rationale is provided (or `COVERAGE_RATIONALE` is set), the script logs the rationale and exits 0. The rationale appears in the refactor report for audit.
+
+Why this is mandatory: refactoring's "no behavior change" invariant is unprovable without tests that already cover the code being changed. A clean pre-refactor gate satisfied by zero tests is meaningless.
+
 ## 3. Planning
 
 Produce `docs/current-plan.md` with:
