@@ -106,7 +106,7 @@ collect_runs_newest_first() {
 # Keep the first $RETENTION entries; delete the rest, skipping protected.
 i=0
 deleted=0
-while IFS=$'\t' read -r mtime path; do
+while IFS=$'\t' read -r _mtime path; do
   [ -z "${path:-}" ] && continue
   name=$(basename "$path")
   i=$((i + 1))

@@ -157,8 +157,9 @@ run_id=$( cd "$sb_g" && bash scripts/mint-run-id.sh --write-pointers )
 run_dir="docs/runs/${run_id}"
 hint_path="${sb_g}/${run_dir}/.verify-retry.json"
 
-# B1: three concurrent failures.
-out=$(
+# B1: three concurrent failures. Output captured but not asserted on
+# (we assert on the hint file); discard to keep shellcheck happy.
+_out=$(
   cd "$sb_g" \
     && RUN_ID="$run_id" RUN_DIR="$run_dir" \
        VERIFY_TYPECHECK_CMD='sleep 1; echo TC; exit 11' \
@@ -197,8 +198,8 @@ else
 fi
 
 # B2: re-run with a single failure; previous content must be replaced,
-# not appended to.
-out2=$(
+# not appended to. (Output discarded; assertion is on the hint file.)
+_out2=$(
   cd "$sb_g" \
     && RUN_ID="$run_id" RUN_DIR="$run_dir" \
        VERIFY_TYPECHECK_CMD='echo TC2; exit 0' \

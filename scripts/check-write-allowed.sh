@@ -32,6 +32,10 @@ fail() { echo "write-allowed: ERROR: $*" >&2; errors=$((errors + 1)); }
 # Strip placeholders before applying the absolute-path / traversal checks
 # so they don't false-positive on legitimate `${RUN_DIR}` segments.
 strip_placeholders() {
+  # Single-quoted on purpose: we want the literal '${RUN_DIR}' text in
+  # the sed pattern, not its expansion. SC2016 flags this as
+  # potentially unintentional; suppress it.
+  # shellcheck disable=SC2016
   printf '%s' "$1" | sed -e 's|\${RUN_DIR}||g' -e 's|\${RUN_ID}||g'
 }
 
@@ -73,6 +77,9 @@ scan_file() {
   # carries write-allowed declarations on agents. For skills/commands we
   # accept it anywhere in the body — they document the contract inline.
   local n=0
+  # SC2094 false-positive here: check_value only writes to stderr,
+  # not to "$file"; the read+write-same-file warning does not apply.
+  # shellcheck disable=SC2094
   while IFS= read -r line; do
     n=$((n + 1))
     case "$line" in

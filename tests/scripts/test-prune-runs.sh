@@ -24,14 +24,13 @@ fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 # Sandbox.
 sandbox=$(mktemp -d)
 trap 'rm -rf "$sandbox"' EXIT
-cd "$sandbox"
+cd "$sandbox" || exit 2
 mkdir -p docs/runs .claude/workflow-state
 
 # Fabricate 15 parseable run-ids with strictly increasing mtimes.
 # Use 'touch -t' for portable mtime control.
 make_id() { printf '20260508T%06d-a1b2c3-%02x' "$1" "$(( $1 % 256 ))"; }
 
-base_min=0
 ids=()
 for n in $(seq 1 15); do
   id=$(make_id "$n")

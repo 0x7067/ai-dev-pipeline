@@ -54,7 +54,7 @@ now_utc_compact() {
 short_sha_or_random() {
   local s
   if command -v git >/dev/null 2>&1 && git rev-parse --short=6 HEAD >/dev/null 2>&1; then
-    s=$(git rev-parse --short=6 HEAD 2>/dev/null | tr 'A-Z' 'a-z')
+    s=$(git rev-parse --short=6 HEAD 2>/dev/null | tr '[:upper:]' '[:lower:]')
     if [ "${#s}" -eq 6 ]; then
       printf '%s' "$s"
       return 0
