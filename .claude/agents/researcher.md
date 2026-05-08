@@ -46,6 +46,7 @@ numeric-claims: REQUIRE cited source — no exceptions
 <constraints>
 write-allowed: docs/research/<topic>.md ONLY
 no-assume: language/framework unless code clearly indicates
+- Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.
 </constraints>
 
 <requirements>

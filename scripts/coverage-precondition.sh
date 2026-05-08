@@ -99,10 +99,13 @@ prompt_rationale_and_log() {
 
 # --- Tool runners ---
 # Each runner returns: 0=pass, 1=block, 2=tool not applicable.
+# Runners are dispatched indirectly via the RUNNERS array below, so static
+# analysis cannot see the call sites.
+# shellcheck disable=SC2329 # invoked indirectly via RUNNERS dispatch table
 
 run_pytest() {
   command -v pytest >/dev/null 2>&1 || return 2
-  ([ -f pyproject.toml ] || [ -f setup.cfg ] || [ -f pytest.ini ]) || return 2
+  { [ -f pyproject.toml ] || [ -f setup.cfg ] || [ -f pytest.ini ]; } || return 2
   local args=(--cov-fail-under="$THRESHOLD" --cov-report= -q)
   if [ -n "$TARGET" ]; then
     args+=(--cov="$TARGET")
@@ -115,6 +118,7 @@ run_pytest() {
   return 1
 }
 
+# shellcheck disable=SC2329 # invoked indirectly via RUNNERS dispatch table
 run_gotest() {
   command -v go >/dev/null 2>&1 || return 2
   [ -f go.mod ] || return 2
@@ -140,6 +144,7 @@ run_gotest() {
   return 1
 }
 
+# shellcheck disable=SC2329 # invoked indirectly via RUNNERS dispatch table
 run_cargo_llvm_cov() {
   command -v cargo-llvm-cov >/dev/null 2>&1 || cargo --list 2>/dev/null | grep -q '^\s*llvm-cov' || return 2
   [ -f Cargo.toml ] || return 2
@@ -149,6 +154,7 @@ run_cargo_llvm_cov() {
   return 1
 }
 
+# shellcheck disable=SC2329 # invoked indirectly via RUNNERS dispatch table
 run_cargo_tarpaulin() {
   command -v cargo-tarpaulin >/dev/null 2>&1 || return 2
   [ -f Cargo.toml ] || return 2
@@ -158,6 +164,7 @@ run_cargo_tarpaulin() {
   return 1
 }
 
+# shellcheck disable=SC2329 # invoked indirectly via RUNNERS dispatch table
 run_vitest() {
   [ -f package.json ] || return 2
   grep -q '"vitest"' package.json 2>/dev/null || return 2
@@ -170,6 +177,7 @@ run_vitest() {
   return 1
 }
 
+# shellcheck disable=SC2329 # invoked indirectly via RUNNERS dispatch table
 run_jest() {
   [ -f package.json ] || return 2
   grep -q '"jest"' package.json 2>/dev/null || return 2
@@ -184,6 +192,7 @@ run_jest() {
   return 1
 }
 
+# shellcheck disable=SC2329 # invoked indirectly via RUNNERS dispatch table
 run_c8() {
   [ -f package.json ] || return 2
   grep -q '"c8"' package.json 2>/dev/null || return 2

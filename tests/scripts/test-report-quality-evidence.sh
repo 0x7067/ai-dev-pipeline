@@ -117,6 +117,7 @@ EOF
 case1() {
   local work; work="$(make_workdir)"
   setup_workdir "$work"
+  # shellcheck disable=SC2016 # literal backticks are intentional fixture content, no expansion wanted
   write_verify_report "$work/docs/verify-report.md" '`low`'
   ( cd "$work" && bash scripts/check-report-quality.sh ) >/tmp/cq-evidence.out 2>&1
   local rc=$?

@@ -32,6 +32,7 @@ fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 # failure, or interrupt). Without this, a mid-case `fail` that bails out of
 # a subshell early would leak the tmp dir until reboot.
 TMP_DIRS=()
+# shellcheck disable=SC2329 # invoked via `trap cleanup_tmp_dirs EXIT INT TERM`
 cleanup_tmp_dirs() {
   local d
   for d in "${TMP_DIRS[@]:-}"; do
@@ -52,14 +53,19 @@ case_template_resolves_via_plugin() {
   local consumer
   consumer="$(make_fresh_consumer)"
 
-  ( cd "${consumer}" || exit 1
+  if (
+    cd "${consumer}" || exit 1
     # canonicalize PWD to match resolver's pwd -P semantics on macOS.
     cd "$(pwd -P)" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${REPO_ROOT}"
     got="$(harness_resolve_artifact docs/templates/review-report-template.md 2>/dev/null)"
     [ "${got}" = "${REPO_ROOT}/docs/templates/review-report-template.md" ]
-  ) && pass "fresh consumer resolves docs/templates/review-report-template.md via plugin root" \
-    || fail "template did not resolve via plugin-root fallback"
+  ); then
+    pass "fresh consumer resolves docs/templates/review-report-template.md via plugin root"
+  else
+    fail "template did not resolve via plugin-root fallback"
+  fi
 
   rm -rf "${consumer}"
 }
@@ -68,13 +74,18 @@ case_gate_runner_resolves_via_plugin() {
   local consumer
   consumer="$(make_fresh_consumer)"
 
-  ( cd "${consumer}" || exit 1
+  if (
+    cd "${consumer}" || exit 1
     cd "$(pwd -P)" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${REPO_ROOT}"
     got="$(harness_resolve_artifact scripts/run-verification-gates.sh 2>/dev/null)"
     [ "${got}" = "${REPO_ROOT}/scripts/run-verification-gates.sh" ] && [ -x "${got}" ]
-  ) && pass "fresh consumer resolves scripts/run-verification-gates.sh via plugin root" \
-    || fail "gate runner did not resolve via plugin-root fallback"
+  ); then
+    pass "fresh consumer resolves scripts/run-verification-gates.sh via plugin root"
+  else
+    fail "gate runner did not resolve via plugin-root fallback"
+  fi
 
   rm -rf "${consumer}"
 }
@@ -83,8 +94,10 @@ case_missing_artifact_is_not_found() {
   local consumer
   consumer="$(make_fresh_consumer)"
 
-  ( cd "${consumer}" || exit 1
+  if (
+    cd "${consumer}" || exit 1
     cd "$(pwd -P)" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${REPO_ROOT}"
     err="$(harness_resolve_artifact docs/templates/__definitely-missing__.md 2>&1 1>/dev/null)"
     rc=$?
@@ -93,8 +106,11 @@ case_missing_artifact_is_not_found() {
       *NotFound*searched=*) exit 0 ;;
       *) exit 1 ;;
     esac
-  ) && pass "missing artifact yields structured NotFound and non-zero exit" \
-    || fail "missing artifact did not produce structured NotFound"
+  ); then
+    pass "missing artifact yields structured NotFound and non-zero exit"
+  else
+    fail "missing artifact did not produce structured NotFound"
+  fi
 
   rm -rf "${consumer}"
 }
@@ -105,7 +121,8 @@ case_no_plugin_root_no_local_is_not_found() {
   local consumer
   consumer="$(make_fresh_consumer)"
 
-  ( cd "${consumer}" || exit 1
+  if (
+    cd "${consumer}" || exit 1
     cd "$(pwd -P)" || exit 1
     unset CLAUDE_PLUGIN_ROOT
     err="$(harness_resolve_artifact scripts/run-verification-gates.sh 2>&1 1>/dev/null)"
@@ -115,8 +132,11 @@ case_no_plugin_root_no_local_is_not_found() {
       *NotFound*) exit 0 ;;
       *) exit 1 ;;
     esac
-  ) && pass "no plugin root + no repo copy => NotFound" \
-    || fail "expected NotFound when neither plugin root nor repo has artifact"
+  ); then
+    pass "no plugin root + no repo copy => NotFound"
+  else
+    fail "expected NotFound when neither plugin root nor repo has artifact"
+  fi
 
   rm -rf "${consumer}"
 }

@@ -41,6 +41,7 @@ placeholders: replace with concrete plan | omit non-applicable sections — no e
 write-allowed: docs/current-plan.md + docs/specs/<feature>.md ONLY
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
+- Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.
 </constraints>
 
 <requirements>

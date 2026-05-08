@@ -62,7 +62,7 @@ run_check "validate_claude_config" bash scripts/validate-claude-config.sh
 run_check "report_quality" bash scripts/check-report-quality.sh
 run_check "workflow_artifacts" bash scripts/check-workflow-artifacts.sh
 
-# shellcheck disable=SC2016
+# shellcheck disable=SC2016 # the heredoc-style script body is intentionally single-quoted to defer expansion to the child bash
 run_check "hooks_executable" bash -c '
   set -euo pipefail
   for f in \

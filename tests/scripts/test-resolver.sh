@@ -18,6 +18,11 @@
 
 set -uo pipefail
 
+# Each case uses a `( ... )` subshell to isolate `cd` and CLAUDE_PLUGIN_ROOT
+# exports — that scoping is the point. shellcheck would otherwise flag every
+# in-subshell export as SC2030/SC2031.
+# shellcheck disable=SC2030,SC2031 # subshell env isolation is intentional per case
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." >/dev/null 2>&1 && pwd -P)"
 LIB="${REPO_ROOT}/scripts/harness-lib.sh"
@@ -34,6 +39,7 @@ fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 # best-effort; this trap is the guarantee.
 TMP_DIRS=()
 register_tmp() { TMP_DIRS+=("$1"); }
+# shellcheck disable=SC2329 # invoked via `trap cleanup_tmp_dirs EXIT INT TERM`
 cleanup_tmp_dirs() {
   local d
   for d in "${TMP_DIRS[@]:-}"; do
@@ -108,9 +114,14 @@ case_parse_plugin_root() {
   fi
 
   # Reject: unset env (no arg).
-  ( unset CLAUDE_PLUGIN_ROOT
+  if (
+    unset CLAUDE_PLUGIN_ROOT
     if ! harness_parse_plugin_root >/dev/null 2>&1; then exit 0; else exit 1; fi
-  ) && pass "parse_plugin_root rejects unset env" || fail "parse_plugin_root accepted unset env"
+  ); then
+    pass "parse_plugin_root rejects unset env"
+  else
+    fail "parse_plugin_root accepted unset env"
+  fi
 
   rm -rf "${plugin_root}" "${empty_dir}"
 }
@@ -128,12 +139,17 @@ case_resolve_repo_precedence() {
   mkdir -p "${repo_root}/docs/templates"
   printf '# REPO\n' > "${repo_root}/docs/templates/test-template.md"
 
-  ( cd "${repo_root}" || exit 1
+  if (
+    cd "${repo_root}" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${plugin_root}"
     got="$(harness_resolve_artifact docs/templates/test-template.md 2>/dev/null)"
     [ "${got}" = "${repo_root}/docs/templates/test-template.md" ]
-  ) && pass "resolve_artifact: repo copy wins over plugin copy" \
-    || fail "resolve_artifact: repo precedence violated"
+  ); then
+    pass "resolve_artifact: repo copy wins over plugin copy"
+  else
+    fail "resolve_artifact: repo precedence violated"
+  fi
 
   rm -rf "${plugin_root}" "${repo_root}"
 }
@@ -146,12 +162,17 @@ case_resolve_plugin_fallback() {
   repo_root="$(canonicalize "${repo_root}")"
   # repo has no docs/templates/test-template.md
 
-  ( cd "${repo_root}" || exit 1
+  if (
+    cd "${repo_root}" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${plugin_root}"
     got="$(harness_resolve_artifact docs/templates/test-template.md 2>/dev/null)"
     [ "${got}" = "${plugin_root}/docs/templates/test-template.md" ]
-  ) && pass "resolve_artifact: falls back to plugin root when repo missing" \
-    || fail "resolve_artifact: plugin-root fallback failed"
+  ); then
+    pass "resolve_artifact: falls back to plugin root when repo missing"
+  else
+    fail "resolve_artifact: plugin-root fallback failed"
+  fi
 
   rm -rf "${plugin_root}" "${repo_root}"
 }
@@ -163,7 +184,9 @@ case_resolve_not_found() {
   register_tmp "${repo_root}"
   repo_root="$(canonicalize "${repo_root}")"
 
-  ( cd "${repo_root}" || exit 1
+  if (
+    cd "${repo_root}" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${plugin_root}"
     err="$(harness_resolve_artifact docs/templates/missing.md 2>&1 1>/dev/null)"
     rc=$?
@@ -172,8 +195,11 @@ case_resolve_not_found() {
       *NotFound*searched=*) exit 0 ;;
       *) exit 1 ;;
     esac
-  ) && pass "resolve_artifact: structured NotFound when neither side has artifact" \
-    || fail "resolve_artifact: NotFound error not structured as expected"
+  ); then
+    pass "resolve_artifact: structured NotFound when neither side has artifact"
+  else
+    fail "resolve_artifact: NotFound error not structured as expected"
+  fi
 
   rm -rf "${plugin_root}" "${repo_root}"
 }
@@ -185,13 +211,18 @@ case_resolve_idempotent() {
   register_tmp "${repo_root}"
   repo_root="$(canonicalize "${repo_root}")"
 
-  ( cd "${repo_root}" || exit 1
+  if (
+    cd "${repo_root}" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${plugin_root}"
     a="$(harness_resolve_artifact docs/templates/test-template.md 2>/dev/null)"
     b="$(harness_resolve_artifact docs/templates/test-template.md 2>/dev/null)"
     [ "${a}" = "${b}" ] && [ -n "${a}" ]
-  ) && pass "resolve_artifact: idempotent on repeat call" \
-    || fail "resolve_artifact: not idempotent"
+  ); then
+    pass "resolve_artifact: idempotent on repeat call"
+  else
+    fail "resolve_artifact: not idempotent"
+  fi
 
   rm -rf "${plugin_root}" "${repo_root}"
 }
@@ -247,12 +278,17 @@ case_resolve_path_with_spaces() {
   register_tmp "${repo_root}"
   repo_root="$(canonicalize "${repo_root}")"
 
-  ( cd "${repo_root}" || exit 1
+  if (
+    cd "${repo_root}" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${root}"
     got="$(harness_resolve_artifact docs/templates/test-template.md 2>/dev/null)"
     [ "${got}" = "${root}/docs/templates/test-template.md" ]
-  ) && pass "resolve_artifact: handles paths with spaces" \
-    || fail "resolve_artifact: failed on path with spaces"
+  ); then
+    pass "resolve_artifact: handles paths with spaces"
+  else
+    fail "resolve_artifact: failed on path with spaces"
+  fi
 
   rm -rf "${parent}" "${repo_root}"
 }
@@ -269,31 +305,45 @@ case_classify_modes() {
   repo_root="$(mktemp -d -t resolver-repo-XXXXXX)"
   register_tmp "${repo_root}"
   repo_root="$(canonicalize "${repo_root}")"
-  ( cd "${repo_root}" || exit 1
+  if (
+    cd "${repo_root}" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${plugin_root}"
     [ "$(harness_classify_install_mode)" = "ZeroSetup" ]
-  ) && pass "classify: ZeroSetup when only plugin has gate runner" \
-    || fail "classify: ZeroSetup case failed"
+  ); then
+    pass "classify: ZeroSetup when only plugin has gate runner"
+  else
+    fail "classify: ZeroSetup case failed"
+  fi
 
   # Vendored: repo has its own scripts/run-verification-gates.sh.
   mkdir -p "${repo_root}/scripts"
   printf '#!/usr/bin/env bash\n' > "${repo_root}/scripts/run-verification-gates.sh"
-  ( cd "${repo_root}" || exit 1
+  if (
+    cd "${repo_root}" || exit 1
+    # shellcheck disable=SC2030,SC2031 # subshell env scoping is intentional per case
     export CLAUDE_PLUGIN_ROOT="${plugin_root}"
     [ "$(harness_classify_install_mode)" = "Vendored" ]
-  ) && pass "classify: Vendored when repo has gate runner" \
-    || fail "classify: Vendored case failed"
+  ); then
+    pass "classify: Vendored when repo has gate runner"
+  else
+    fail "classify: Vendored case failed"
+  fi
 
   # Broken: neither side has it.
   local broken_repo
   broken_repo="$(mktemp -d -t resolver-broken-XXXXXX)"
   register_tmp "${broken_repo}"
-  ( cd "${broken_repo}" || exit 1
+  if (
+    cd "${broken_repo}" || exit 1
     unset CLAUDE_PLUGIN_ROOT
     out="$(harness_classify_install_mode 2>/dev/null || true)"
     [ "${out}" = "Broken" ]
-  ) && pass "classify: Broken when neither side has gate runner" \
-    || fail "classify: Broken case failed"
+  ); then
+    pass "classify: Broken when neither side has gate runner"
+  else
+    fail "classify: Broken case failed"
+  fi
 
   rm -rf "${plugin_root}" "${repo_root}" "${broken_repo}"
 }
