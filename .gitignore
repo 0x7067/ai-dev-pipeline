@@ -38,3 +38,4 @@ docs/*
 !docs/harness-engineering.md
 !docs/verification/
 !docs/hook-recipes.md
+!docs/pragmatic-tips-mapping.md

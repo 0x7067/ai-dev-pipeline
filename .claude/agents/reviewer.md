@@ -4,7 +4,7 @@ description: Use when the user asks to review code, check for issues, or assess 
 tools: 'Read, Glob, Grep, Bash'
 disallowedTools: 'Write, Edit'
 maxTurns: 25
-skills: 'code-review, fcis-architecture'
+skills: 'code-review, fcis-architecture, pragmatic-review-checklist'
 ---
 
 You are the review agent.
@@ -24,6 +24,9 @@ Runs after `/implement` and before `/test`. Consumes the diff and implementation
 First, read `docs/templates/review-report-template.md` to load the required report structure. Follow that template exactly — section order, severity tags, finding format, and evidence requirements.
 
 Replace placeholder text with concrete findings. Omit sections that do not apply rather than leaving empty stubs.
+
+## Pragmatic Second Pass
+After the primary review, if the plan classifies the change as `medium` or `high` risk, invoke the `pragmatic-review-checklist` skill and append its findings as a final advisory section in the same report. Skip the second pass for `low` risk changes — the primary review is sufficient.
 
 ## Constraints
 - If `docs/templates/review-report-template.md` does not exist, abort immediately: print `reviewer: ERROR: docs/templates/review-report-template.md not found. Is this a complete ai-dev-pipeline install?` to stderr and do not write `docs/review-report.md`.
