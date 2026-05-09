@@ -1,0 +1,77 @@
+# .claude/policy/approvals.yaml — approval policy (single source of truth).
+#
+# Layer: BOUNDARY input. Parsed by scripts/parse-approvals-policy.sh into
+# a typed ApprovalPolicy domain value before any orchestrator decision
+# uses it. Per .claude/rules/release-and-verification.md, this file is
+# the authoritative source — the orchestrator and rule prose reference
+# it rather than inlining values.
+#
+# Schema (v1):
+#   version: integer (must be 1)
+#   modes:
+#     - auto              # /ship default
+#     - strict            # /ship strict
+#   plan_gate:
+#     auto:
+#       low: skip         # auto-approve, no prompt
+#       medium: prompt    # halt, require approve|edit|reject
+#       high: prompt
+#     strict:
+#       low: prompt
+#       medium: prompt
+#       high: prompt
+#   release_gate:
+#     auto_approve_when:
+#       mode: auto
+#       risk: low
+#       blocking: 0
+#       verifier: go
+#       smoke: passed
+#     verbs: [approve, reject]   # NOTE: edit is intentionally NOT here.
+#   plan_gate_verbs: [approve, edit, reject]
+#   refactor_scope_threshold:
+#     files: 10
+#     loc: 300
+#   time_box:
+#     default: off
+#     min_seconds: 60
+#     max_seconds: 86400
+#   queue_mode:
+#     enabled: true
+
+version: 1
+modes:
+  - auto
+  - strict
+plan_gate:
+  auto:
+    low: skip
+    medium: prompt
+    high: prompt
+  strict:
+    low: prompt
+    medium: prompt
+    high: prompt
+release_gate:
+  auto_approve_when:
+    mode: auto
+    risk: low
+    blocking: 0
+    verifier: go
+    smoke: passed
+  verbs:
+    - approve
+    - reject
+plan_gate_verbs:
+  - approve
+  - edit
+  - reject
+refactor_scope_threshold:
+  files: 10
+  loc: 300
+time_box:
+  default: off
+  min_seconds: 60
+  max_seconds: 86400
+queue_mode:
+  enabled: true

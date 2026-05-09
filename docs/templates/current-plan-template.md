@@ -61,6 +61,15 @@ in higher-risk plans.) -->
 
 ## Acceptance Criteria
 
+## Open Decisions (provisional)
+<!-- OPTIONAL — include only when the planner deferred non-load-bearing
+choices for batched resolution at the plan-approval gate, per
+.claude/rules/decision-surfacing.md. Each entry MUST list: the decision
+name, the provisional pick, and a short rationale. The plan-gate
+AskUserQuestion batch resolves every entry before approval; resolved
+answers are recorded to ${RUN_DIR}/decisions.jsonl. Omit this section
+if there are no provisional decisions. -->
+
 ## Verification Commands (Deterministic Order)
 1. Type/compile:
 2. Lint:

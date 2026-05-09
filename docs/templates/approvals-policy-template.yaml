@@ -1,0 +1,42 @@
+# approvals-policy-template.yaml — vendored copy of the approval policy schema.
+#
+# Copy to .claude/policy/approvals.yaml and edit values for the project.
+# Parsed by scripts/parse-approvals-policy.sh; malformed values cause the
+# orchestrator to refuse to run (fail-closed per security-baseline.md).
+
+version: 1
+modes:
+  - auto
+  - strict
+plan_gate:
+  auto:
+    low: skip
+    medium: prompt
+    high: prompt
+  strict:
+    low: prompt
+    medium: prompt
+    high: prompt
+release_gate:
+  auto_approve_when:
+    mode: auto
+    risk: low
+    blocking: 0
+    verifier: go
+    smoke: passed
+  verbs:
+    - approve
+    - reject
+plan_gate_verbs:
+  - approve
+  - edit
+  - reject
+refactor_scope_threshold:
+  files: 10
+  loc: 300
+time_box:
+  default: off
+  min_seconds: 60
+  max_seconds: 86400
+queue_mode:
+  enabled: true

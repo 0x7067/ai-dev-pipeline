@@ -20,10 +20,12 @@
 - `high`: security-sensitive, data-integrity, auth/authz, or release-critical change.
 
 ## Human Approval Policy (modes: auto, strict)
+- The authoritative source for approval policy is `.claude/policy/approvals.yaml`. The orchestrator parses it via `scripts/parse-approvals-policy.sh` (typed boundary parser); the rule prose below is a human-readable summary of what that file encodes.
 - In `/ship auto` (the default), `risk=low` plans proceed without a prompt. `risk=medium` and `risk=high` require plan approval before implementation.
 - In `/ship strict`, plan approval and release approval are always explicit.
-- The release gate auto-approves only when ALL of these are true: mode is `auto`, plan risk is `low`, review has `blocking=0`, verification is green, and smoke passed. The orchestrator prints `⏵ release auto-approved (auto, risk=low, gates green)`.
-- Legacy `/ship fast` and `/ship adaptive` tokens are rejected. Use `/ship`, `/ship strict`, or `/ship research <topic>`.
+- The release gate auto-approves only when ALL of these are true: mode is `auto`, plan risk is `low`, review has `blocking=0`, verification is green, and smoke passed. The decision is computed by the pure core function `policy_apply` in `scripts/lib/hitl-core.sh`; any malformed input fails closed (never `auto-approve`). The orchestrator prints `⏵ release auto-approved (auto, risk=low, gates green)`.
+- Plan-gate verbs: `approve | edit | reject`. Release-gate verbs: `approve | reject` (no `edit`). Every gate transition appends one record to `${RUN_DIR}/decisions.jsonl` per `docs/templates/decisions-jsonl-schema.md`.
+- Legacy `/ship fast` and `/ship adaptive` tokens are rejected. Use `/ship`, `/ship strict`, `/ship queue`, or `/ship research <topic>`.
 
 ## Verification Sequence
 1. Type check / compile

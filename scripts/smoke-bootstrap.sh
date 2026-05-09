@@ -6,6 +6,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 source "${SCRIPT_DIR}/harness-lib.sh"
 harness_cd_repo_root
 
+# Smoke runs BEFORE the release decision in `/ship`; tell the report-quality
+# gate to accept `pending` for "Release approved" and to allow a missing
+# test-report.md (the lean ship path skips the tester phase). Callers in
+# legacy/full pipelines override these by exporting non-default values.
+: "${REPORT_QUALITY_PHASE:=pre-release}"
+: "${REPORT_TEST_OPTIONAL:=1}"
+export REPORT_QUALITY_PHASE REPORT_TEST_OPTIONAL
+
 total=0
 passed=0
 failed=0

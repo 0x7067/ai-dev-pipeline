@@ -33,7 +33,17 @@ Same as `/ship`: print `▶ <phase> starting (<n>/<total>)` before, echo `✓` o
 
 3. **Plan (2/5).** Invoke `planner` per the phase contract with refactor framing. The plan must describe structural changes only; any functional diff is a blocking violation that the planner must surface.
 
-4. **Plan approval gate.** Halt and print `⏸ refactor plan approval required (run=$RUN_ID) — reply "approve" to continue, "reject" to stop`. Wait for explicit user approval before any code edits.
+4. **Plan approval gate (scope-aware).** Compute the refactor scope and decide whether a halt is required.
+
+   - Source thresholds from `.claude/policy/approvals.yaml` via `scripts/parse-approvals-policy.sh` (typed key=value form). Defaults if the policy file is absent: `files=10, loc=300`.
+   - Compute scope inputs from the planner's diff (file count + LOC delta).
+   - Classify via the pure core function `refactor_scope_classify` in `scripts/lib/hitl-core.sh`:
+     `bash -c 'source scripts/lib/hitl-core.sh; refactor_scope_classify "$FILES" "$LOC" "$FILES_THR" "$LOC_THR"'`
+     Result is `above` or `below`.
+   - On `above`: halt and print `⏸ refactor plan approval required (run=$RUN_ID, scope=above-threshold) — reply "approve" to continue, "reject" to stop`. Append one record to `${RUN_DIR}/decisions.jsonl` via `scripts/append-decision.sh` with `gate=refactor-plan, verb=<approve|reject>` after the user's reply.
+   - On `below`: print `↷ refactor plan gate skipped (scope below threshold)` and proceed without a halt. The pre-existing pre/post verification gates remain unchanged.
+
+   Per HITL plan invariant 1 (fail-closed), if the policy parser errors or the diff cannot be measured, treat as `above` and halt — never silently skip.
 
 5. **Implement (3/5).** Invoke `implementer` per the phase contract.
 

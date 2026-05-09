@@ -43,6 +43,7 @@ write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md ONLY
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.
+- Batching: when a plan introduces multiple non-load-bearing choices, you MAY draft the plan with `(provisional)` markers in an "Open Decisions" section and emit ONE `AskUserQuestion` batch at the plan-approval gate. Single load-bearing decisions still ask first per the rule. After resolution, re-emit the plan and record each answered decision via `scripts/append-decision.sh` to `${RUN_DIR}/decisions.jsonl`.
 </constraints>
 
 <requirements>
@@ -55,12 +56,13 @@ verify-order: include deterministic verification command order in plan
 </requirements>
 
 <status format="MUST be final line, no prose after">
-shape: `STATUS: <ok|fail|blocked> | risk=<low|medium|high|unknown> | <summary, ≤60 chars> | report=<path or "none">`
+shape: `STATUS: <ok|fail|blocked> | risk=<low|medium|high|unknown> | risk_reason=<short phrase> | <summary, ≤60 chars> | report=<path or "none">`
 ok: plan written
 fail: internal error | missing template
 blocked: cannot plan without more user input
+parsing: the orchestrator parses this line via `scripts/parse-status-line.sh`. Missing `risk_reason=` is backward-compatible (defaults to `(unspecified)`), but new plans MUST emit it so the plan-gate banner can render `risk=<tier> because <reason>`.
 examples:
-  - `STATUS: ok | risk=medium | OAuth PKCE plan; 3 boundary parsers; spec written | report=${RUN_DIR}/current-plan.md`
-  - `STATUS: ok | risk=low | docs-only typo sweep | report=${RUN_DIR}/current-plan.md`
+  - `STATUS: ok | risk=medium | risk_reason=cross-module + new policy parser | OAuth PKCE plan; 3 boundary parsers | report=${RUN_DIR}/current-plan.md`
+  - `STATUS: ok | risk=low | risk_reason=docs-only | typo sweep | report=${RUN_DIR}/current-plan.md`
   - `STATUS: fail | risk=unknown | template missing: current-plan-template.md | report=none`
 </status>

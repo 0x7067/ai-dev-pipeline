@@ -9,6 +9,36 @@ harness_cd_repo_root
 errors=0
 strict_mode="${REPORT_QUALITY_REQUIRE_CONTENT:-0}"
 
+# Boundary parsing: typed flags from untrusted env vars. Fail closed on any
+# value outside the allowlist. See .claude/rules/boundary-parse-dont-validate.md.
+#
+# REPORT_QUALITY_PHASE — when the smoke gate runs:
+#   post-release (default): the run already took its release decision; the
+#     verify-report's "Release approved" line MUST be approved/rejected.
+#   pre-release: the lean /ship path runs smoke BEFORE release; "pending"
+#     is the legitimate placeholder. Accept it.
+#
+# REPORT_TEST_OPTIONAL — whether test-report.md is required:
+#   0 (default): historical strict behavior; missing file fails in strict mode.
+#   1: lean /ship paths that skip the tester phase legitimately omit it; a
+#      missing file is a skip, never a fail.
+phase_raw="${REPORT_QUALITY_PHASE:-post-release}"
+case "$phase_raw" in
+  pre-release|post-release) phase="$phase_raw" ;;
+  *)
+    echo "report-quality: ERROR: invalid REPORT_QUALITY_PHASE '$phase_raw' (expected pre-release|post-release)" >&2
+    exit 2
+    ;;
+esac
+test_optional_raw="${REPORT_TEST_OPTIONAL:-0}"
+case "$test_optional_raw" in
+  0|1) test_optional="$test_optional_raw" ;;
+  *)
+    echo "report-quality: ERROR: invalid REPORT_TEST_OPTIONAL '$test_optional_raw' (expected 0|1)" >&2
+    exit 2
+    ;;
+esac
+
 fail() {
   echo "report-quality: ERROR: $*"
   errors=$((errors + 1))
@@ -135,6 +165,14 @@ validate_approval_value() {
   local value
 
   value="$(normalize_value "$raw_value")"
+
+  # Pre-release smoke runs before the release decision; "pending" is the
+  # legitimate placeholder ONLY for the Release-approved slot in that phase.
+  # All other slots and phases keep the strict placeholder rejection.
+  if [ "$phase" = "pre-release" ] && [ "$label" = "Release approved" ] \
+     && [[ "$value" =~ ^pending$ ]]; then
+    return
+  fi
 
   if is_unset_value "$value"; then
     fail "$file approval gate '${label}' is missing (use approved/rejected and avoid placeholders)"
@@ -304,6 +342,12 @@ check_one() {
   local label="$2"
 
   if [ ! -f "$file" ]; then
+    # Lean /ship paths legitimately skip the tester phase; honor the explicit
+    # opt-in even under strict mode for the test-report only.
+    if [ "$label" = "test" ] && [ "$test_optional" = "1" ]; then
+      note "skipping test-report checks (REPORT_TEST_OPTIONAL=1; lean ship path)"
+      return
+    fi
     if [ "$strict_mode" = "1" ]; then
       fail "missing report file: $file"
     else

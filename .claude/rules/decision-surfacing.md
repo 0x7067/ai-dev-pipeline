@@ -74,6 +74,30 @@ the plan is still being drafted.
 If the user already supplied the decision in the triggering prompt, treat it
 as resolved — do not re-ask.
 
+## Draft plan with open decisions (batch at plan gate)
+The "ask BEFORE writing" rule above is preserved for **single, load-bearing**
+decisions: when one specific choice gates the rest of the plan, ask before
+drafting. For plans that touch many small decisions, the planner MAY:
+
+1. Draft the plan with each meaningful-but-not-load-bearing choice marked
+   `(provisional — to be confirmed at plan gate)` in an "Open Decisions"
+   section, AND
+2. Surface ALL provisional decisions in a single `AskUserQuestion` batch at
+   the plan-approval gate, BEFORE the user replies `approve|edit|reject`.
+
+This is a batching optimization, not a relaxation. Anti-fatigue rationale:
+ten well-framed questions answered once beat ten halts strung across an
+hour. The planner MUST NOT silently bake provisional defaults; the
+"Open Decisions" section is the visible audit trail and MUST list every
+provisional pick. After the user answers, the planner re-emits the plan
+with the resolved values and records each answered decision in
+`${RUN_DIR}/decisions.jsonl` per
+`docs/templates/decisions-jsonl-schema.md`.
+
+The orchestrator policy (auto vs strict, risk tier → halt behavior) is
+sourced from `.claude/policy/approvals.yaml`, parsed via
+`scripts/parse-approvals-policy.sh` — the planner does not re-derive it.
+
 ## Handling ambiguous answers
 If a user answers an `AskUserQuestion` invocation ambiguously:
 
