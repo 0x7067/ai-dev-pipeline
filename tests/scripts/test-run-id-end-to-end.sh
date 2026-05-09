@@ -99,6 +99,7 @@ start_s=$SECONDS
 out=$(
   cd "$sandbox_g" \
     && RUN_ID="$ssh_id" RUN_DIR="$ssh_run_dir" \
+       MAX_VERIFY_RETRIES=0 \
        VERIFY_TYPECHECK_CMD="$stub_cmd_typecheck" \
        VERIFY_LINT_CMD="$stub_cmd_lint" \
        VERIFY_SECURITY_CMD="$stub_cmd_security" \

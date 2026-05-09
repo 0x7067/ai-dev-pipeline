@@ -7,11 +7,7 @@
 #   - `▶ <phase> starting`   (every multi-phase command)
 #   - `✓ <phase> — STATUS:`  OR `✗ <phase> — STATUS:`  (every phase echo)
 #
-# Plus, /ship MUST gain the three A2 separators:
-#   - `── Setup ──`, `── TDD ──`, `── Release ──`
-#
-# TDD-PRE: this test is expected to fail because the A2 separators are
-# not yet present in .claude/commands/ship.md.
+# The lean /ship flow intentionally removed decorative phase separators.
 
 set -uo pipefail
 
@@ -31,23 +27,14 @@ else
   if grep -q '✓\|✗' "$SHIP"; then pass "ship.md preserves ✓/✗ glyph"; else fail "ship.md missing ✓/✗ glyph"; fi
 fi
 
-# AC4 / A2: the three separators are present in ship.md AFTER implementation.
-for sep in '── Setup ──' '── TDD ──' '── Release ──'; do
-  if grep -qF "$sep" "$SHIP" 2>/dev/null; then
-    pass "ship.md contains separator '$sep'"
-  else
-    fail "ship.md missing separator '$sep' (AC4 / A2)"
-  fi
-done
-
-# AC4: other commands MUST NOT emit separators (different phase counts).
-for cmd in review audit research; do
+# Lean-flow invariant: no command reintroduces /ship-only separators.
+for cmd in ship review audit research; do
   f="${REPO_ROOT}/.claude/commands/${cmd}.md"
   [ -f "$f" ] || { fail "$f missing"; continue; }
   if grep -qF '── Setup ──' "$f" || grep -qF '── TDD ──' "$f" || grep -qF '── Release ──' "$f"; then
-    fail "${cmd}.md leaked /ship-only separator"
+    fail "${cmd}.md contains removed phase separator"
   else
-    pass "${cmd}.md correctly omits /ship separators"
+    pass "${cmd}.md omits removed phase separators"
   fi
 done
 

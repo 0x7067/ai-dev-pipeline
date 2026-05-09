@@ -30,15 +30,8 @@ risk=low canonical shape is capped at ≤30 lines. -->
 ## Risk Profile
 - Risk tier: `low` | `medium` | `high`
 - Why this risk tier applies:
-- change-type: <!-- optional: feature | fix | refactor | config | config_only.
-  Declaring `config`, `refactor`, or `config_only` allows
-  scripts/check-workflow-artifacts.sh to skip the docs/specs/*.md requirement
-  (and `config_only` additionally skips review-report.md). Omit (or set to
-  feature/fix) to require a spec by default. -->
-- change-class: <!-- optional: trivial | config_only | standard. Planner-emitted
-  advisory hint. The `/ship` orchestrator re-derives `change_class`
-  authoritatively from `git diff --name-only` against the merge-base and wins
-  on disagreement. -->
+- change-type: <!-- optional: feature | fix | refactor | config. Used for
+  reader context only; specs are optional and checked only when present. -->
 
 
 ## Human Checkpoints

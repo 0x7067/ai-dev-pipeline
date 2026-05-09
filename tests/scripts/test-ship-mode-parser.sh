@@ -1,16 +1,5 @@
 #!/usr/bin/env bash
-# Contract tests for the /ship mode-argument grammar documented in
-# .claude/commands/ship.md.
-#
-# Closed grammar:
-#   /ship           → mode=adaptive  (TDD on)
-#   /ship strict    → mode=strict    (TDD on)
-#   anything else   → REJECT
-#
-# We assert these properties by grep'ing the canonical wording out of
-# .claude/commands/ship.md (which is the source of truth consumed by the
-# orchestrator). This avoids re-implementing the parser; the contract under
-# test is "the documented grammar matches the rules above."
+# Contract test for the documented /ship mode grammar.
 
 set -uo pipefail
 
@@ -24,36 +13,33 @@ fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 
 [ -f "$SHIP_MD" ] || { echo "ship.md missing at $SHIP_MD" >&2; exit 2; }
 
-# 1. /ship (no args) is documented as adaptive
-if grep -qE '/ship.*\(no args\).*adaptive' "$SHIP_MD"; then
-  pass "/ship (no args) → adaptive"
+if grep -qE "/ship\` or \`/ship auto\`" "$SHIP_MD"; then
+  pass "/ship defaults to auto"
 else
-  fail "/ship (no args) → adaptive not documented"
+  fail "/ship auto default not documented"
 fi
 
-# 2. /ship strict is documented
-if grep -qE '/ship strict' "$SHIP_MD"; then
-  pass "/ship strict accepted"
-else
-  fail "/ship strict not documented"
-fi
-
-# 3. The closed grammar rejects /ship tdd, /ship adaptive, /ship anything
-#    The doc must explicitly call out these as rejected.
-for rejected in 'tdd' 'adaptive' 'anything'; do
-  if grep -qE "/ship ${rejected}" "$SHIP_MD" && grep -qE 'rejected|unrecognized' "$SHIP_MD"; then
-    pass "/ship ${rejected} rejected"
+for accepted in '/ship strict' '/ship research <topic>'; do
+  if grep -q "$accepted" "$SHIP_MD"; then
+    pass "$accepted accepted"
   else
-    fail "/ship ${rejected} rejection not documented"
+    fail "$accepted not documented"
   fi
 done
 
-# 4. The grammar is closed: ship.md asserts only two valid modes
-if grep -qE 'only two modes are valid|grammar is closed' "$SHIP_MD"; then
-  pass "grammar is closed"
+if grep -q 'valid modes are: <empty> | "auto" | "strict" | "research <topic>"' "$SHIP_MD"; then
+  pass "closed valid-mode enumeration documented"
 else
-  fail "closed-grammar assertion missing"
+  fail "valid-mode enumeration missing or stale"
 fi
+
+for rejected in '/ship fast' '/ship adaptive'; do
+  if grep -q "$rejected.*legacy" "$SHIP_MD"; then
+    pass "$rejected rejected"
+  else
+    fail "$rejected rejection not documented"
+  fi
+done
 
 if [ "$failures" -eq 0 ]; then
   echo "ship-mode-parser: ok"

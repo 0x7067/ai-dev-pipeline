@@ -55,18 +55,12 @@ verify-order: include deterministic verification command order in plan
 </requirements>
 
 <status format="MUST be final line, no prose after">
-shape: `STATUS: <ok|fail|blocked> | risk=<low|medium|high|unknown> | change-class=<trivial|config_only|standard> | <summary, ≤60 chars> | report=<path or "none">`
+shape: `STATUS: <ok|fail|blocked> | risk=<low|medium|high|unknown> | <summary, ≤60 chars> | report=<path or "none">`
 ok: plan written
 fail: internal error | missing template
 blocked: cannot plan without more user input
-change-class hint: planner-emitted advisory token. The `/ship` orchestrator
-re-derives `change_class` authoritatively from `git diff --name-only` and wins
-on disagreement (Resolution #1). Emit one of:
-  - `trivial` — typo fixes, comment edits, single-line config tweaks (legacy carve-out).
-  - `config_only` — diff confined to Markdown / YAML / JSON / `.claude/{agents,skills,rules,hooks}/**`.
-  - `standard` — anything else (fail-closed default; mixed diffs land here).
 examples:
-  - `STATUS: ok | risk=medium | change-class=standard | OAuth PKCE plan; 3 boundary parsers; spec written | report=${RUN_DIR}/current-plan.md`
-  - `STATUS: ok | risk=low | change-class=config_only | docs-only typo sweep | report=${RUN_DIR}/current-plan.md`
-  - `STATUS: fail | risk=unknown | change-class=standard | template missing: current-plan-template.md | report=none`
+  - `STATUS: ok | risk=medium | OAuth PKCE plan; 3 boundary parsers; spec written | report=${RUN_DIR}/current-plan.md`
+  - `STATUS: ok | risk=low | docs-only typo sweep | report=${RUN_DIR}/current-plan.md`
+  - `STATUS: fail | risk=unknown | template missing: current-plan-template.md | report=none`
 </status>

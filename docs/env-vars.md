@@ -23,13 +23,13 @@ All scripts respect these environment variables for project-specific customizati
 
 | Variable | Default | Description |
 |---|---|---|
-| `WORKFLOW_REQUIRE_ARTIFACTS` | `0` | Set to `1` in CI to require all plan/impl/review/test/verify artifacts to be present |
+| `WORKFLOW_REQUIRE_ARTIFACTS` | `0` | Set to `1` in CI to require plan/review/verify artifacts to be present |
 | `WORKFLOW_PLAN_PATH` | `docs/current-plan.md` | Override path for the plan artifact |
 | `WORKFLOW_SUMMARY_PATH` | `docs/impl-summary.md` | Override path for the implementation summary artifact |
 | `WORKFLOW_REVIEW_PATH` | `docs/review-report.md` | Override path for the review report artifact |
-| `WORKFLOW_TEST_PATH` | `docs/test-report.md` | Override path for the test report artifact |
+| `WORKFLOW_TEST_PATH` | `docs/test-report.md` | Override path for the optional test report artifact |
 | `WORKFLOW_VERIFY_PATH` | `docs/verify-report.md` | Override path for the verify report artifact |
-| `WORKFLOW_SPECS_GLOB` | `docs/specs/*.md` | Override glob for spec artifacts |
+| `WORKFLOW_SPECS_GLOB` | `docs/specs/*.md` | Override glob for optional spec artifacts; present specs are content-checked in strict mode |
 
 ## Report quality
 
@@ -49,7 +49,7 @@ All scripts respect these environment variables for project-specific customizati
 |---|---|---|
 | `WORKFLOW_GATES_SKIP` | `0` | Set to `1` to bypass workflow phase prerequisite checks |
 | `WORKFLOW_STATE_PATH` | `.claude/workflow-state.json` | Override path for the workflow state file |
-| `MAX_VERIFY_RETRIES` | `0` | Retry count per verification gate; must be a non-negative integer |
+| `MAX_VERIFY_RETRIES` | `1` | Retry count per verification gate; must be a non-negative integer |
 | `VERIFY_RETRY_HINT_FILE` | `docs/.verify-retry.json` | JSON-lines retry telemetry path, created relative to the repo root |
 | `VERIFY_TYPECHECK_CMD` | unset | Override the type/compile gate with a project-specific command |
 | `VERIFY_LINT_CMD` | unset | Override the lint gate with a project-specific command |

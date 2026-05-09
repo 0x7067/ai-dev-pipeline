@@ -1,6 +1,6 @@
 ---
 name: using-pipeline
-description: Meta-skill describing how to engage the ai-dev-pipeline workflow proactively. Auto-loaded at session start.
+description: Use when deciding which ai-dev-pipeline command, skill, or agent should handle a coding intent; auto-loaded at session start and maps user requests to proactive workflow entry points.
 ---
 
 <SUBAGENT-STOP>
@@ -27,7 +27,7 @@ The primary user-facing surface is exactly five slash commands:
 
 | User intent / phrasing | Invoke |
 |---|---|
-| Any code change: "implement", "build", "add", "fix", "ship", "release", "ready to merge", "verify", "is this done", bug reports, failing tests | `/ship` (default `adaptive`; pass `strict` to force unconditional plan approval) |
+| Any code change: "implement", "build", "add", "fix", "ship", "release", "ready to merge", "verify", "is this done", bug reports, failing tests | `/ship` (default `auto`; pass `strict` to force explicit approvals) |
 | "review this", "look at this diff/PR", severity-first review of existing code without running the full pipeline | `/review` |
 | "refactor", "clean up", "restructure", "extract", "rename", "split this up", "tidy" | `/refactor` |
 | "audit", "health check", "overall state of…", project-wide review with no code change | `/audit` |
@@ -58,7 +58,7 @@ Every primary command (`/ship`, `/audit`, `/review`, `/research`,
 `/refactor`) mints a `RUN_ID` at step 0 and exports `RUN_ID` and
 `RUN_DIR` (= `docs/runs/<RUN_ID>`) into the environment of every
 subagent it dispatches. All per-run artifacts — plans, specs,
-research notes, impl-summaries, review/test/verify reports, refactor
+research notes, review/test/verify reports, refactor
 reports, gate logs, retry hints — are written under `${RUN_DIR}/`.
 
 This makes concurrent runs (two `/ship` sessions on the same repo, CI
@@ -84,15 +84,12 @@ constructed (parse, don't validate). See
 
 The `/ship` pipeline fans out only the *read-only* verification gates
 (typecheck, lint, security) inside `scripts/run-verification-gates.sh`.
-The upstream phases — `research` → `plan` → `tdd-pre` → `implement` →
-`review` — remain strictly sequential because each phase consumes the
-prior phase's artifact:
+The upstream phases — optional `research` → `plan` → `implement` →
+`review` — remain sequential because each phase consumes the prior phase's
+artifact:
 
 - `plan` reads `${RUN_DIR}/research/<topic>.md` (when present).
-- `tdd-pre` reads `${RUN_DIR}/current-plan.md` to encode acceptance
-  criteria as red tests.
-- `implement` reads `${RUN_DIR}/current-plan.md` and (in tdd-post
-  mode) `${RUN_DIR}/test-report.md`.
+- `implement` reads `${RUN_DIR}/current-plan.md`.
 - `review` reads the `## Implementation` section of `${RUN_DIR}/current-plan.md` plus the diff (the standalone impl-summary.md was folded into current-plan.md on 2026-05).
 
 Parallelizing any of these would force a phase to read an artifact
@@ -103,8 +100,8 @@ breaking the data dependency.
 
 Per `.claude/rules/release-and-verification.md`:
 
-- A plan (produced by the `planner` agent under `/ship`) is required before any non-trivial code change. "Trivial" = typo fixes, comment edits, single-line config tweaks. Everything else needs a plan.
-- Risk tier `medium` or `high` requires explicit human approval before implementation finalizes.
+- A plan (produced by the `planner` agent under `/ship`) is required before implementation.
+- Risk tier `medium` or `high` requires explicit human approval before implementation.
 - Release gate (the `verifier` agent under `/ship`, or the `static-analysis` skill standalone) is required before declaring a change "done".
 
 ## Anti-rationalization list

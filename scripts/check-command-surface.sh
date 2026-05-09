@@ -5,7 +5,7 @@
 # docs/current-plan.md ("Acceptance Criteria") and docs/impl-summary.md:
 #   - .claude/commands/ contains exactly the 5 primary commands
 #   - the 6 deleted per-phase/ops commands are absent
-#   - /ship retains strict|adaptive mode dispatch
+#   - /ship retains auto|strict mode dispatch and rejects legacy fast/adaptive
 #   - pragmatic-review-checklist skill is marked Internal
 #   - /cycle and /autopilot remain absent
 #   - no live (non-migration-note) references to /cycle, /autopilot, or any
@@ -23,15 +23,17 @@ rc=0
 fail() { echo "command-surface: FAIL: $*" >&2; rc=1; }
 pass() { echo "command-surface: ok: $*"; }
 
-# 1. /ship exists and contains strict|adaptive mode dispatch
+# 1. /ship exists and contains auto|strict mode dispatch
 ship=.claude/commands/ship.md
 if [ ! -f "$ship" ]; then
   fail "$ship missing"
 else
-  if ! grep -q 'mode=strict' "$ship" || ! grep -q 'mode=adaptive' "$ship"; then
-    fail "$ship missing strict|adaptive mode dispatch"
+  if ! grep -q 'strict' "$ship" || ! grep -q 'auto' "$ship"; then
+    fail "$ship missing auto|strict mode dispatch"
+  elif ! grep -q '/ship fast.*legacy' "$ship" || ! grep -q '/ship adaptive.*legacy' "$ship"; then
+    fail "$ship does not reject legacy fast/adaptive tokens"
   else
-    pass "ship.md present with strict|adaptive dispatch"
+    pass "ship.md present with auto|strict dispatch"
   fi
 fi
 
@@ -72,15 +74,15 @@ else
   pass ".claude/commands contains exactly 5 *.md files"
 fi
 
-# 4. pragmatic-review-checklist marked Internal
+# 4. pragmatic-review-checklist marked standalone-only
 prc=.claude/skills/pragmatic-review-checklist/SKILL.md
 if [ ! -f "$prc" ]; then
   fail "$prc missing"
 else
-  if grep -E '^description:' "$prc" | grep -q 'Internal'; then
-    pass "pragmatic-review-checklist marked Internal"
+  if grep -E '^description:' "$prc" | grep -qi 'standalone-only'; then
+    pass "pragmatic-review-checklist marked standalone-only"
   else
-    fail "pragmatic-review-checklist description does not mark it Internal"
+    fail "pragmatic-review-checklist description does not mark it standalone-only"
   fi
 fi
 
@@ -105,6 +107,8 @@ filtered=$(printf '%s\n' "$live_hits" | awk '
   NF == 0 { next }
   # Drop lines where any slash token is part of a longer path segment
   /\/(plan|implement|test|verify|setup|reset|cycle|autopilot)\// { next }
+  # Drop markdown artifact paths such as docs/verify-report.md.
+  /\/(plan|implement|test|verify|setup|reset|cycle|autopilot)[A-Za-z0-9_.-]*\.md/ { next }
   { print }
 ')
 if [ -n "$filtered" ]; then

@@ -28,8 +28,7 @@ results-cache: ${RUN_DIR}/test-results.json (machine-readable cache for verifier
 </deliverables>
 
 <test-results-cache>
-Write `${RUN_DIR}/test-results.json` after the post-mode suite run completes
-(skip in tdd-pre, where the suite is intentionally red). Schema:
+Write `${RUN_DIR}/test-results.json` after the suite run completes. Schema:
 
 ```
 {
@@ -101,40 +100,13 @@ intended bash command shapes (allowed):
 bash-timeout: long-running test suites SHOULD pass `timeout: 600000` (10 min, the Bash tool maximum). Default `timeout` is 120000 (2 min), which is often too short for full suites and produces spurious failures.
 </bash-usage>
 
-<modes>
-mode-signal: env var `MODE` ("tdd-pre" or unset/"post")
-
-mode=post (default, post-implement):
-  contract: existing — write tests against implemented code; goal `failing=0`.
-  status-shape: `STATUS: <ok|fail|blocked> | added=<n> failing=<n> | <summary> | report=<path>`
-
-mode=tdd-pre (invoked before implementer in /ship):
-  contract:
-    - Read acceptance criteria from ${RUN_DIR}/current-plan.md.
-    - For each acceptance criterion, write at least one test that exercises new behavior NOT yet implemented.
-    - Every newly-added test MUST currently fail (proves it exercises new behavior; not a tautology).
-    - Run the test suite once; record failing count.
-  invariants:
-    - `expected_failing` MUST equal `failing` MUST equal `added`. All three MUST be > 0.
-    - Adding zero new tests in tdd-pre is `blocked`.
-  report: ${RUN_DIR}/test-report.md MUST include a `## TDD-Pre Tests` section listing
-    each new failing test with its file path + the acceptance-criterion line it
-    covers (verbatim quote from ${RUN_DIR}/current-plan.md).
-  status-shape: `STATUS: <ok|fail|blocked> | added=<n> failing=<n> expected_failing=<n> | <summary> | report=<path>`
-  ok: added==failing==expected_failing > 0 AND `## TDD-Pre Tests` section written
-  blocked: added==0 (no new tests written) | acceptance criteria missing from plan
-</modes>
-
 <status format="MUST be final line, no prose after">
-shape (post): `STATUS: <ok|fail|blocked> | added=<n> failing=<n> | <summary, ≤60 chars> | report=<path or "none">`
-shape (tdd-pre): `STATUS: <ok|fail|blocked> | added=<n> failing=<n> expected_failing=<n> | <summary, ≤60 chars> | report=<path or "none">`
-ok (post): tests written + suite passes (failing=0)
+shape: `STATUS: <ok|fail|blocked> | added=<n> failing=<n> | <summary, ≤60 chars> | report=<path or "none">`
+ok: tests written + suite passes (failing=0)
   failing>0 → orchestrator treats as blocking + halts
-ok (tdd-pre): added==failing==expected_failing > 0
 fail: internal error | missing template
-blocked: cannot run tests (missing runner | missing prerequisite) | tdd-pre with added=0
+blocked: cannot run tests (missing runner | missing prerequisite)
 examples:
   - `STATUS: ok | added=12 failing=0 | property + contract tests green | report=${RUN_DIR}/test-report.md`
   - `STATUS: ok | added=8 failing=2 | parser round-trip fails on UTF-16 input | report=${RUN_DIR}/test-report.md`
-  - `STATUS: ok | added=4 failing=4 expected_failing=4 | tdd-pre red tests for AC1-4 | report=${RUN_DIR}/test-report.md`
 </status>

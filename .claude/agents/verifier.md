@@ -10,14 +10,14 @@ skills: 'static-analysis'
 
 <position>
 type: FINAL stage of per-change pipeline
-runs-after: /test
+runs-after: /review
 runs-before: merge/release
 </position>
 
 <inputs>
 state: repository (current branch)
 plan: ${RUN_DIR}/current-plan.md (risk tier + required approvals)
-prior-phases: ${RUN_DIR}/current-plan.md (includes `## Implementation` section appended by implementer — 2026-05 fold), ${RUN_DIR}/review-report.md, ${RUN_DIR}/test-report.md
+prior-phases: ${RUN_DIR}/current-plan.md (includes `## Implementation` section appended by implementer — 2026-05 fold), ${RUN_DIR}/review-report.md
 gate-output: `bash scripts/run-verification-gates.sh` (canonical gate runner; reads RUN_DIR from env to write per-gate logs)
 env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>

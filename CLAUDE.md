@@ -5,7 +5,7 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 ## Workflow Goals
 - Keep architecture deterministic and testable using Functional Core / Imperative Shell (FC/IS).
 - Enforce strict boundary parsing: parse external data into trusted domain values before core logic.
-- Use lightweight formal verification by default: property-based tests + contract tests.
+- Use lightweight formal verification when it exists; the default `/ship` path does not create a separate TDD phase.
 - Run deterministic quality checks through hooks and validation scripts.
 - Keep human-in-the-loop control points explicit for planning, high-risk changes, and release.
 - Keep evidence quality high: official docs first, limited external sources, no unsourced numeric claims.
@@ -14,7 +14,7 @@ This repository contains a reusable Claude Code workflow baseline designed for m
 
 The slash-command picker exposes exactly five primary entries:
 
-- `/ship` — orchestrates the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release) with risk-adaptive approval gates by default. Pass `/ship strict` for unconditional plan approval.
+- `/ship` — orchestrates the per-change pipeline (optional research → plan → implement → review → verify → smoke → release). Low-risk green runs auto-finish; pass `/ship strict` for explicit approvals.
 - `/review` — review existing code, a diff, or a PR (standalone severity-first review).
 - `/refactor` — behavior-preserving structural change with pre/post verification gates.
 - `/audit` — holistic project audit (structure, conventions, critical issues, quick wins).
@@ -22,7 +22,7 @@ The slash-command picker exposes exactly five primary entries:
 
 > Other phase logic (planning, implementation, testing, verification, setup, reset) remains reachable via skills and agents (e.g. `requirement-analysis`, `test-gen`, `static-analysis`, `setup`, `reset`). See `.claude/skills/using-pipeline/SKILL.md` for the intent → entry-point mapping.
 
-> Migration: `/cycle` and `/autopilot` were merged into `/ship`. `/ship` defaults to the previous `/autopilot` (risk-adaptive) behavior; `/ship strict` reproduces the previous `/cycle` behavior.
+> Migration: `/cycle`, `/autopilot`, `/ship fast`, and `/ship adaptive` are legacy. Use `/ship`, `/ship strict`, or `/ship research <topic>`.
 
 ## Proactive Invocation
 When the user describes a coding intent — fixing a bug, adding a feature, reviewing, refactoring, shipping — Claude must invoke the matching pipeline skill, command, or agent **proactively**, before producing any other response, rather than waiting for an explicit slash command. The `using-pipeline` meta-skill (`.claude/skills/using-pipeline/SKILL.md`) is the source of truth for intent → skill mapping and the anti-rationalization rules; it is auto-loaded at session start by the `SessionStart` hook in `.claude/hooks/session-start.sh`.

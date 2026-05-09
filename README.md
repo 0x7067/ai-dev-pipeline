@@ -1,6 +1,6 @@
 # ai-dev-pipeline
 
-A Claude Code workflow plugin for structured AI-assisted development. Enforces Functional Core / Imperative Shell architecture, parse-at-boundary discipline, and human approval checkpoints.
+A Claude Code workflow plugin for structured AI-assisted development. It keeps the default path short: plan, implement, review, verify, smoke, release.
 
 ## Installation
 
@@ -21,7 +21,7 @@ Five primary slash commands:
 
 | Command | Purpose |
 |---|---|
-| `/ship` | Full per-change pipeline: research → plan → implement → review → test → verify → smoke → release. Risk-adaptive gates by default; `/ship strict` makes plan approval unconditional. |
+| `/ship` | Per-change pipeline: optional research → plan → implement → review → verify → smoke → release. Low-risk green runs auto-finish; `/ship strict` requires explicit approvals. |
 | `/review` | Severity-first review of a diff, file, or PR. No pipeline. |
 | `/refactor` | Behavior-preserving structural change with pre/post gates. |
 | `/audit` | Project-wide health check. |
@@ -37,7 +37,7 @@ Examples for Python, Go, Rust, and TypeScript live under `examples/<lang>/`, eac
 
 ## Workflow Enforcement
 
-Hook-based gates on agents enforce phase order: implementer is blocked before plan approval; reviewer and tester require an implementation; verifier requires test completion. `/ship` orchestrates internally and is not gated.
+Hook-based gates on agents enforce phase order: implementer is blocked before a plan, reviewer before implementation, verifier before review. `/ship` orchestrates internally and is not gated.
 
 State lives in `.claude/workflow-state.json` (gitignored). Invoke the `reset` skill to start a new task. Set `WORKFLOW_GATES_SKIP=1` to bypass.
 
@@ -74,7 +74,7 @@ Three workflows in `.github/workflows/`:
 
 ## Run-ID Isolation
 
-Every primary command mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, impl-summaries, reports, gate logs, retry hints — write under `${RUN_DIR}/`. Concurrent runs (two `/ship` sessions, CI + local, two worktrees) are safe by construction.
+Every primary command mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, reports, gate logs, retry hints — write under `${RUN_DIR}/`. Concurrent runs (two `/ship` sessions, CI + local, two worktrees) are safe by construction.
 
 Step 0 atomically maintains three discovery pointers: `docs/latest` (symlink), `docs/latest.txt` (text fallback), and `.claude/workflow-state/active`. Read-only verification gates (`typecheck`, `lint`, `security`) run in parallel inside `scripts/run-verification-gates.sh`; test gates remain sequential.
 
@@ -98,11 +98,11 @@ Portability notes and source references are in [docs/harness-engineering.md](doc
 
 ## Tuning
 
-### Verifier retry-hint envelope
+### Verifier Retry Hint
 
-`scripts/run-verification-gates.sh` supports a bounded retry envelope:
+`scripts/run-verification-gates.sh` supports one bounded retry by default:
 
-- `MAX_VERIFY_RETRIES` (default `0`) — retries per gate after a non-zero exit. `1` enables one `verify → fix → verify` loop.
+- `MAX_VERIFY_RETRIES` (default `1`) — retries per gate after a non-zero exit. Set `0` in CI when immediate failure is preferred.
 - `VERIFY_RETRY_HINT_FILE` — single-line JSON hint (`{"gate":"<label>","exit_code":<n>,"attempt":<n>}`) written on every failure for the next pass. Defaults to `${RUN_DIR}/.verify-retry.json`, or `docs/.verify-retry.json` when no run is active.
 
 ```sh
