@@ -39,3 +39,6 @@ docs/*
 !docs/verification/
 !docs/hook-recipes.md
 !docs/pragmatic-tips-mapping.md
+
+.claude/workflow-state/
+.claude/settings.local.json

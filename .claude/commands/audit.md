@@ -28,6 +28,13 @@ Steps:
 
 5. Expected output is `${RUN_DIR}/audit-report.md`.
 
+   **A3 finding preview.** Immediately after the `✓|✗ auditor — STATUS:…`
+   echo, if `critical>0` run
+   `bash scripts/preview-finding-titles.sh "${RUN_DIR}/audit-report.md" "## Critical or Urgent Issues"`
+   and print up to 3 indented title lines; else if `high>0`, run the helper
+   with anchor `"## Improvement Suggestions"`. Missing report or anchor → emit
+   nothing (fail-closed). Preview lines never start with `STATUS:` (I2).
+
 6. **End-of-run artifact summary.** As the very last output, render the
    end-of-run artifact summary block per
    `docs/templates/end-of-run-summary-template.md`. Use absolute paths and

@@ -28,6 +28,13 @@ Steps:
 
 5. Expected output is `${RUN_DIR}/review-report.md`. The reviewer runs the pragmatic-review-checklist second pass automatically for `medium`/`high` risk changes; do not invoke it from here.
 
+   **A3 finding preview.** Immediately after the `✓|✗ reviewer — STATUS:…`
+   echo, if `blocking>0` run
+   `bash scripts/preview-finding-titles.sh "${RUN_DIR}/review-report.md" "## Blocking findings"`
+   and print up to 3 indented title lines; else if `advisory>0`, run the
+   helper with anchor `"## Advisory findings"`. Missing report or anchor →
+   emit nothing (fail-closed). Preview lines never start with `STATUS:` (I2).
+
 6. **End-of-run artifact summary.** As the very last output, render the
    end-of-run artifact summary block per
    `docs/templates/end-of-run-summary-template.md`. Use absolute paths and

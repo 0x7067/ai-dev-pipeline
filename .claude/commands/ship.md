@@ -30,12 +30,16 @@ Before any phase runs, the orchestrator MUST execute step 0 in this order. This 
    ```
    mkdir -p "$RUN_DIR" "$RUN_DIR/research" "$RUN_DIR/specs" .claude/workflow-state
    _t="$$.${RANDOM:-0}"
-   ( cd docs && ln -sfn "runs/$RUN_ID" "latest.tmp.$_t" && mv "latest.tmp.$_t" latest )
+   # Replace the symlink atomically. `ln -sfn` updates an existing symlink
+   # in place; the older `mv tmp-symlink existing-symlink` pattern is broken
+   # on macOS — `mv` traverses the existing symlink and places the tmp
+   # symlink INSIDE the target directory instead of replacing the symlink.
+   ln -sfn "runs/$RUN_ID" docs/latest
    printf '%s\n' "$RUN_ID" > "docs/latest.txt.tmp.$_t" && mv "docs/latest.txt.tmp.$_t" docs/latest.txt
    printf '%s\n' "$RUN_ID" > ".claude/workflow-state/active.tmp.$_t" \
      && mv ".claude/workflow-state/active.tmp.$_t" .claude/workflow-state/active
    ```
-   The `tmp+rename` pattern with a per-process suffix is required: readers must never observe a half-written pointer, and two concurrent `/ship` runs must not consume each other's tmp files.
+   The `tmp+rename` pattern (still used for the two regular files) ensures readers never observe a half-written pointer; two concurrent `/ship` runs cannot consume each other's tmp files thanks to the per-process suffix. For `docs/latest`, `ln -sfn` is itself the atomic replacement primitive — it both creates and replaces the symlink in a single syscall.
 4. **Retention.** Run `bash scripts/prune-runs.sh` (no-op when `CI=true`). Default keeps 10 newest runs; never deletes the active or latest run.
 5. **Surface the run-id.** Print `▶ run minted RUN_ID=$RUN_ID RUN_DIR=$RUN_DIR`.
 
@@ -53,6 +57,17 @@ For every phase X with subagent name `<agent>`:
 
 ## Sequential phases (TDD pipeline)
 
+Before phase 1, print the literal separator line `── Setup ──` so the user
+sees a visual group boundary opening the Setup phase group (research → plan →
+plan-approval → trivial-classification). Before phase 5 (TDD pre-phase), print
+`── TDD ──`; if the change is classified `trivial` and TDD is skipped, print
+`── TDD ──` immediately before phase 6 (implement) instead. Before phase 8
+(verify), print `── Release ──` to open the Release phase group (verify →
+smoke → release approval). These separators are additive narration only —
+they MUST NOT replace, reorder, or modify any existing `▶`/`✓`/`✗`/`⏸`/`⏵`/`↷`
+phase marker (R3 / AC9 / I1) and MUST NOT begin with `STATUS:` at column 0
+(R2 / AC10 / I2).
+
 1. **Research decision (1/8).**
    Ask the user whether to run research before planning. Recommend research if any risk signal (security/auth/authz, data integrity, release-critical behavior, cross-module refactor) or scope signal (multi-system changes, unclear requirements, boundary parser updates across multiple ingress points) is present; recommend skipping when both are low and scope is contained.
    - If user confirms: invoke `researcher` per the phase contract.
@@ -61,6 +76,15 @@ For every phase X with subagent name `<agent>`:
 2. **Plan (2/8).** Invoke `planner` per the phase contract. Capture risk tier from its STATUS line (`risk=<low|medium|high>`) and `change-type` from the plan's front-matter or planner STATUS (`trivial=true|false`).
 
 3. **Plan approval gate.**
+   - **A1 plan preview.** Before printing the `⏸ plan approval required …` line, run
+     `bash scripts/preview-plan-sections.sh "${RUN_DIR}/current-plan.md"` and, if its
+     stdout is non-empty, print the captured block fenced between two literal
+     `── plan preview ──` divider lines so the user sees the four named sections
+     (Risk Tier, Risk rationale, Acceptance Criteria, Boundary Map) — or the
+     head-40 fallback — before deciding whether to approve. The preview is hard-
+     capped at 60 lines; on missing/empty plan the helper emits nothing and the
+     gate prints unchanged (fail-closed). The preview MUST NOT begin with
+     `STATUS:` at column 0 (R2 / I2 enforced by the helper).
    - If `mode=strict`: halt unconditionally. Print `⏸ plan approval required (run=$RUN_ID, mode=strict) — reply "approve" to continue, "reject" to stop`. Wait for explicit user approval.
    - If `mode=adaptive`:
      - For `risk=medium` or `risk=high`: halt and print `⏸ plan approval required (run=$RUN_ID, risk=<tier>) — reply "approve" to continue, "reject" to stop`. Wait for explicit user approval.
@@ -89,10 +113,21 @@ For every phase X with subagent name `<agent>`:
    - For trivial changes: `made_passing` is not required.
 
 7. **Review (5/8).** Invoke `reviewer` per the phase contract.
+   - **A3 finding preview.** Immediately AFTER echoing the reviewer's
+     `✓|✗ reviewer — STATUS:…` line, if `blocking>0` run
+     `bash scripts/preview-finding-titles.sh "${RUN_DIR}/review-report.md" "## Blocking findings"`
+     and print up to 3 indented title lines under the STATUS echo;
+     otherwise if `advisory>0`, run the same helper with anchor
+     `"## Advisory findings"`. Missing report or anchor → no preview
+     (fail-closed). Preview lines never start with `STATUS:` (I2).
    - If `blocking=0`, continue.
    - If `blocking>0`, return to step 6 (implementer) and loop. Maximum 2 review→implement loops; on the 3rd unresolved blocking review, print `✗ review loop exceeded — halting` and stop.
 
 8. **Verify (6/8).** Invoke `verifier` per the phase contract. The verifier itself runs `scripts/run-verification-gates.sh`, which streams per-gate `▶`/`✓`/`✗` lines. Note: an opt-in `verify → fix → verify` envelope is available via `MAX_VERIFY_RETRIES` and `VERIFY_RETRY_HINT_FILE`; see `.claude/rules/release-and-verification.md` ("Canonical Gate Runner") and the README "Tuning" section for details.
+   - **A3 failing-gate preview.** After echoing the verifier's
+     `✓|✗ verifier — STATUS:…` line, if STATUS state is not `go`, run
+     `bash scripts/preview-finding-titles.sh "${RUN_DIR}/verify-report.md" "## Gate Results"`
+     and print up to 3 indented gate titles under the STATUS echo.
 
 9. **Final smoke gate (7/8).** Print `▶ smoke gate starting` and run:
    `REPORT_QUALITY_REQUIRE_CONTENT=1 WORKFLOW_REQUIRE_ARTIFACTS=1 bash scripts/smoke-bootstrap.sh`

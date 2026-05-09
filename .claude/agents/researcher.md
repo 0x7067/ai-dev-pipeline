@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Use PROACTIVELY when the user says "research", "investigate", "look into", "what does X do", "I'm not sure how Y works", or when requirements are vague, the area is unfamiliar, or the change is high-risk and needs external evidence — before planning. Produces a sourced research note.
-disallowedTools: 'Edit, Bash'
+tools: 'Read, Glob, Grep, Write, AskUserQuestion, WebSearch, WebFetch, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs'
 maxTurns: 20
 skills: 'requirement-analysis, fcis-architecture'
 ---
@@ -37,10 +37,12 @@ prefer-official: yes
 non-official-cap: 2
 library-docs (library/framework/SDK/API):
   primary: Context7 MCP docs lookup
+  ordering: `mcp__plugin_context7_context7__resolve-library-id` MUST be called BEFORE `mcp__plugin_context7_context7__query-docs`. The resolve step returns the canonical library id that query-docs requires; calling query-docs without resolve-library-id first is an error.
   fallback: official docs via WebSearch/WebFetch (when Context7 unavailable/incomplete)
 general-research (web/market/discovery/comparisons/current-events):
-  primary: Exa MCP search/fetch
-  fallback: WebSearch/WebFetch (when Exa unavailable/incomplete)
+  primary: Exa MCP search/fetch (when Exa MCP server is configured in this repo)
+  conditional: Exa MCP tools are NOT enabled by default in this repo's tool allowlist. If/when an Exa MCP server is configured (`.mcp.json` or plugin install), add the corresponding `mcp__...` tool names to the `tools:` allowlist above before invoking them.
+  fallback: WebSearch/WebFetch (when Exa unavailable/incomplete or not yet configured)
 numeric-claims: REQUIRE cited source — no exceptions
 </source-policy>
 

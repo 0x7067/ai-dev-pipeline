@@ -59,6 +59,8 @@ include: file references + residual risks
 boundary-violations: BLOCKING (always)
 evidence: summary with source links for material claims
 unsourced-numeric: mark unsupported + non-blocking (UNLESS security-critical)
+canonical-sections-required: every report MUST include these literal h2 headings (case + punctuation exact) — `## Findings (Highest Severity First)`, `## Blocking Findings (Tool-Derived)`, `## Advisory Findings (Model)`, `## Evidence`, `## Residual Risks`, `## Recommendation`. The blocking/advisory split is enforced by `scripts/check-report-quality.sh`; do NOT collapse the two buckets even when one is empty (use a one-line "none" placeholder under the empty heading).
+evidence-fields-required: under `## Evidence`, include (a) `- Risk tier: <low|medium|high>` (b) `- Official sources:` with at least one indented sub-bullet (c) `- Unsourced claims rejected: yes|no` (literal field name; non-empty value). For risk tier `medium` or `high`, the evidence block MUST contain at least one `https?://` citation URL — reuse the citations recorded in `.claude/rules/release-and-verification.md` (appxlab Quality Gates, Sonar AC/DC) when no project-specific URL applies. For risk tier `low`, either an http(s) URL or a local-file citation is sufficient.
 </requirements>
 
 <status format="MUST be final line, no prose after">

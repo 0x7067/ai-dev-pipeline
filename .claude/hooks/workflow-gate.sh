@@ -87,9 +87,12 @@ case "$agent_type" in
     fi
     ;;
   tester)
-    if ! phase_completed "implement"; then
-      echo "workflow-gate: BLOCKED — 'test' requires 'implement' phase to be completed first."
-      echo "Run /implement before /test, or set WORKFLOW_GATES_SKIP=1 to bypass."
+    # tester runs in two positions under /ship: tdd-pre (after plan, before
+    # implement) and tdd-post (after implement). Gate on 'plan' so both are
+    # allowed; the orchestrator enforces the stricter ordering.
+    if ! phase_completed "plan"; then
+      echo "workflow-gate: BLOCKED — 'test' requires 'plan' phase to be completed first."
+      echo "Run /plan before /test, or set WORKFLOW_GATES_SKIP=1 to bypass."
       exit 2
     fi
     ;;
