@@ -55,6 +55,17 @@ if [ -f ".claude/workflow-state/active" ]; then
   v=$(head -n1 ".claude/workflow-state/active" 2>/dev/null | tr -d '[:space:]')
   [ -n "$v" ] && protected+=("$v")
 fi
+# Green pointer set (additive; absence = "no green yet, behave as before").
+# Prefer the workflow-state file as the authoritative green source, falling
+# back to docs/latest-green.txt. The symlink target is intentionally not read
+# here — the two text sources cover the same id and avoid readlink edge cases.
+if [ -f ".claude/workflow-state/active-green" ]; then
+  v=$(head -n1 ".claude/workflow-state/active-green" 2>/dev/null | tr -d '[:space:]')
+  [ -n "$v" ] && protected+=("$v")
+elif [ -f "docs/latest-green.txt" ]; then
+  v=$(head -n1 "docs/latest-green.txt" 2>/dev/null | tr -d '[:space:]')
+  [ -n "$v" ] && protected+=("$v")
+fi
 
 is_protected() {
   local needle="$1"
