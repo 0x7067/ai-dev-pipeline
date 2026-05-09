@@ -24,8 +24,9 @@ Prevent high-risk mistakes in generated workflows and code.
 - Migration note: when removing a `disallowedTools:` line, the corresponding
   tools MUST also be absent from the `tools:` allowlist — the removal is a
   no-op only if the tool was never on the allowlist to begin with.
-- Validator enforcement of this convention (failing the build when an agent
-  file ships a `disallowedTools:` field) is tracked as future work.
+- `scripts/validate-claude-config.sh` fails non-zero when any
+  `.claude/agents/*.md` contains a line matching `^disallowedTools:`. The
+  check is enforced inline in the validator; there is no separate script.
 
 ## Sensitive Files (default)
 - `.env*`

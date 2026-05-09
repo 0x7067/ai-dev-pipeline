@@ -104,29 +104,39 @@ if [ -L "$sb/docs/latest-green" ]; then
 else
   fail "happy: docs/latest-green not a symlink"
 fi
-[ "$(cat "$sb/docs/latest-green.txt" 2>/dev/null)" = "$GREEN_ID" ] \
-  && pass "happy: docs/latest-green.txt content matches" \
-  || fail "happy: docs/latest-green.txt content mismatch"
-[ "$(cat "$sb/.claude/workflow-state/active-green" 2>/dev/null)" = "$GREEN_ID" ] \
-  && pass "happy: active-green content matches" \
-  || fail "happy: active-green content mismatch"
+if [ "$(cat "$sb/docs/latest-green.txt" 2>/dev/null)" = "$GREEN_ID" ]; then
+  pass "happy: docs/latest-green.txt content matches"
+else
+  fail "happy: docs/latest-green.txt content mismatch"
+fi
+if [ "$(cat "$sb/.claude/workflow-state/active-green" 2>/dev/null)" = "$GREEN_ID" ]; then
+  pass "happy: active-green content matches"
+else
+  fail "happy: active-green content mismatch"
+fi
 # Existing latest triplet must be byte-identical.
 after=$(snapshot_existing_latest "$sb")
-[ "$before" = "$after" ] \
-  && pass "happy: existing latest triplet untouched" \
-  || fail "happy: latest triplet mutated: $before → $after"
+if [ "$before" = "$after" ]; then
+  pass "happy: existing latest triplet untouched"
+else
+  fail "happy: latest triplet mutated: $before → $after"
+fi
 # No tmp residue.
 leftover=$(find "$sb/docs" "$sb/.claude/workflow-state" -name '*latest-green.tmp*' -o -name 'active-green.tmp*' 2>/dev/null | head -1)
-[ -z "$leftover" ] \
-  && pass "happy: no .tmp residue" \
-  || fail "happy: tmp file left behind: $leftover"
+if [ -z "$leftover" ]; then
+  pass "happy: no .tmp residue"
+else
+  fail "happy: tmp file left behind: $leftover"
+fi
 # Idempotency: a second invocation produces the same final state.
 run_promote "$sb" "go" "0" >/dev/null 2>&1
-[ "$(readlink "$sb/docs/latest-green")" = "runs/$GREEN_ID" ] \
-  && [ "$(cat "$sb/docs/latest-green.txt")" = "$GREEN_ID" ] \
-  && [ "$(cat "$sb/.claude/workflow-state/active-green")" = "$GREEN_ID" ] \
-  && pass "idempotency: second promote matches first" \
-  || fail "idempotency: state diverged after second promote"
+if [ "$(readlink "$sb/docs/latest-green")" = "runs/$GREEN_ID" ] \
+   && [ "$(cat "$sb/docs/latest-green.txt")" = "$GREEN_ID" ] \
+   && [ "$(cat "$sb/.claude/workflow-state/active-green")" = "$GREEN_ID" ]; then
+  pass "idempotency: second promote matches first"
+else
+  fail "idempotency: state diverged after second promote"
+fi
 rm -rf "$sb"
 
 # --- no-op: non-green inputs leave green pointers absent ---------------------
@@ -151,17 +161,17 @@ done
 # --- boundary: bad arguments rejected with rc=2 ------------------------------
 sb=$(make_sandbox)
 ( cd "$sb" && bash "$PROMOTE" --run-id "$GREEN_ID" --verify-status "yes" --review-blocking 0 ) >/dev/null 2>&1
-[ "$?" = "2" ] && pass "boundary: bad --verify-status → rc=2" || fail "boundary: bad --verify-status wrong rc"
+rc=$?; if [ "$rc" = "2" ]; then pass "boundary: bad --verify-status → rc=2"; else fail "boundary: bad --verify-status wrong rc"; fi
 ( cd "$sb" && bash "$PROMOTE" --run-id "$GREEN_ID" --verify-status "go" --review-blocking "-1" ) >/dev/null 2>&1
-[ "$?" = "2" ] && pass "boundary: negative --review-blocking → rc=2" || fail "boundary: negative blocking wrong rc"
+rc=$?; if [ "$rc" = "2" ]; then pass "boundary: negative --review-blocking → rc=2"; else fail "boundary: negative blocking wrong rc"; fi
 ( cd "$sb" && bash "$PROMOTE" --run-id "$GREEN_ID" --verify-status "go" --review-blocking "abc" ) >/dev/null 2>&1
-[ "$?" = "2" ] && pass "boundary: non-numeric --review-blocking → rc=2" || fail "boundary: non-numeric blocking wrong rc"
+rc=$?; if [ "$rc" = "2" ]; then pass "boundary: non-numeric --review-blocking → rc=2"; else fail "boundary: non-numeric blocking wrong rc"; fi
 ( cd "$sb" && bash "$PROMOTE" --run-id "../etc/passwd" --verify-status "go" --review-blocking 0 ) >/dev/null 2>&1
-[ "$?" = "2" ] && pass "boundary: bad --run-id (parser rejects) → rc=2" || fail "boundary: bad run-id wrong rc"
+rc=$?; if [ "$rc" = "2" ]; then pass "boundary: bad --run-id (parser rejects) → rc=2"; else fail "boundary: bad run-id wrong rc"; fi
 ( cd "$sb" && bash "$PROMOTE" --verify-status "go" --review-blocking 0 ) >/dev/null 2>&1
-[ "$?" = "2" ] && pass "boundary: missing --run-id → rc=2" || fail "boundary: missing run-id wrong rc"
+rc=$?; if [ "$rc" = "2" ]; then pass "boundary: missing --run-id → rc=2"; else fail "boundary: missing run-id wrong rc"; fi
 ( cd "$sb" && bash "$PROMOTE" --run-id "$GREEN_ID" --verify-status "go" --review-blocking 0 --bogus x ) >/dev/null 2>&1
-[ "$?" = "2" ] && pass "boundary: unknown flag → rc=2" || fail "boundary: unknown flag wrong rc"
+rc=$?; if [ "$rc" = "2" ]; then pass "boundary: unknown flag → rc=2"; else fail "boundary: unknown flag wrong rc"; fi
 rm -rf "$sb"
 
 # --- dangling target: docs/runs/<id> missing → rc=3 --------------------------
@@ -169,10 +179,16 @@ sb=$(mktemp -d)
 mkdir -p "$sb/docs/runs" "$sb/.claude/workflow-state"   # NOTE: no docs/runs/<id>
 ( cd "$sb" && bash "$PROMOTE" --run-id "$GREEN_ID" --verify-status "go" --review-blocking 0 ) >/dev/null 2>&1
 rc=$?
-[ "$rc" = "3" ] && pass "dangling: missing target dir → rc=3" || fail "dangling: expected rc=3 got rc=$rc"
-[ ! -e "$sb/docs/latest-green" ] && [ ! -e "$sb/docs/latest-green.txt" ] \
-  && pass "dangling: no green pointer created" \
-  || fail "dangling: green pointer created at missing target"
+if [ "$rc" = "3" ]; then
+  pass "dangling: missing target dir → rc=3"
+else
+  fail "dangling: expected rc=3 got rc=$rc"
+fi
+if [ ! -e "$sb/docs/latest-green" ] && [ ! -e "$sb/docs/latest-green.txt" ]; then
+  pass "dangling: no green pointer created"
+else
+  fail "dangling: green pointer created at missing target"
+fi
 rm -rf "$sb"
 
 # --- atomicity: tmp file never visible at the canonical path -----------------
@@ -190,9 +206,11 @@ else
   fail "atomicity: canonical path shape unexpected"
 fi
 tmp_residue=$(find "$sb/docs" "$sb/.claude/workflow-state" \( -name 'latest-green.tmp.*' -o -name 'latest-green.txt.tmp.*' -o -name 'active-green.tmp.*' \) 2>/dev/null | head -1)
-[ -z "$tmp_residue" ] \
-  && pass "atomicity: no tmp residue at canonical path" \
-  || fail "atomicity: tmp file visible: $tmp_residue"
+if [ -z "$tmp_residue" ]; then
+  pass "atomicity: no tmp residue at canonical path"
+else
+  fail "atomicity: tmp file visible: $tmp_residue"
+fi
 rm -rf "$sb"
 
 # --- prune-runs.sh respects the green pointer --------------------------------

@@ -5,6 +5,32 @@ All notable changes to `ai-dev-pipeline` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-05-09
+
+### Added
+
+- `scripts/lib/style.sh`: capability-aware shell style library (color, unicode,
+  optional `gum` rendering) with idempotent guard and a single source of truth
+  for glyphs used by gate runners and orchestrator banners.
+- `.claude/rules/output-style.md`: glyph legend, capability env-var contract,
+  FC/IS placement (shell-only), and hard rules forbidding ANSI in committed
+  markdown.
+
+### Changed
+
+- Bumped plugin/marketplace version to `0.12.0`.
+
+## [0.11.0] - 2026-05-09
+
+### Added
+
+- `latest-green` pointer + manifest-aware smoke gate (v1.b): promote a run to
+  `docs/latest-green` only when verify is green and review has zero blocking
+  findings; smoke gate consults the run manifest to choose targets.
+- Per-run `manifest.json` writer + parser (v1.a): every run records inputs,
+  artifacts, and gate outcomes so downstream skills can consume a typed
+  manifest instead of re-deriving state from filesystem layout.
+
 ## [0.10.0] - 2026-05-09
 
 ### Breaking

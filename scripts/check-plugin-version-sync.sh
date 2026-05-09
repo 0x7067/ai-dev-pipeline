@@ -32,4 +32,15 @@ if [ "$plugin_version" != "$marketplace_version" ]; then
   exit 1
 fi
 
+changelog="CHANGELOG.md"
+if [ ! -f "$changelog" ]; then
+  echo "version-sync: ERROR: missing $changelog (required to record release $plugin_version)"
+  exit 1
+fi
+
+if ! grep -q "^## \[${plugin_version}\]" "$changelog"; then
+  echo "version-sync: ERROR: $changelog has no '## [${plugin_version}]' heading; add a Keep-a-Changelog entry for ${plugin_version}"
+  exit 1
+fi
+
 echo "version-sync: OK ($plugin_version)"

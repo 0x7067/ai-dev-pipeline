@@ -63,6 +63,22 @@ fi
 
 echo "validate: plugin.json hook references resolve and settings.json does not duplicate hooks"
 
+# Boundary check: allowlist-only convention from
+# .claude/rules/security-baseline.md — no agent file may declare a
+# 'disallowedTools:' field. Permissions must be expressed as an explicit
+# 'tools:' allowlist.
+if ls .claude/agents/*.md >/dev/null 2>&1; then
+  disallowed_hits="$(grep -l '^disallowedTools:' .claude/agents/*.md 2>/dev/null || true)"
+  if [ -n "$disallowed_hits" ]; then
+    echo "validate: ERROR: agent file(s) declare 'disallowedTools:' (forbidden by .claude/rules/security-baseline.md allowlist-only convention):" >&2
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      echo "  - $f" >&2
+    done <<< "$disallowed_hits"
+    exit 1
+  fi
+fi
+
 rc=0
 bash scripts/check-crossrefs.sh             || rc=1
 bash scripts/check-boundary-violations.sh   || rc=1
