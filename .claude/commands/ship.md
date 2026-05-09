@@ -81,6 +81,21 @@ For each subagent phase:
    - In `auto` mode, if risk is `low`, review has `blocking=0`, verifier is `go`, and smoke passed, print `⏵ release auto-approved (auto, risk=low, gates green)` and finish.
    - Otherwise halt with `⏸ release approval required (run=$RUN_ID) - reply "approve" to finish, "reject" to stop`.
 
+## Run Manifest (final step)
+
+After all phases complete (success or halt), emit the per-run manifest as the final orchestration step. Strictly additive — failure here MUST NOT change the release decision already taken.
+
+```sh
+bash scripts/write-manifest.sh \
+  --command ship \
+  --mode "${SHIP_MODE:-auto}" \
+  --risk-tier "${PLAN_RISK:-unknown}" \
+  --status "${RUN_STATUS:-ok}" \
+  || printf '↷ manifest emit skipped (rc=%d)\n' "$?"
+```
+
+The writer reads `RUN_ID`/`RUN_DIR`, hashes every artifact under `RUN_DIR`, and writes `${RUN_DIR}/manifest.json` atomically. Schema: `docs/schemas/run-manifest/v1/manifest.schema.json`. Boundary parser for any future consumer: `scripts/parse-manifest.sh`.
+
 ## Stop Conditions
 
 Stop on missing required artifacts, unresolved blocking review findings, failed verification, failed smoke, or rejected approval. Print which phase stopped and why.
