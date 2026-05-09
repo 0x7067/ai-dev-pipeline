@@ -42,3 +42,4 @@ When the user describes a coding intent — fixing a bug, adding a feature, revi
 @.claude/rules/security-baseline.md
 @.claude/rules/release-and-verification.md
 @.claude/rules/decision-surfacing.md
+@.claude/rules/output-style.md
