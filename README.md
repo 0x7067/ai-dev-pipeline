@@ -1,139 +1,109 @@
 # ai-dev-pipeline
 
-A reusable Claude Code workflow plugin for structured AI-assisted development. Enforces Functional Core / Imperative Shell (FC/IS) architecture, strict boundary parsing, and human approval checkpoints.
+A Claude Code workflow plugin for structured AI-assisted development. Enforces Functional Core / Imperative Shell architecture, parse-at-boundary discipline, and human approval checkpoints.
 
 ## Installation
 
-**Install from the marketplace. That's it.** As of v0.4.0, every command, agent, skill, hook, and template resolves directly from the plugin install. No scaffolding step. Run `/ship` immediately.
+Install from the marketplace and run `/ship`. No scaffolding step.
 
-> **Want CI to run the gates?** Invoke the `setup` skill once. CI runners do not load Claude Code plugins, so the canonical gate runner (`scripts/run-verification-gates.sh`) and its dependencies must be vendored into your repo for CI authority per `.claude/rules/release-and-verification.md`. The `setup` skill is the explicit "vendor for CI" operation; it is opt-in and not required for interactive use.
-
-After vendoring (only if you ran the `setup` skill), verify the scaffolding:
+CI runners do not load Claude Code plugins, so to give CI gate authority (per `.claude/rules/release-and-verification.md`) invoke the `setup` skill once to vendor `scripts/run-verification-gates.sh` and friends into the repo. Then:
 
 ```sh
-bash scripts/validate-claude-config.sh   # confirms settings.json + cross-refs + boundary + version-sync
-bash scripts/smoke-bootstrap.sh          # confirms required files and hook executability
+bash scripts/validate-claude-config.sh   # settings.json + cross-refs + boundary + version-sync
+bash scripts/smoke-bootstrap.sh          # required files and hook executability
 ```
 
-Vendored copies always take precedence over plugin-shipped copies, so edits to vendored artifacts persist across plugin upgrades.
+Vendored copies override plugin-shipped copies, so edits survive plugin upgrades.
 
 ## Commands
 
-The slash-command picker exposes exactly five primary entries:
+Five primary slash commands:
 
-| Command | Description |
+| Command | Purpose |
 |---|---|
-| `/ship` | Run the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release) with risk-adaptive approval gates by default. Pass `/ship strict` for unconditional plan approval. Replaces the previous `/cycle` and `/autopilot`. |
-| `/review` | Review existing code, a diff, or a PR — severity-first architecture, security, and correctness findings (standalone, no full pipeline). |
-| `/refactor` | Behavior-preserving structural change with pre/post verification gates and human approval. |
-| `/audit` | Holistic project audit — structure, conventions, critical issues, and quick wins. |
-| `/research` | Brainstorm, investigate, or get unstuck before any plan exists. |
+| `/ship` | Full per-change pipeline: research → plan → implement → review → test → verify → smoke → release. Risk-adaptive gates by default; `/ship strict` makes plan approval unconditional. |
+| `/review` | Severity-first review of a diff, file, or PR. No pipeline. |
+| `/refactor` | Behavior-preserving structural change with pre/post gates. |
+| `/audit` | Project-wide health check. |
+| `/research` | Brainstorm or scope before a plan exists. |
 
-> Other phase logic remains reachable via skills (no slash). The `setup` and `reset` operations are now skill-only (`setup`, `reset`); per-phase work (`requirement-analysis`, `test-gen`, `static-analysis`, etc.) is invoked by the corresponding skill rather than a dedicated slash command. See `.claude/skills/using-pipeline/SKILL.md`.
-
-`/review` is a **merge gate** — operates on code changes, produces blocking/warning/advisory findings. `/audit` is a **project health check** — reviews the whole project periodically or before major architectural decisions.
-
-## Workflow
-
-`/ship` orchestrates the full per-change pipeline (research → plan → implement → review → test → verify → smoke → release). Default `adaptive` mode is risk-conditional with optional research and approval gates; `/ship strict` makes the plan-approval gate unconditional. Individual phase agents (`planner`, `implementer`, `tester`, `verifier`) are dispatched by name from `/ship` and are no longer exposed as standalone slash commands.
+`/review` is a merge gate on a diff. `/audit` is a project-level health check. Other phase logic lives in skills (`requirement-analysis`, `test-gen`, `static-analysis`, `setup`, `reset`); see `.claude/skills/using-pipeline/SKILL.md`.
 
 ## Multi-Language Support
 
-Examples are provided for four languages, each demonstrating FC/IS layers, boundary parsing, error handling, property-based tests, contract tests, end-to-end scenarios, and anti-patterns:
+Examples for Python, Go, Rust, and TypeScript live under `examples/<lang>/`, each demonstrating FC/IS layers, boundary parsing, error handling, property and contract tests, and anti-patterns. Stdlib only.
 
-| Language | Directory |
-|---|---|
-| Python | `examples/python/` |
-| Go | `examples/go/` |
-| Rust | `examples/rust/` |
-| TypeScript | `examples/typescript/` |
-
-All examples are stdlib-only and self-contained. The boundary check script (`scripts/check-boundary-violations.sh`) auto-detects project language from markers (`pyproject.toml`, `go.mod`, `Cargo.toml`, `package.json`) and applies the appropriate ingress regex.
+`scripts/check-boundary-violations.sh` detects the project language from `pyproject.toml`, `go.mod`, `Cargo.toml`, or `package.json` and applies the matching ingress regex.
 
 ## Workflow Enforcement
 
-Workflow phase prerequisites are enforced by hook-based gates on the underlying agents. The implementer phase is blocked before plan approval; reviewer and tester phases require an implementation; verifier requires test completion.
+Hook-based gates on agents enforce phase order: implementer is blocked before plan approval; reviewer and tester require an implementation; verifier requires test completion. `/ship` orchestrates internally and is not gated.
 
-- State is tracked in `.claude/workflow-state.json` (gitignored)
-- Invoke the `reset` skill to clear all phase completions and start a new task
-- Set `WORKFLOW_GATES_SKIP=1` to bypass all checks
-- `/ship` orchestrates internally and is not gated
+State lives in `.claude/workflow-state.json` (gitignored). Invoke the `reset` skill to start a new task. Set `WORKFLOW_GATES_SKIP=1` to bypass.
 
 ## Proactive Invocation
 
-Pipeline skills auto-engage based on intent — describing a bug, feature, review, refactor, or release triggers the matching skill before any other response. The `SessionStart` hook (`.claude/hooks/session-start.sh`) loads the `using-pipeline` meta-skill at session start, which carries the intent → skill mapping. The five primary slash commands (`/ship`, `/review`, `/refactor`, `/audit`, `/research`) remain available and behave identically when typed explicitly.
+The `SessionStart` hook (`.claude/hooks/session-start.sh`) loads the `using-pipeline` meta-skill, which carries the intent → skill mapping. Describing a bug, feature, review, refactor, or release triggers the matching skill before any other response. Typed slash commands behave identically.
 
 ## Skills and Agents
 
-Skills are auto-invoked by Claude based on their description. Agents are delegated to via the Task tool.
-
-| Skill | Triggered by | Purpose |
+| Skill | Used by | Purpose |
 |---|---|---|
-| `requirement-analysis` | `planner` (under `/ship`) | FC/IS-aligned implementation specs |
-| `fcis-architecture` | layer classification, design | Enforces core/shell/boundary separation |
-| `code-review` | `/review`, post-implementation | FC/IS + security + correctness lenses on a diff |
-| `static-analysis` | `verifier` (under `/ship`) | Language-detected verification gates |
-| `test-gen` | `tester` (under `/ship`) | Property + contract tests |
+| `requirement-analysis` | `planner` | FC/IS-aligned implementation specs |
+| `fcis-architecture` | layer classification | Core/shell/boundary separation |
+| `code-review` | `/review` | FC/IS + security + correctness on a diff |
+| `static-analysis` | `verifier` | Language-detected verification gates |
+| `test-gen` | `tester` | Property + contract tests |
 | `refactor` | `/refactor` | Zero-behavior-change refactoring |
-| `setup` | vendoring for CI gate authority | Scaffold scripts/templates/CI into the consuming repo (no slash command) |
-| `reset` | clearing workflow state | Reset `.claude/workflow-state.json` (no slash command) |
+| `setup` | CI gate authority | Vendor scripts/templates/CI |
+| `reset` | new task | Clear `.claude/workflow-state.json` |
 
-Agents live under `.claude/agents/` (`planner`, `implementer`, `reviewer`, `tester`, `verifier`, `auditor`, `researcher`). Each has a `maxTurns` cap; if an agent stops mid-task, rerun the command or raise `maxTurns` in its frontmatter.
+Agents under `.claude/agents/` (`planner`, `implementer`, `reviewer`, `tester`, `verifier`, `auditor`, `researcher`) each carry a `maxTurns` cap; rerun the command or raise the cap if an agent stops mid-task.
 
-Add a custom skill at `.claude/skills/<name>/skill.md` with `name:` and `description:` frontmatter. The description determines when Claude invokes it — be specific, list trigger phrases, and add "do not invoke for X" guards. Validate with `bash scripts/validate-claude-config.sh`.
+Add a custom skill at `.claude/skills/<name>/skill.md` with `name:` and `description:` frontmatter. The description controls when Claude invokes it — list trigger phrases and "do not invoke for X" guards. Validate with `bash scripts/validate-claude-config.sh`.
 
-## CI / GitHub Actions
+## CI
 
-Three workflows ship in `.github/workflows/`:
+Three workflows in `.github/workflows/`:
 
 | Workflow | Purpose |
 |---|---|
-| `claude.yml` | Responds to `@claude` mentions in issues and PRs to perform on-demand tasks |
-| `claude-code-review.yml` | Automated Claude code review on opened/updated pull requests |
-| `shellcheck.yml` | Runs ShellCheck across the repo on pull requests and pushes to `main` |
+| `claude.yml` | `@claude` mentions in issues and PRs |
+| `claude-code-review.yml` | Automated review on opened/updated PRs |
+| `shellcheck.yml` | ShellCheck on PRs and pushes to `main` |
 
 ## Run-ID Isolation
 
-Every primary command (`/ship`, `/audit`, `/review`, `/research`, `/refactor`) mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, impl-summaries, review/test/verify reports, refactor reports, gate logs, retry hints — are written under `${RUN_DIR}/`. Discovery is via three pointers maintained atomically by step 0: `docs/latest` (symlink), `docs/latest.txt` (text fallback), and `.claude/workflow-state/active`. This makes concurrent runs (two `/ship` sessions, CI + local, two worktrees) safe by construction.
+Every primary command mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, impl-summaries, reports, gate logs, retry hints — write under `${RUN_DIR}/`. Concurrent runs (two `/ship` sessions, CI + local, two worktrees) are safe by construction.
 
-The read-only verification gates (`typecheck`, `lint`, `security`) run in parallel inside `scripts/run-verification-gates.sh` with deterministic log replay; test gates remain sequential.
+Step 0 atomically maintains three discovery pointers: `docs/latest` (symlink), `docs/latest.txt` (text fallback), and `.claude/workflow-state/active`. Read-only verification gates (`typecheck`, `lint`, `security`) run in parallel inside `scripts/run-verification-gates.sh`; test gates remain sequential.
 
-See [docs/specs/run-id-isolation.md](docs/specs/run-id-isolation.md) for the full spec and [`.claude/skills/using-pipeline/SKILL.md`](.claude/skills/using-pipeline/SKILL.md) for the resolution contract.
+See [docs/specs/run-id-isolation.md](docs/specs/run-id-isolation.md) and [`.claude/skills/using-pipeline/SKILL.md`](.claude/skills/using-pipeline/SKILL.md).
 
 ## Environment Variables
 
-See [docs/env-vars.md](docs/env-vars.md) for the full reference. Notable knobs:
+Full reference in [docs/env-vars.md](docs/env-vars.md). Notable knobs:
 
-- `RUN_ID`, `RUN_DIR` — the active run-id and its resolved directory; set by orchestrator step 0. Subagents and scripts default their write paths to `${RUN_DIR}/...`.
-- `RUN_RETENTION` — number of run dirs to keep under `docs/runs/` (default `10`). `scripts/prune-runs.sh` honors this; CI=true is a no-op.
-- `REPORT_REVIEW_PATH`, `REPORT_TEST_PATH`, `REPORT_VERIFY_PATH` — path overrides consumed by `scripts/check-report-quality.sh`. Defaults resolve through `${RUN_DIR}/` then `docs/latest/` then the legacy `docs/<report>.md`.
-- `HOOKS_FAST=1` — opt into change-scoped fast-path hooks (defaults to `0`, full-run, in `run-verification-gates.sh`).
-- `WORKFLOW_GATES_SKIP=1` — bypass workflow-state gating entirely.
-- `WORKFLOW_STATE_PATH` — explicit override for the workflow-state JSON file. Hooks otherwise resolve `.claude/workflow-state/<active>.json` via `.claude/workflow-state/active` and fall back to the legacy `.claude/workflow-state.json`.
-- `VERIFY_TYPECHECK_CMD`, `VERIFY_LINT_CMD`, `VERIFY_SECURITY_CMD`, `VERIFY_PROPERTY_CMD`, `VERIFY_CONTRACT_CMD`, `VERIFY_FULL_CMD` — override gate commands per project.
-- `VERIFY_REQUIRE_PROPERTY=1`, `VERIFY_REQUIRE_CONTRACT=1`, `VERIFY_REQUIRE_FULL_SUITE=1` — make optional test discovery failures blocking in strict CI.
-- `HARNESS_JS_PACKAGE_MANAGER=pnpm` — force a JavaScript package manager when auto-detection is not enough.
+- `RUN_ID`, `RUN_DIR` — active run-id and resolved directory; set by step 0.
+- `RUN_RETENTION` — run dirs to keep under `docs/runs/` (default `10`); honored by `scripts/prune-runs.sh`. CI=true is a no-op.
+- `REPORT_REVIEW_PATH`, `REPORT_TEST_PATH`, `REPORT_VERIFY_PATH` — overrides for `scripts/check-report-quality.sh`. Defaults resolve through `${RUN_DIR}/`, then `docs/latest/`, then legacy `docs/<report>.md`.
+- `HOOKS_FAST=1` — change-scoped fast-path hooks (default `0`).
+- `WORKFLOW_GATES_SKIP=1` — bypass workflow-state gating.
+- `WORKFLOW_STATE_PATH` — explicit override for the workflow-state JSON.
+- `VERIFY_TYPECHECK_CMD`, `VERIFY_LINT_CMD`, `VERIFY_SECURITY_CMD`, `VERIFY_PROPERTY_CMD`, `VERIFY_CONTRACT_CMD`, `VERIFY_FULL_CMD` — per-project gate command overrides.
+- `VERIFY_REQUIRE_PROPERTY=1`, `VERIFY_REQUIRE_CONTRACT=1`, `VERIFY_REQUIRE_FULL_SUITE=1` — make optional test discovery failures blocking.
+- `HARNESS_JS_PACKAGE_MANAGER=pnpm` — force a JS package manager when auto-detection falls short.
 
-See [docs/harness-engineering.md](docs/harness-engineering.md) for the harness portability notes and source references behind these defaults.
+Portability notes and source references are in [docs/harness-engineering.md](docs/harness-engineering.md).
 
 ## Tuning
 
 ### Verifier retry-hint envelope
 
-`scripts/run-verification-gates.sh` supports an opt-in bounded retry envelope
-controlled by two environment variables:
+`scripts/run-verification-gates.sh` supports a bounded retry envelope:
 
-- `MAX_VERIFY_RETRIES` (default `0`) — how many times each gate may retry
-  after a non-zero exit. `0` preserves the historical fail-fast behavior;
-  `1` enables one `verify → fix → verify` loop per gate.
-- `VERIFY_RETRY_HINT_FILE` — where the runner writes a single-line JSON hint
-  (`{"gate":"<label>","exit_code":<n>,"attempt":<n>}`) on every failure, for
-  the `verify` skill to consume on the next pass. Defaults to
-  `${RUN_DIR}/.verify-retry.json` when a run is active, otherwise
-  `docs/.verify-retry.json`.
-
-Example — let the verifier auto-retry once per gate, with the hint written
-under the active run dir:
+- `MAX_VERIFY_RETRIES` (default `0`) — retries per gate after a non-zero exit. `1` enables one `verify → fix → verify` loop.
+- `VERIFY_RETRY_HINT_FILE` — single-line JSON hint (`{"gate":"<label>","exit_code":<n>,"attempt":<n>}`) written on every failure for the next pass. Defaults to `${RUN_DIR}/.verify-retry.json`, or `docs/.verify-retry.json` when no run is active.
 
 ```sh
 MAX_VERIFY_RETRIES=1 bash scripts/run-verification-gates.sh
@@ -141,5 +111,4 @@ MAX_VERIFY_RETRIES=1 bash scripts/run-verification-gates.sh
 # → {"gate":"lint","exit_code":1,"attempt":0}
 ```
 
-Authoritative semantics live in `.claude/rules/release-and-verification.md`
-under "Canonical Gate Runner".
+Authoritative semantics: `.claude/rules/release-and-verification.md` under "Canonical Gate Runner".
