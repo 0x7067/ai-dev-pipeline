@@ -76,7 +76,7 @@ run_check "hooks_executable" bash -c '
 
 run_check_required_files "required_bootstrap_files" \
   CLAUDE.md \
-  .claude/settings.json \
+  .claude-plugin/plugin.json \
   scripts/validate-claude-config.sh \
   scripts/check-report-quality.sh \
   scripts/check-workflow-artifacts.sh \

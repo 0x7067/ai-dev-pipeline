@@ -352,9 +352,73 @@ review_path="${REPORT_REVIEW_PATH:-$(default_report_path review-report.md)}"
 test_path="${REPORT_TEST_PATH:-$(default_report_path test-report.md)}"
 verify_path="${REPORT_VERIFY_PATH:-$(default_report_path verify-report.md)}"
 
-check_one "$review_path" review
-check_one "$test_path" test
-check_one "$verify_path" verify
+# Manifest-aware required set.
+#
+# When a run manifest exists, treat the set of artifact paths it lists as the
+# authoritative "produced this run" set. A report is only enforced if its
+# expected path appears in that list. Reports NOT in the manifest are skipped
+# silently — lean /ship pipelines that don't run the tester phase legitimately
+# omit test-report.md, and the gate must not punish that.
+#
+# When the manifest is absent we fall back to the historical behavior: all
+# three reports are considered candidates and `check_one` decides per-file
+# based on REPORT_QUALITY_REQUIRE_CONTENT.
+#
+# Manifest discovery order:
+#   1. ${RUN_DIR}/manifest.json (when RUN_DIR set)
+#   2. docs/latest/manifest.json (when no RUN_DIR)
+# We do NOT extend the manifest schema here — only its consumer surface.
+# All ingress goes through the canonical boundary parser.
+manifest_path=""
+if [ -n "${RUN_DIR:-}" ] && [ -f "${RUN_DIR}/manifest.json" ]; then
+  manifest_path="${RUN_DIR}/manifest.json"
+elif [ -z "${RUN_DIR:-}" ] && [ -f "docs/latest/manifest.json" ]; then
+  manifest_path="docs/latest/manifest.json"
+fi
+
+# Manifest artifact paths, one per line (relative to the manifest's run-dir).
+# Empty when no manifest exists.
+manifest_artifacts=""
+if [ -n "$manifest_path" ]; then
+  parsed=""
+  if parsed=$(bash "${SCRIPT_DIR}/parse-manifest.sh" "$manifest_path" 2>/dev/null); then
+    manifest_artifacts=$(printf '%s\n' "$parsed" | sed -n 's/^artifact=//p')
+  else
+    note "manifest present but parser rejected it; falling back to legacy enforcement: $manifest_path"
+    manifest_path=""
+  fi
+fi
+
+# is_in_manifest <expected_report_path>
+#   Returns 0 iff the report's path matches an artifact entry in the manifest.
+#   Comparison is by basename + suffix-match against the relative artifact
+#   path (so both `RUN_DIR/test-report.md` and a manifest entry `test-report.md`
+#   match, and a future nested layout would still match if the trailing path
+#   segment equals the report file name).
+is_in_manifest() {
+  local report_path="$1"
+  local base
+  base=$(basename -- "$report_path")
+  local entry
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    [ "$(basename -- "$entry")" = "$base" ] && return 0
+  done <<< "$manifest_artifacts"
+  return 1
+}
+
+maybe_check() {
+  local path="$1" label="$2"
+  if [ -n "$manifest_path" ] && ! is_in_manifest "$path"; then
+    note "skipping $label checks: $path not listed in manifest ($manifest_path)"
+    return 0
+  fi
+  check_one "$path" "$label"
+}
+
+maybe_check "$review_path" review
+maybe_check "$test_path" test
+maybe_check "$verify_path" verify
 
 if [ "$errors" -gt 0 ]; then
   echo "report-quality: FAILED with $errors issue(s)"

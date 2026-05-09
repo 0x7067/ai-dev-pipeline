@@ -81,6 +81,26 @@ For each subagent phase:
    - In `auto` mode, if risk is `low`, review has `blocking=0`, verifier is `go`, and smoke passed, print `⏵ release auto-approved (auto, risk=low, gates green)` and finish.
    - Otherwise halt with `⏸ release approval required (run=$RUN_ID) - reply "approve" to finish, "reject" to stop`.
 
+## Promote `latest-green` (post-release, pre-manifest)
+
+After the release decision is taken, advance the `latest-green` pointer set
+when the run ended fully green (verifier `STATUS: go` AND reviewer
+`blocking=0`). Strictly additive — this never touches the existing
+`latest`/`active` pointers and never changes the release decision.
+
+`VERIFY_STATUS` is captured from the verifier's STATUS line in step 5;
+`REVIEW_BLOCKING` is the integer from the reviewer's STATUS line in step 4.
+On non-green runs the script no-ops (rc=0). Failure of the script is logged
+and ignored.
+
+```sh
+bash scripts/promote-latest-green.sh \
+  --run-id "$RUN_ID" \
+  --verify-status "${VERIFY_STATUS:-fail}" \
+  --review-blocking "${REVIEW_BLOCKING:-1}" \
+  || printf '↷ promote skipped (rc=%d)\n' "$?"
+```
+
 ## Run Manifest (final step)
 
 After all phases complete (success or halt), emit the per-run manifest as the final orchestration step. Strictly additive — failure here MUST NOT change the release decision already taken.
