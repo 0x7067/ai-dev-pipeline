@@ -20,13 +20,13 @@ artifacts continue to use the `(N file(s))` count.
 RUN_ID: <run-id>
 RUN_DIR: <absolute path to ${RUN_DIR}>
 Artifacts:
-  ✓ plan          <abs>/current-plan.md       (N lines)
+  ✓ plan          <abs>/current-plan.md       (N lines)   ← includes appended `## Implementation` section
   ✓ specs         <abs>/specs/                (N file(s))
   ✓ research      <abs>/research/             (N file(s))
   ✓ test-report   <abs>/test-report.md        (N lines)
+  ✓ test-results  <abs>/test-results.json     (cached suite result)
   ✓ review-report <abs>/review-report.md      (N lines)
   ✓ verify-report <abs>/verify-report.md      (N lines)
-  ✓ impl-summary  <abs>/impl-summary.md       (N lines)
   ✓ refactor      <abs>/refactor-report.md    (N lines)
   ✓ audit         <abs>/audit-report.md       (N lines)
 ───────────────────────────────────────────────────────
@@ -43,9 +43,9 @@ printf 'Artifacts:\n'
 for pair in \
   "plan:current-plan.md" \
   "test-report:test-report.md" \
+  "test-results:test-results.json" \
   "review-report:review-report.md" \
   "verify-report:verify-report.md" \
-  "impl-summary:impl-summary.md" \
   "refactor:refactor-report.md" \
   "audit:audit-report.md"; do
   label="${pair%%:*}"; rel="${pair#*:}"

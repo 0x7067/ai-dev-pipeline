@@ -8,11 +8,12 @@ The orchestrator runs in the user's context (no `context: fork`). Each subagent 
 
 ## Mode argument
 
-`/ship` accepts an optional mode argument via `$ARGUMENTS`. The grammar is closed: only two modes are valid. TDD enforcement is unconditional and has no opt-out flag.
+`/ship` accepts an optional mode argument via `$ARGUMENTS`. The grammar is closed: only the modes below are valid. TDD enforcement is unconditional and has no opt-out flag.
 
-- `/ship` (no args) — `mode=adaptive`. Plan-approval gate is risk-conditional (halt only for `risk=medium` or `risk=high`).
-- `/ship strict` — `mode=strict`. Plan-approval gate halts unconditionally regardless of risk tier.
-- Anything else (including `/ship tdd`, `/ship adaptive`, `/ship anything`): print `↷ unrecognized mode "<value>"; valid modes are: <empty> | "strict"` and stop. Do not proceed with a default — reject explicitly so users discover the new grammar instead of silently running with the wrong assumption.
+- `/ship` (no args) — `mode=adaptive`. Plan-approval gate is risk-conditional (halt only for `risk=medium` or `risk=high`). Research phase OFF.
+- `/ship strict` — `mode=strict`. Plan-approval gate halts unconditionally regardless of risk tier. Research phase OFF.
+- `/ship research <topic>` — `mode=adaptive` with `research=on`. Runs the research phase before planning, scoped to `<topic>` (free text, all remaining arguments).
+- Anything else: print `↷ unrecognized mode "<value>"; valid modes are: <empty> | "strict" | "research <topic>"` and stop. Do not proceed with a default — reject explicitly so users discover the new grammar instead of silently running with the wrong assumption.
 
 Note: literal `/ship adaptive` is rejected (not silently mapped). The default is selected by passing zero arguments.
 
@@ -69,15 +70,17 @@ phase marker (R3 / AC9 / I1) and MUST NOT begin with `STATUS:` at column 0
 (R2 / AC10 / I2).
 
 1. **Research decision (1/8).**
-   Ask the user whether to run research before planning. Recommend research if any risk signal (security/auth/authz, data integrity, release-critical behavior, cross-module refactor) or scope signal (multi-system changes, unclear requirements, boundary parser updates across multiple ingress points) is present; recommend skipping when both are low and scope is contained.
-   - If user confirms: invoke `researcher` per the phase contract.
-   - If user skips: print `↷ researcher skipped` and continue.
+   Research is OFF by default. Only run when EITHER:
+   - the user invoked `/ship research <topic>` (explicit opt-in), OR
+   - the planner's STATUS line later requests it (planner-driven escalation; orchestrator re-enters this phase before re-planning).
+
+   Otherwise, print `↷ researcher skipped (default; pass /ship research <topic> to opt in)` and continue. Do NOT prompt the user — the previous unconditional skip-prompt is removed to keep the default fast path frictionless. When research IS run, invoke `researcher` per the phase contract.
 
 2. **Plan (2/8).** Invoke `planner` per the phase contract. Capture risk tier from its STATUS line (`risk=<low|medium|high>`) and `change-type` from the plan's front-matter or planner STATUS (`trivial=true|false`).
 
 3. **Plan approval gate.**
    - **A1 plan preview.** Before printing the `⏸ plan approval required …` line, run
-     `bash scripts/preview-plan-sections.sh "${RUN_DIR}/current-plan.md"` and, if its
+     `bash scripts/preview.sh --anchor plan "${RUN_DIR}/current-plan.md"` and, if its
      stdout is non-empty, print the captured block fenced between two literal
      `── plan preview ──` divider lines so the user sees the four named sections
      (Risk Tier, Risk rationale, Acceptance Criteria, Boundary Map) — or the
@@ -92,14 +95,14 @@ phase marker (R3 / AC9 / I1) and MUST NOT begin with `STATUS:` at column 0
 
 4. **Trivial-change classification.**
    Inspect `${RUN_DIR}/current-plan.md` front-matter for `change-type: trivial` AND/OR check planner STATUS for `trivial=true`. If either signal is present, the change is classified `trivial`:
-   - Print `↷ TDD skipped (change-type=trivial) — see TDD Skip Rationale in ${RUN_DIR}/impl-summary.md`.
-   - Skip directly to phase 6 (Implement). The orchestrator MUST emit the following two lines into `${RUN_DIR}/impl-summary.md` BEFORE invoking the implementer (preserving any existing content):
+   - Print `↷ TDD skipped (change-type=trivial) — see TDD Skip Rationale in ${RUN_DIR}/current-plan.md`.
+   - Skip directly to phase 6 (Implement). The orchestrator MUST append the following block to `${RUN_DIR}/current-plan.md` BEFORE invoking the implementer (preserving any existing content; appended at end of file):
      ```
      ## TDD Skip Rationale
 
      trivial change (change-type=trivial); TDD pre-phase skipped per plan classification on <ISO-date>.
      ```
-   - The implementer's template-rendering step preserves this section.
+   - The implementer preserves this section verbatim when appending its `## Implementation` section.
 
    Otherwise (non-trivial), proceed to phase 5.
 
@@ -115,25 +118,27 @@ phase marker (R3 / AC9 / I1) and MUST NOT begin with `STATUS:` at column 0
 7. **Review (5/8).** Invoke `reviewer` per the phase contract.
    - **A3 finding preview.** Immediately AFTER echoing the reviewer's
      `✓|✗ reviewer — STATUS:…` line, if `blocking>0` run
-     `bash scripts/preview-finding-titles.sh "${RUN_DIR}/review-report.md" "## Blocking findings"`
+     `bash scripts/preview.sh --anchor review --top 3 --heading "## Blocking findings" "${RUN_DIR}/review-report.md"`
      and print up to 3 indented title lines under the STATUS echo;
      otherwise if `advisory>0`, run the same helper with anchor
      `"## Advisory findings"`. Missing report or anchor → no preview
      (fail-closed). Preview lines never start with `STATUS:` (I2).
    - If `blocking=0`, continue.
-   - If `blocking>0`, return to step 6 (implementer) and loop. Maximum 2 review→implement loops; on the 3rd unresolved blocking review, print `✗ review loop exceeded — halting` and stop.
+   - If `blocking>0`, return to step 6 (implementer) and loop. Maximum 3 review→implement loops; on the 4th unresolved blocking review, print `✗ review loop exceeded — halting` and stop.
 
 8. **Verify (6/8).** Invoke `verifier` per the phase contract. The verifier itself runs `scripts/run-verification-gates.sh`, which streams per-gate `▶`/`✓`/`✗` lines. Note: an opt-in `verify → fix → verify` envelope is available via `MAX_VERIFY_RETRIES` and `VERIFY_RETRY_HINT_FILE`; see `.claude/rules/release-and-verification.md` ("Canonical Gate Runner") and the README "Tuning" section for details.
    - **A3 failing-gate preview.** After echoing the verifier's
      `✓|✗ verifier — STATUS:…` line, if STATUS state is not `go`, run
-     `bash scripts/preview-finding-titles.sh "${RUN_DIR}/verify-report.md" "## Gate Results"`
+     `bash scripts/preview.sh --anchor verify --top 3 --heading "## Gate Results" "${RUN_DIR}/verify-report.md"`
      and print up to 3 indented gate titles under the STATUS echo.
 
 9. **Final smoke gate (7/8).** Print `▶ smoke gate starting` and run:
    `REPORT_QUALITY_REQUIRE_CONTENT=1 WORKFLOW_REQUIRE_ARTIFACTS=1 bash scripts/smoke-bootstrap.sh`
    Print `✓ smoke gate ok` or `✗ smoke gate failed (rc=<code>)`.
 
-10. **Release approval gate (8/8).** If verifier STATUS is `go` and smoke gate passed, halt and print `⏸ release approval required (run=$RUN_ID) — reply "approve" to continue, "reject" to stop`. Only mark the final Go decision after explicit user approval.
+10. **Release approval gate (8/8).** If verifier STATUS is `go` and smoke gate passed:
+    - **Adaptive low-risk auto-approval.** If `mode=adaptive` AND plan `risk=low` AND review `blocking=0` AND all 6 verify gates green AND smoke gate passed, mark `STATUS: go` without halting and print `⏵ release auto-approved (adaptive, risk=low, all gates green)`. Continue to end-of-run summary.
+    - **Otherwise** (strict mode, OR risk≥medium, OR any of the green-gate conditions above failed): halt and print `⏸ release approval required (run=$RUN_ID) — reply "approve" to continue, "reject" to stop`. Only mark the final Go decision after explicit user approval.
 
 ## Stop conditions
 
@@ -144,7 +149,8 @@ Stop immediately on any unresolved blocking outcome. Print a final summary of wh
 After all phases finish (success, halt, or stop condition), render the
 end-of-run artifact summary block as the very last output. Follow
 `docs/templates/end-of-run-summary-template.md` exactly: absolute paths,
-checklist of produced artifacts (plan, specs, research, test-report,
-review-report, verify-report, impl-summary, refactor-report, audit-report),
+checklist of produced artifacts (plan — now includes the implementer's appended
+`## Implementation` section, specs, research, test-report, test-results.json,
+review-report, verify-report, refactor-report, audit-report),
 and only print lines for artifacts that exist on disk. The block is shared
 verbatim across `/ship`, `/review`, `/refactor`, `/audit`, `/research`.

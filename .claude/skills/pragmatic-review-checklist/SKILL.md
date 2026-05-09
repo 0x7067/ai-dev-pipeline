@@ -1,17 +1,19 @@
 ---
 name: pragmatic-review-checklist
-description: "Internal — agent-only reference skill. Curated review checklist drawn from The Pragmatic Programmer (20th Ed.) tips that are not enforceable by compiler or linter and need a reading pass on the diff. Invoked automatically by the reviewer agent / `/review` as an advisory second pass on medium/high risk changes; users should not invoke this skill directly."
+description: "Standalone-only reference skill. Curated review checklist drawn from The Pragmatic Programmer (20th Ed.) tips that are not enforceable by compiler or linter. Reviewer agent / `/review` no longer invokes this as a second pass — the medium/high-risk content was folded into `code-review` (single-pass) on 2026-05. Use this skill only when the user explicitly asks for a manual pragmatic-only review or a deep-dive on an existing diff."
 ---
 
-# Pragmatic Review Checklist
+# Pragmatic Review Checklist (standalone-only)
 
 Advisory pass over a diff using behavior-changing tips from *The Pragmatic Programmer* (20th Anniversary Ed.) that are not already enforced by `.claude/rules/*` or by static analysis.
+
+> **Note (2026-05):** the reviewer agent and `/review` command no longer invoke this skill as a second pass. The same checklist content now runs **inline** as lens 6 of the `code-review` skill on `medium`/`high`-risk changes, so each diff is reviewed in a single pass. This file remains for explicit standalone use (e.g. user asks for a "pragmatic-only review" outside a /ship run).
 
 This skill produces an **advisory** section appended to `${RUN_DIR}/review-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/review-report.md` only when invoked outside a /ship-managed run). Per `release-and-verification.md`, model self-critique never blocks. The blocking decision belongs to the gate runner.
 
 ## When to invoke
-- Auto-invoked by `/review` after the standard `code-review` skill on changes classified `medium` or `high` risk.
-- Manually invoked when the user asks for a "pragmatic review" or "second pass".
+- Manually invoked when the user asks for a "pragmatic review" or "deep-dive checklist pass" outside the standard pipeline.
+- NOT auto-invoked by `/review` or the reviewer agent — see note above.
 - Skipped for trivial changes (typo, comment, single-line config) — the standard review is enough.
 
 ## Procedure

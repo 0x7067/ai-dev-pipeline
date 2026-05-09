@@ -3,23 +3,10 @@ set -euo pipefail
 
 # PostToolUse hook: updates workflow state after successful agent completion.
 
-# Per-run workflow-state resolution.
-#   1. Explicit WORKFLOW_STATE_PATH override wins.
-#   2. Otherwise read .claude/workflow-state/active (the orchestrator
-#      writes the active run-id there at /ship step 0); validate it
-#      through scripts/parse-run-id.sh before constructing a path.
-#   3. Fall back to the legacy single-state file.
-state_file="${WORKFLOW_STATE_PATH:-}"
-if [ -z "$state_file" ]; then
-  if [ -f .claude/workflow-state/active ] && [ -f scripts/parse-run-id.sh ]; then
-    _active=$(head -n1 .claude/workflow-state/active 2>/dev/null | tr -d '[:space:]')
-    if [ -n "$_active" ] && bash scripts/parse-run-id.sh "$_active" >/dev/null 2>&1; then
-      state_file=".claude/workflow-state/${_active}.json"
-    fi
-    unset _active
-  fi
-  : "${state_file:=.claude/workflow-state.json}"
-fi
+# Per-run workflow-state resolution via shared helper in _hook_lib.sh.
+HOOK_NAME="workflow-state-update" HOOK_LIB_NO_STDIN=1 \
+  source "$(dirname "$0")/_hook_lib.sh"
+state_file="$(resolve_workflow_state_path)"
 
 payload="$(cat)"
 if [ -z "$payload" ]; then

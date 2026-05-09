@@ -22,7 +22,9 @@
 ## Human Approval Policy
 - Plan gate: required before implementation starts.
 - Elevated-risk implementation gate: required for `medium` and `high` risk tiers before code changes are finalized.
-- Release gate: required before go/no-go is marked `Go`.
+- Release gate: required before go/no-go is marked `Go`, with one auto-approval carve-out:
+  - In `/ship` adaptive mode, the release gate auto-approves when ALL of the following hold: plan `risk=low`, review `blocking=0`, all 6 verify gates green, and the smoke gate passed. The orchestrator prints `⏵ release auto-approved (adaptive, risk=low, all gates green)` and proceeds.
+  - Strict mode and any change with `risk=medium`/`risk=high` always require explicit human approval.
 
 ## Verification Sequence
 1. Type check / compile
@@ -35,7 +37,7 @@
 ## Canonical Gate Runner
 - Use `bash scripts/run-verification-gates.sh` as the single source of truth for gate execution order.
 - Allow overrides via environment variables for project-specific commands.
-- Optional bounded retry: set `MAX_VERIFY_RETRIES` (default `0`) to enable a `verify → fix → verify` envelope. On gate failure the runner writes `{gate, exit_code, attempt}` to `VERIFY_RETRY_HINT_FILE` (default `docs/.verify-retry.json`) for the `verify` skill to consume on the next pass.
+- Bounded retry: `MAX_VERIFY_RETRIES` (default `1`) enables a `verify → fix → verify` envelope. The runner sleeps `VERIFY_RETRY_SLEEP_S` (default `2`) seconds between attempts. On gate failure the runner writes `{gate, exit_code, attempt}` to `VERIFY_RETRY_HINT_FILE` (default `docs/.verify-retry.json`) for the `verify` skill to consume on the next pass. CI may pin `MAX_VERIFY_RETRIES=0` to make gate failure immediate and deterministic.
 
 ## Evidence Quality
 - Every verification or review claim must include evidence.

@@ -6,19 +6,24 @@
 
 : "${HOOK_NAME:?HOOK_NAME must be set before sourcing _hook_lib.sh}"
 
-# Early exit: skip files outside project directory
-_hook_payload="$(cat)"
-_edited_file=""
-if [ -n "$_hook_payload" ]; then
-  if command -v jq >/dev/null 2>&1; then
-    _edited_file="$(printf '%s' "$_hook_payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
+# Early exit: skip files outside project directory.
+# Skip the stdin read entirely when sourced for utility-only access
+# (HOOK_LIB_NO_STDIN=1) — PreToolUse hooks consume their own stdin and
+# cannot let this file race them for the payload.
+if [ "${HOOK_LIB_NO_STDIN:-0}" != "1" ]; then
+  _hook_payload="$(cat)"
+  _edited_file=""
+  if [ -n "$_hook_payload" ]; then
+    if command -v jq >/dev/null 2>&1; then
+      _edited_file="$(printf '%s' "$_hook_payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
+    fi
   fi
-fi
-if [ -n "$_edited_file" ]; then
-  case "$_edited_file" in
-    "$PWD"/*) ;;
-    *) echo "${HOOK_NAME}: skipped (file outside project)"; exit 0 ;;
-  esac
+  if [ -n "$_edited_file" ]; then
+    case "$_edited_file" in
+      "$PWD"/*) ;;
+      *) echo "${HOOK_NAME}: skipped (file outside project)"; exit 0 ;;
+    esac
+  fi
 fi
 
 run() {

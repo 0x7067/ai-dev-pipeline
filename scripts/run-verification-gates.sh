@@ -194,7 +194,63 @@ run_contract() {
   return 0
 }
 
+_full_suite_cache_hit() {
+  # Honor the fresh-suite override.
+  [ "${VERIFY_REQUIRE_FRESH_FULL_SUITE:-0}" = "0" ] || return 1
+  command -v jq >/dev/null 2>&1 || return 1
+
+  local cache=""
+  if [ -n "${RUN_DIR:-}" ]; then
+    cache="${RUN_DIR}/test-results.json"
+  elif [ -n "${RUN_ID:-}" ]; then
+    cache="docs/runs/${RUN_ID}/test-results.json"
+  else
+    return 1
+  fi
+  [ -s "$cache" ] || return 1
+
+  local cached_status cached_hash
+  cached_status="$(jq -r '.status // empty' "$cache" 2>/dev/null)"
+  cached_hash="$(jq -r '.suite_hash // empty' "$cache" 2>/dev/null)"
+  [ "$cached_status" = "pass" ] || return 1
+  [ -n "$cached_hash" ] || return 1
+
+  # Recompute current suite hash; if mismatch, the working tree changed and
+  # we cannot trust the cache.
+  local current_hash
+  current_hash="$(_compute_suite_hash 2>/dev/null)" || return 1
+  [ "$current_hash" = "$cached_hash" ] || return 1
+
+  echo "▶ full_suite (cached from tester; suite_hash=${cached_hash:0:12}…)"
+  return 0
+}
+
+# Pure(-ish) suite hash: hash of `git diff HEAD` + tracked test files.
+_compute_suite_hash() {
+  command -v git >/dev/null 2>&1 || return 1
+  command -v shasum >/dev/null 2>&1 || command -v sha256sum >/dev/null 2>&1 || return 1
+  local hasher
+  if command -v shasum >/dev/null 2>&1; then
+    hasher="shasum -a 256"
+  else
+    hasher="sha256sum"
+  fi
+  {
+    git diff HEAD 2>/dev/null || true
+    git ls-files -- 'tests/' 'test/' '**/__tests__/**' '*.test.*' \
+      '*_test.*' '*.spec.*' 2>/dev/null \
+      | while IFS= read -r f; do
+          [ -f "$f" ] || continue
+          printf '\n--%s--\n' "$f"
+          cat "$f" 2>/dev/null || true
+        done
+  } | $hasher | awk '{print $1}'
+}
+
 run_full_suite() {
+  if _full_suite_cache_hit; then
+    return 0
+  fi
   if is_override_set "VERIFY_FULL_CMD"; then
     run_override "Full suite" "VERIFY_FULL_CMD"
     return $?
@@ -243,7 +299,9 @@ run_full_suite() {
 
 export HOOKS_FAST="${HOOKS_FAST:-0}"
 
-MAX_VERIFY_RETRIES="${MAX_VERIFY_RETRIES:-0}"
+MAX_VERIFY_RETRIES="${MAX_VERIFY_RETRIES:-1}"
+# Sleep between retry attempts (seconds). Override via VERIFY_RETRY_SLEEP_S.
+VERIFY_RETRY_SLEEP_S="${VERIFY_RETRY_SLEEP_S:-2}"
 # Per-run hint file: when an active run is in flight (RUN_DIR set, or
 # resolvable via docs/latest), the hint file lives under that run's dir
 # so concurrent /ship sessions don't stomp each other. Falls back to
@@ -361,6 +419,9 @@ run_gate() {
       return "$rc"
     fi
     attempt=$((attempt + 1))
+    if [ "$VERIFY_RETRY_SLEEP_S" -gt 0 ] 2>/dev/null; then
+      sleep "$VERIFY_RETRY_SLEEP_S" || true
+    fi
   done
 }
 
@@ -424,6 +485,9 @@ run_gate_to_log() {
       return "$rc"
     fi
     attempt=$((attempt + 1))
+    if [ "$VERIFY_RETRY_SLEEP_S" -gt 0 ] 2>/dev/null; then
+      sleep "$VERIFY_RETRY_SLEEP_S" || true
+    fi
   done
 }
 

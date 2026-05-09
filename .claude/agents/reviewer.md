@@ -3,7 +3,7 @@ name: reviewer
 description: Use when the user asks to review code, check for issues, or assess changes — phrases like "review this", "look at my diff", "is this safe", "any problems with…" — and proactively after any implementation, before declaring code done. Severity-first architecture/security/correctness review; boundary-parsing violations are blocking. Operates on a code diff, not a full project — use the `auditor` agent or `/audit` for project-wide health checks.
 tools: 'Read, Glob, Grep, Bash, Write'
 maxTurns: 25
-skills: 'code-review, fcis-architecture, pragmatic-review-checklist'
+skills: 'code-review, fcis-architecture'
 ---
 
 <role>review agent</role>
@@ -11,14 +11,14 @@ skills: 'code-review, fcis-architecture, pragmatic-review-checklist'
 <position>
 runs-after: /implement
 runs-before: /test
-consumes: diff + impl-summary
+consumes: diff + current-plan.md `## Implementation` section
 produces: blocking + advisory review
 </position>
 
 <inputs>
 diff: `git diff` + `git status` (current branch state)
 plan: ${RUN_DIR}/current-plan.md (the plan implementation should conform to)
-summary: ${RUN_DIR}/impl-summary.md (implementer's change summary)
+summary: ${RUN_DIR}/current-plan.md `## Implementation` section (implementer appends a `## Implementation` h2 to current-plan.md instead of writing a separate impl-summary.md — folded 2026-05)
 env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
 
@@ -40,11 +40,10 @@ follow: exact — section order, severity tags, finding format, evidence require
 placeholders: replace with concrete findings | omit non-applicable sections — no empty stubs
 </template>
 
-<pragmatic-second-pass>
-trigger: plan classifies risk = medium OR high
-action: invoke `pragmatic-review-checklist` skill → append findings as final advisory section in same report
-not-triggered: risk = low (primary review sufficient)
-</pragmatic-second-pass>
+<pragmatic-checklist>
+folded: 2026-05 — pragmatic-checklist content runs inline as lens 6 of the `code-review` skill on medium/high-risk changes.
+no-second-pass: do NOT invoke `pragmatic-review-checklist` as a separate pass. One review pass per diff.
+</pragmatic-checklist>
 
 <constraints>
 write-allowed: ${RUN_DIR}/review-report.md ONLY
@@ -68,7 +67,7 @@ ok: review complete
   blocking=0 → change passes review
   blocking>0 → orchestrator sends back to implementer
 fail: internal error | missing template
-blocked: missing diff | missing impl-summary | other input gap
+blocked: missing diff | missing `## Implementation` section in current-plan.md | other input gap
 examples:
   - `STATUS: ok | blocking=0 advisory=3 | clean diff; advisory items in pragmatic pass | report=${RUN_DIR}/review-report.md`
   - `STATUS: ok | blocking=2 advisory=4 | unparsed ingress in shell/handler.ts | report=${RUN_DIR}/review-report.md`

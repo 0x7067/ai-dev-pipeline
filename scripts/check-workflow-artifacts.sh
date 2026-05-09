@@ -75,14 +75,20 @@ check_file() {
 }
 
 plan_file="${WORKFLOW_PLAN_PATH:-docs/current-plan.md}"
-summary_file="${WORKFLOW_SUMMARY_PATH:-docs/impl-summary.md}"
 review_file="${WORKFLOW_REVIEW_PATH:-docs/review-report.md}"
 test_file="${WORKFLOW_TEST_PATH:-docs/test-report.md}"
 verify_file="${WORKFLOW_VERIFY_PATH:-docs/verify-report.md}"
 specs_glob="${WORKFLOW_SPECS_GLOB:-docs/specs/*.md}"
 
+# As of 2026-05 the implementer appends a `## Implementation` section to
+# current-plan.md instead of writing a separate impl-summary.md. The legacy
+# file path is still consulted as a soft fallback so freshly-cut runs that
+# pre-date the fold remain checkable.
 check_file "$plan_file"
-check_file "$summary_file"
+legacy_summary="${WORKFLOW_SUMMARY_PATH:-docs/impl-summary.md}"
+if [ -f "$legacy_summary" ]; then
+  check_file "$legacy_summary"
+fi
 check_file "$review_file"
 check_file "$test_file"
 check_file "$verify_file"

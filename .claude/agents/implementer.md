@@ -24,19 +24,22 @@ env: RUN_ID, RUN_DIR (set by orchestrator)
 
 <deliverables>
 code: source changes per approved plan
-report: ${RUN_DIR}/impl-summary.md (from template)
+report: ${RUN_DIR}/current-plan.md — append a new `## Implementation` section (NEVER modify earlier sections).
 </deliverables>
 
-<template name="impl-summary-template.md" required=true>
-resolve:
-  1: docs/templates/impl-summary-template.md (repo wins)
-  2: ${CLAUDE_PLUGIN_ROOT}/docs/templates/impl-summary-template.md (zero-setup fallback)
-missing-both:
-  stderr: `implementer: ERROR: impl-summary-template.md not found in repo or plugin root. Is this a complete ai-dev-pipeline install?`
-  then: abort, do NOT write ${RUN_DIR}/impl-summary.md
-follow: exact
-placeholders: replace with concrete content | omit non-applicable sections — no empty stubs
-</template>
+<implementation-section format=required>
+The implementer no longer writes a separate `${RUN_DIR}/impl-summary.md` file (folded 2026-05). Instead, append a `## Implementation` h2 section to the END of `${RUN_DIR}/current-plan.md`. The section MUST include:
+
+- `### Summary` — one-paragraph overview of what changed.
+- `### Files Touched` — bullet list of `path — one-line note` per file.
+- `### FC/IS Layer Mapping` — bullet list of changes by `core | shell | boundary`.
+- `### Boundary Parsers` — list of new/updated parsers (or `none` with a one-line rationale).
+- `### Deferrals` — out-of-scope items recorded but NOT implemented (or `none`).
+- `### Rollback Notes` — optional; required only for risky/cross-cutting changes.
+- `### TDD Skip Rationale` — preserve verbatim if the orchestrator already wrote it; otherwise omit.
+
+Do NOT edit any earlier h2 section of `current-plan.md`. The append is additive only. Reviewer + verifier read this section directly and no longer expect `impl-summary.md`.
+</implementation-section>
 
 <gates>
 GATE-plan-required:
@@ -49,12 +52,12 @@ GATE-scope:
   out-of-scope: record as deferral (NEVER silently include)
 
 GATE-no-touch:
-  protected: ${RUN_DIR}/current-plan.md, ${RUN_DIR}/specs/*
-  rule: do NOT modify approved planning artifacts
+  protected: ${RUN_DIR}/specs/*; earlier sections of ${RUN_DIR}/current-plan.md (everything ABOVE the appended `## Implementation` heading).
+  rule: appending a new `## Implementation` section at the end of current-plan.md is the only allowed mutation; existing planner-authored sections MUST remain byte-identical.
 </gates>
 
 <constraints>
-write-allowed: ${RUN_DIR}/impl-summary.md + source-tree edits per approved plan
+write-allowed: append `## Implementation` to ${RUN_DIR}/current-plan.md + source-tree edits per approved plan
 no-assume: language/framework unless code clearly indicates
 </constraints>
 
@@ -95,9 +98,10 @@ constraints when detected:
     - If the count does not equal the tester's prior `expected_failing`,
       return STATUS state `fail`.
 
-preserve: a pre-existing `## TDD Skip Rationale` section in ${RUN_DIR}/impl-summary.md
-  (written by the orchestrator for trivial changes) MUST be preserved verbatim
-  when re-rendering the template.
+preserve: a pre-existing `## TDD Skip Rationale` section in ${RUN_DIR}/current-plan.md
+  (written by the orchestrator for trivial changes — under the `## Implementation`
+  header or just above it) MUST be preserved verbatim when appending the
+  Implementation section.
 </tdd-post-mode>
 
 <status format="MUST be final line, no prose after">
@@ -107,7 +111,7 @@ ok: implementation complete + summary written; in tdd-post: made_passing == prio
 fail: internal error | scope blown | unrecoverable build break | made_passing mismatch in tdd-post | no_touch missing or mismatched in tdd-post
 blocked: missing plan | missing template | input needs user resolution
 examples:
-  - `STATUS: ok | files=7 | parser + core + shell wired; 1 deferral noted | report=${RUN_DIR}/impl-summary.md`
-  - `STATUS: ok | files=5 made_passing=4 no_touch=2 | turned 4 red tdd-pre tests green | report=${RUN_DIR}/impl-summary.md`
+  - `STATUS: ok | files=7 | parser + core + shell wired; 1 deferral noted | report=${RUN_DIR}/current-plan.md`
+  - `STATUS: ok | files=5 made_passing=4 no_touch=2 | turned 4 red tdd-pre tests green | report=${RUN_DIR}/current-plan.md`
   - `STATUS: blocked | files=0 | ${RUN_DIR}/current-plan.md not found; run /plan first | report=none`
 </status>

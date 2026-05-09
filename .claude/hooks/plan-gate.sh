@@ -43,64 +43,38 @@ case "$target" in
     ;;
 esac
 
-# Per-run workflow-state resolution.
-#   1. Explicit WORKFLOW_STATE_PATH override wins.
-#   2. Otherwise read .claude/workflow-state/active and validate
-#      through scripts/parse-run-id.sh.
-#   3. Fall back to the legacy single-state file.
-state_file="${WORKFLOW_STATE_PATH:-}"
-if [ -z "$state_file" ]; then
-  if [ -f .claude/workflow-state/active ] && [ -f scripts/parse-run-id.sh ]; then
-    _active=$(head -n1 .claude/workflow-state/active 2>/dev/null | tr -d '[:space:]')
-    if [ -n "$_active" ] && bash scripts/parse-run-id.sh "$_active" >/dev/null 2>&1; then
-      state_file=".claude/workflow-state/${_active}.json"
-    fi
-    unset _active
-  fi
-  : "${state_file:=.claude/workflow-state.json}"
-fi
+# Per-run workflow-state resolution via shared helper in _hook_lib.sh.
+HOOK_NAME="plan-gate" HOOK_LIB_NO_STDIN=1 \
+  source "$(dirname "$0")/_hook_lib.sh"
+state_file="$(resolve_workflow_state_path)"
 if [ -f "$state_file" ] && command -v jq >/dev/null 2>&1; then
   if [ "$(jq -r '.phases.plan.completed // false' "$state_file" 2>/dev/null)" = "true" ]; then
     exit 0
   fi
 fi
 
-# Resolve RUN_DIR through the documented precedence:
-#   1. env RUN_DIR
-#   2. env RUN_ID (compose docs/runs/<id> after parser validation)
-#   3. .claude/workflow-state/active (parser-validated id)
-#   4. docs/latest (symlink) — readlink target, relative to docs/
-#   5. docs/latest.txt (parser-validated id)
-#   6. docs/ legacy fallback
+# Resolve RUN_DIR: env RUN_DIR wins, else env RUN_ID composes docs/runs/<id>,
+# else the active-pointer-derived state file path tells us the run-id, else
+# fail through to docs/. No symlink/text-file ladder — the orchestrator
+# guarantees RUN_DIR/RUN_ID is exported in every Task call.
 resolved_run_dir=""
 if [ -n "${RUN_DIR:-}" ]; then
   resolved_run_dir="$RUN_DIR"
 elif [ -n "${RUN_ID:-}" ] && [ -f scripts/parse-run-id.sh ] \
   && bash scripts/parse-run-id.sh "$RUN_ID" >/dev/null 2>&1; then
   resolved_run_dir="docs/runs/${RUN_ID}"
-elif [ -f .claude/workflow-state/active ] && [ -f scripts/parse-run-id.sh ]; then
-  _active=$(head -n1 .claude/workflow-state/active 2>/dev/null | tr -d '[:space:]')
-  if [ -n "$_active" ] && bash scripts/parse-run-id.sh "$_active" >/dev/null 2>&1; then
-    resolved_run_dir="docs/runs/${_active}"
-  fi
-  unset _active
-fi
-if [ -z "$resolved_run_dir" ] && [ -L docs/latest ]; then
-  _t=$(readlink docs/latest 2>/dev/null)
-  if [ -n "$_t" ]; then
-    case "$_t" in
-      /*) resolved_run_dir="$_t" ;;
-      *)  resolved_run_dir="docs/${_t}" ;;
-    esac
-  fi
-  unset _t
-fi
-if [ -z "$resolved_run_dir" ] && [ -f docs/latest.txt ] && [ -f scripts/parse-run-id.sh ]; then
-  _txt=$(head -n1 docs/latest.txt 2>/dev/null | tr -d '[:space:]')
-  if [ -n "$_txt" ] && bash scripts/parse-run-id.sh "$_txt" >/dev/null 2>&1; then
-    resolved_run_dir="docs/runs/${_txt}"
-  fi
-  unset _txt
+else
+  # Derive run-id from the resolved state-file path, if it points into
+  # .claude/workflow-state/<id>.json.
+  case "$state_file" in
+    .claude/workflow-state/*.json)
+      _id="${state_file##*/}"; _id="${_id%.json}"
+      if [ -n "$_id" ] && bash scripts/parse-run-id.sh "$_id" >/dev/null 2>&1; then
+        resolved_run_dir="docs/runs/${_id}"
+      fi
+      unset _id
+      ;;
+  esac
 fi
 if [ -z "$resolved_run_dir" ]; then
   resolved_run_dir="docs"

@@ -93,7 +93,7 @@ prior phase's artifact:
   criteria as red tests.
 - `implement` reads `${RUN_DIR}/current-plan.md` and (in tdd-post
   mode) `${RUN_DIR}/test-report.md`.
-- `review` reads `${RUN_DIR}/impl-summary.md` plus the diff.
+- `review` reads the `## Implementation` section of `${RUN_DIR}/current-plan.md` plus the diff (the standalone impl-summary.md was folded into current-plan.md on 2026-05).
 
 Parallelizing any of these would force a phase to read an artifact
 its upstream has not yet produced. Do not attempt it without first

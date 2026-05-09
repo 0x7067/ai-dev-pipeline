@@ -17,7 +17,7 @@ runs-before: merge/release
 <inputs>
 state: repository (current branch)
 plan: ${RUN_DIR}/current-plan.md (risk tier + required approvals)
-prior-phases: ${RUN_DIR}/impl-summary.md, ${RUN_DIR}/review-report.md, ${RUN_DIR}/test-report.md
+prior-phases: ${RUN_DIR}/current-plan.md (includes `## Implementation` section appended by implementer — 2026-05 fold), ${RUN_DIR}/review-report.md, ${RUN_DIR}/test-report.md
 gate-output: `bash scripts/run-verification-gates.sh` (canonical gate runner; reads RUN_DIR from env to write per-gate logs)
 env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
@@ -48,6 +48,7 @@ ci-authority: requires VENDORED repo-local copy (CI does not load plugins)
 toolchain: auto-detected by runner — do NOT assume language/framework
 gate-order: type → lint → security → property-tests → contract-tests → full-suite
 progress-stream: runner emits per-gate `▶`/`✓`/`✗` lines on stdout → SURFACE these to user as they appear
+full-suite-cache: when `${RUN_DIR}/test-results.json` exists with `status=pass` and a `suite_hash` matching the current working tree, the runner logs `▶ full_suite (cached from tester)` and skips re-execution. To force a re-run set `VERIFY_REQUIRE_FRESH_FULL_SUITE=1`.
 </gate-runner>
 
 <constraints>

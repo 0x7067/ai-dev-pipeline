@@ -17,14 +17,54 @@ core-distinction: tester GENERATES new tests | verifier RUNS existing gates
 <inputs>
 code: implemented code (current branch state)
 plan: ${RUN_DIR}/current-plan.md (invariants + acceptance criteria → encode as tests)
-summary: ${RUN_DIR}/impl-summary.md (what changed + where new boundary parsers live)
+summary: ${RUN_DIR}/current-plan.md `## Implementation` section (what changed + where new boundary parsers live — folded into current-plan.md 2026-05)
 env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
 
 <deliverables>
 tests: new/updated files for property-based core invariants + boundary contract tests
 report: ${RUN_DIR}/test-report.md (from template)
+results-cache: ${RUN_DIR}/test-results.json (machine-readable cache for verifier)
 </deliverables>
+
+<test-results-cache>
+Write `${RUN_DIR}/test-results.json` after the post-mode suite run completes
+(skip in tdd-pre, where the suite is intentionally red). Schema:
+
+```
+{
+  "status": "pass" | "fail",
+  "exit_code": <int>,
+  "runtime_seconds": <int>,
+  "suite_hash": "<sha256 hex>"
+}
+```
+
+`suite_hash` is `sha256` of the concatenation of:
+  1. `git diff HEAD` (working-tree delta), AND
+  2. the contents of every tracked file under common test roots
+     (`tests/`, `test/`, `**/__tests__`, `*.test.*`, `*_test.*`,
+     `*.spec.*`).
+
+Compute portably:
+```
+{
+  git diff HEAD 2>/dev/null
+  git ls-files -- 'tests/' 'test/' '**/__tests__/**' '*.test.*' \
+    '*_test.*' '*.spec.*' 2>/dev/null \
+    | xargs -I{} sh -c 'printf "\n--%s--\n" "{}"; cat "{}" 2>/dev/null' || true
+} | shasum -a 256 | awk '{print $1}'
+```
+
+Write the JSON atomically (tmp + rename). The verifier's `full_suite` gate
+reads this file and skips re-running when `status=pass` AND the hash matches
+the current working-tree hash AND `VERIFY_REQUIRE_FRESH_FULL_SUITE` is unset
+or `0`. This eliminates the duplicate full-suite run between tester and
+verifier.
+
+Skip on failure-only output: if status is not `pass`, still write the file —
+the verifier will detect non-pass and re-run normally.
+</test-results-cache>
 
 <template name="test-report-template.md" required=true>
 resolve:
