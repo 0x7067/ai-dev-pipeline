@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 # shellcheck source=scripts/harness-lib.sh
 source "${SCRIPT_DIR}/harness-lib.sh"
+# shellcheck source=scripts/lib/style.sh
+source "${SCRIPT_DIR}/lib/style.sh"
 
 # Zero-setup support: if invoked from a consuming repo that has not vendored
 # the gate runner (i.e. the script lives under ${CLAUDE_PLUGIN_ROOT}/scripts),
@@ -401,18 +403,18 @@ run_gate() {
   while :; do
     start_s=$SECONDS
     if [ "$attempt" -eq 0 ]; then
-      emit "▶ ${label} starting"
+      style::step "${label} starting"
     else
-      emit "↻ ${label} retry ${attempt}/${MAX_VERIFY_RETRIES}"
+      style::retry "${label} retry ${attempt}/${MAX_VERIFY_RETRIES}"
     fi
     rc=0
     GATE_RESOLVED_CMD_FILE="$cmd_file" "$fn" || rc=$?
     elapsed_s=$((SECONDS - start_s))
     if [ "$rc" -eq 0 ]; then
-      emit "✓ ${label} ok (${elapsed_s}s)"
+      style::ok "${label} ok (${elapsed_s}s)"
       return 0
     fi
-    emit "✗ ${label} failed rc=${rc} (${elapsed_s}s)"
+    style::fail "${label} failed rc=${rc} (${elapsed_s}s)"
     emit_failure_diagnostics "$label"
     write_retry_hint "$label" "$rc" "$attempt"
     if [ "$attempt" -ge "$MAX_VERIFY_RETRIES" ]; then
@@ -468,7 +470,7 @@ run_gate_to_log() {
     if [ "$attempt" -eq 0 ]; then
       printf '▶ %s starting\n' "$label" >> "$log"
     else
-      printf '↻ %s retry %s/%s\n' "$label" "$attempt" "$MAX_VERIFY_RETRIES" >> "$log"
+      printf '[retry] %s retry %s/%s\n' "$label" "$attempt" "$MAX_VERIFY_RETRIES" >> "$log"
     fi
     rc=0
     GATE_RESOLVED_CMD_FILE="$cmd_file" "$fn" >> "$log" 2>&1 || rc=$?
@@ -497,7 +499,7 @@ replay_gate_log() {
   if [ -f "$log" ]; then
     cat "$log"
   else
-    emit "✗ ${label} log missing"
+    style::fail "${label} log missing"
   fi
 }
 
@@ -513,11 +515,11 @@ read_gate_rc() {
 }
 
 OVERALL_START_S=$SECONDS
-emit "▶ verification gates starting (6 gates: 3 parallel read-only + 3 sequential test)"
+style::step "verification gates starting (6 gates: 3 parallel read-only + 3 sequential test)"
 
 # --- parallel block: typecheck + lint + security ---
 parallel_start_s=$SECONDS
-emit "▶ read-only gates fan-out (typecheck, lint, security)"
+style::step "read-only gates fan-out (typecheck, lint, security)"
 run_gate_to_log typecheck run_typecheck &
 pid_typecheck=$!
 run_gate_to_log lint run_lint &
@@ -542,7 +544,7 @@ rc_typecheck=$(read_gate_rc typecheck)
 rc_lint=$(read_gate_rc lint)
 rc_security=$(read_gate_rc security)
 
-emit "↦ read-only gates joined (${parallel_elapsed_s}s wall; rc typecheck=${rc_typecheck} lint=${rc_lint} security=${rc_security})"
+style::join "read-only gates joined (${parallel_elapsed_s}s wall; rc typecheck=${rc_typecheck} lint=${rc_lint} security=${rc_security})"
 
 # Aggregate. First non-zero rc, in fixed order, is what we exit with.
 # This preserves "any read-only gate failure stops the test gates"
@@ -551,7 +553,7 @@ for pair in "typecheck:$rc_typecheck" "lint:$rc_lint" "security:$rc_security"; d
   _label="${pair%%:*}"; _rc="${pair#*:}"
   if [ "$_rc" != "0" ]; then
     emit_failure_diagnostics "$_label"
-    emit "✗ verification gates failed in read-only block"
+    style::fail "verification gates failed in read-only block"
     exit "$_rc"
   fi
 done
@@ -563,4 +565,4 @@ run_gate contract run_contract
 run_gate full_suite run_full_suite
 
 OVERALL_ELAPSED_S=$((SECONDS - OVERALL_START_S))
-emit "✓ all verification gates passed (${OVERALL_ELAPSED_S}s)"
+style::ok "all verification gates passed (${OVERALL_ELAPSED_S}s)"
