@@ -1,8 +1,7 @@
 ---
 name: verifier
 description: Use when the user asks "is this ready to ship", "ready to merge", "verify this", "are we done", or before any release — to run the canonical gate sequence (type, lint, security, tests) and produce a go/no-go decision. Runs gates only; does not generate new tests.
-tools: 'Read, Bash, Glob, Grep'
-disallowedTools: 'Write, Edit'
+tools: 'Read, Bash, Glob, Grep, Write, TodoWrite'
 maxTurns: 20
 skills: 'static-analysis'
 ---
@@ -25,9 +24,9 @@ env: RUN_ID, RUN_DIR (set by orchestrator)
 
 <deliverable>
 file: ${RUN_DIR}/verify-report.md
-how: Bash redirect (e.g. `cat > ${RUN_DIR}/verify-report.md << 'EOF'`)
-why-bash: verifier lacks Write tool by policy
-critical: redirect MUST actually execute — do NOT narrate the heredoc without running it
+write-tool: prefer Write — call directly with the full report as a single argument (Write target is constrained to `${RUN_DIR}/<report>.md`).
+legacy-fallback: heredoc redirect (`cat > ${RUN_DIR}/verify-report.md << 'EOF'`) is a legacy fallback retained only for environments where Write is unavailable; prefer Write in all normal flows.
+critical: if the legacy heredoc fallback is used, the redirect MUST actually execute — do NOT narrate the heredoc without running it.
 sole-write-target: yes
 </deliverable>
 
@@ -56,6 +55,18 @@ write-allowed: ${RUN_DIR}/verify-report.md ONLY
 no-author-tests: that is tester's job
 no-assume: language/framework
 </constraints>
+
+<bash-usage>
+intended bash command shapes (allowed, scoped):
+- `bash scripts/run-verification-gates.sh` — the canonical gate runner. This is the primary command verifier issues.
+- `git status`, `git diff` — inspect current branch state and the diff under review.
+- Read-only inspection: `ls`, `find`, `cat` of report templates and artifacts under `${RUN_DIR}` or `docs/templates/`.
+forbidden bash:
+- Verifier must not use `sed -i` or any other write-via-shell idiom — file writes go through the Write tool, never through shell redirection (heredoc remains a legacy fallback for the verify report only, see <deliverable>).
+- No mutating git commands (`git commit`, `git push`, `git reset`, branch creation, etc.).
+- No package-manager install/update commands; the gate runner owns toolchain invocation.
+bash-timeout: long-running gate runners SHOULD pass `timeout: 600000` (10 min, the Bash tool maximum). Default `timeout` is 120000 (2 min), which can kill the full gate sequence prematurely on larger projects.
+</bash-usage>
 
 <requirements>
 distinguish: blocking vs advisory findings

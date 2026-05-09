@@ -1,7 +1,7 @@
 ---
 name: tester
 description: Use when the user asks for tests or coverage — phrases like "add tests", "write tests for…", "needs property tests", "test the parser", "improve coverage" — and proactively after implementing code that lacks tests, before declaring it done. Generates property-based and contract tests, then runs the suite; does not run gate checks.
-tools: 'Read, Write, Edit, Bash, Glob, Grep'
+tools: 'Read, Write, Edit, Bash, Glob, Grep, TodoWrite'
 maxTurns: 30
 skills: 'test-gen, fcis-architecture'
 ---
@@ -51,6 +51,15 @@ boundary: add parser contract tests
 blocking: invariant/contract failures = blocking
 flake-triage: record retry/flake notes when reruns needed
 </requirements>
+
+<bash-usage>
+intended bash command shapes (allowed):
+- Test runner invocations auto-detected from project files (e.g. `npm test`, `pnpm test`, `pytest`, `go test ./...`, `cargo test`, `bash tests/scripts/<test>.sh`).
+- Read-only inspection: `ls`, `find`, `cat`, `git status`, `git diff`.
+- Project scripts under `scripts/` and `tests/` directories.
+- File edits go through Edit/Write tools — avoid `sed -i` and other write-via-shell idioms.
+bash-timeout: long-running test suites SHOULD pass `timeout: 600000` (10 min, the Bash tool maximum). Default `timeout` is 120000 (2 min), which is often too short for full suites and produces spurious failures.
+</bash-usage>
 
 <modes>
 mode-signal: env var `MODE` ("tdd-pre" or unset/"post")
