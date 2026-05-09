@@ -22,6 +22,23 @@
 - [ ] Go
 - [ ] No-Go
 
+## Advisory Review
+
+<!--
+Optional: present only when the standalone reviewer phase was folded into
+verify (fast-low short-circuit: `mode=fast` AND `risk=low` AND
+`change_class ∈ {trivial, config_only}`). This section captures advisory
+review findings that would otherwise have been written to
+`docs/review-report.md`. Heading text "Advisory review findings (folded)"
+is also accepted by the artifact checker. Omit for full-pipeline runs that
+produced a standalone review-report.md.
+-->
+
+### Advisory review findings (folded)
+<!-- Folded reviewer findings (advisory, non-blocking). -->
+- Blocking:
+- Advisory:
+
 ## Finding Classification
 - Blocking:
 - Advisory:

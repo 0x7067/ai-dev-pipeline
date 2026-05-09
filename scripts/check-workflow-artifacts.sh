@@ -19,13 +19,14 @@ fail() {
 }
 
 parse_change_type() {
-  # Reads a `change-type: <value>` line from a plan file.
+  # Reads a `change-type: <value>` (or `change-class:`) line from a plan file.
   # Accepts forms:
   #   - YAML-style:        change-type: config
   #   - Bullet/list line:  - change-type: refactor
+  #   - Bullet/list line:  - change-class: config_only
   #   - Heading hint line: ## Change Type: feature   -> normalized to "feature"
-  # Returns one of: feature|fix|refactor|config|unknown.
-  # Total function: missing/malformed input yields "unknown".
+  # Returns one of: feature|fix|refactor|config|config_only|unknown.
+  # Total function: missing/malformed input yields "unknown" (parser totality, I2).
   local file="$1"
   local raw value
 
@@ -34,9 +35,11 @@ parse_change_type() {
     return 0
   fi
 
-  raw="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?change-type:[[:space:]]*[A-Za-z]+' "$file" 2>/dev/null | head -n1 || true)"
+  # Allow alphanumerics + underscore in the token (so config_only matches but
+  # config_onlyish would be rejected by the case statement below).
+  raw="$(grep -iE '^[[:space:]]*(-[[:space:]]+)?change-(type|class):[[:space:]]*[A-Za-z_]+' "$file" 2>/dev/null | head -n1 || true)"
   if [ -z "$raw" ]; then
-    raw="$(grep -iE '^[[:space:]]*##[[:space:]]+change[[:space:]]+type:[[:space:]]*[A-Za-z]+' "$file" 2>/dev/null | head -n1 || true)"
+    raw="$(grep -iE '^[[:space:]]*##[[:space:]]+change[[:space:]]+(type|class):[[:space:]]*[A-Za-z_]+' "$file" 2>/dev/null | head -n1 || true)"
   fi
 
   if [ -z "$raw" ]; then
@@ -48,7 +51,7 @@ parse_change_type() {
   value="$(printf '%s' "$raw" | sed -E 's/.*:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
 
   case "$value" in
-    feature|fix|refactor|config) printf '%s\n' "$value" ;;
+    feature|fix|refactor|config|config_only) printf '%s\n' "$value" ;;
     *) printf '%s\n' unknown ;;
   esac
 }
@@ -89,18 +92,32 @@ legacy_summary="${WORKFLOW_SUMMARY_PATH:-docs/impl-summary.md}"
 if [ -f "$legacy_summary" ]; then
   check_file "$legacy_summary"
 fi
-check_file "$review_file"
-check_file "$test_file"
-check_file "$verify_file"
 
 change_type="$(parse_change_type "$plan_file")"
 
-# Spec-skip mechanism: when the plan declares change-type: config or refactor,
-# docs/specs/*.md is not required. Default (feature/fix/unknown) keeps the spec
-# requirement so silence equals safety.
+# Review-report skip mechanism: when the plan declares change-class: config_only
+# (or change-type: config_only), the standalone review-report.md is folded into
+# verify-report and not required as a separate artifact.
+review_skip=0
+case "$change_type" in
+  config_only)
+    review_skip=1
+    note "review-report requirement skipped (${plan_file} declares change-type: ${change_type})"
+    ;;
+esac
+
+if [ "$review_skip" = "0" ]; then
+  check_file "$review_file"
+fi
+check_file "$test_file"
+check_file "$verify_file"
+
+# Spec-skip mechanism: when the plan declares change-type: config, refactor,
+# or config_only, docs/specs/*.md is not required. Default (feature/fix/unknown)
+# keeps the spec requirement so silence equals safety.
 spec_skip=0
 case "$change_type" in
-  config|refactor)
+  config|refactor|config_only)
     spec_skip=1
     note "spec requirement skipped (${plan_file} declares change-type: ${change_type})"
     ;;

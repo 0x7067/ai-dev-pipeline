@@ -1,12 +1,27 @@
 # Current Plan Template
 
+<!--
+Risk-scaled rendering: this single template covers all risk tiers. Sections
+marked Optional below are **omitted for `risk=low`** runs to keep the plan
+within the risk-low ≤30-line cap (risk-low canonical shape — about 30 lines
+or fewer; the 30-line cap is the canonical contract). For `risk=medium`/`risk=high`,
+all sections are required.
+-->
+
 ## Goal
 
 ## Scope
 
 ## Touched Files
 
+<!-- Optional: omit for risk=low. Keep this section terse for risk=low; the
+risk=low canonical shape is capped at ≤30 lines. -->
+
 ## Non-Goals
+<!-- Optional: omit for risk=low. Risk=low plans skip the Non-Goals enumeration. -->
+
+## Out-of-Scope
+<!-- Optional: omit for risk=low. -->
 
 ## Evidence
 - Official sources:
@@ -15,10 +30,15 @@
 ## Risk Profile
 - Risk tier: `low` | `medium` | `high`
 - Why this risk tier applies:
-- change-type: <!-- optional: feature | fix | refactor | config. Declaring
-  `config` or `refactor` allows scripts/check-workflow-artifacts.sh to skip
-  the docs/specs/*.md requirement. Omit (or set to feature/fix) to require a
-  spec by default. -->
+- change-type: <!-- optional: feature | fix | refactor | config | config_only.
+  Declaring `config`, `refactor`, or `config_only` allows
+  scripts/check-workflow-artifacts.sh to skip the docs/specs/*.md requirement
+  (and `config_only` additionally skips review-report.md). Omit (or set to
+  feature/fix) to require a spec by default. -->
+- change-class: <!-- optional: trivial | config_only | standard. Planner-emitted
+  advisory hint. The `/ship` orchestrator re-derives `change_class`
+  authoritatively from `git diff --name-only` against the merge-base and wins
+  on disagreement. -->
 
 
 ## Human Checkpoints
@@ -31,15 +51,20 @@
 - Plan approval evidence link:
 
 ## FC/IS Classification
+<!-- Optional: omit for risk=low. -->
 - Core:
 - Shell:
 - Boundary:
 
-## Boundary Parsers Needed
+## Boundary Parsers
+<!-- Optional: omit for risk=low. -->
 
 ## Invariants
+<!-- Optional: omit for risk=low. -->
 
-## Failure Modes and Mitigations
+## Failure Modes
+<!-- Optional: omit for risk=low. (Also called "Failure Modes and Mitigations"
+in higher-risk plans.) -->
 
 ## Acceptance Criteria
 
