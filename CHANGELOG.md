@@ -5,6 +5,48 @@ All notable changes to `ai-dev-pipeline` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-05-10
+
+### Added
+
+- Tier A UX polish (run `20260510T010654-8f5623-59`):
+  - `style::hyperlink` emitter in `scripts/lib/style.sh` with internal
+    readonly flag `STYLE_HYPERLINKS` (derived from `STYLE_COLOR=1` AND
+    `[ -t 1 ]`; no new env var). `style::strip_ansi` now strips OSC-8 in
+    addition to CSI/SGR.
+  - Per-phase elapsed-time annotations on `/ship`, `/review`, `/refactor`
+    banners (`✓ <phase> ok (Ns)`).
+  - `scripts/{parse,append}-phase-timings.sh` and
+    `scripts/render-end-of-run.sh`: incremental `phase_timings.json`
+    writer, typed boundary parser, and shared end-of-run renderer.
+  - `docs/schemas/phase-timings/v1/schema.json`: ordered-array schema for
+    `phase_timings.json` (`schema_version`, `phases[]`, `total_seconds`).
+  - End-of-run summary: failure summary (with last-20-line log preview)
+    above the timing strip and decision trail; artifact paths wrapped via
+    `style::hyperlink` on capable terminals.
+  - Two-line plan-halt grammar in `/ship` (line 2 carries
+    `risk=<tier> because <reason>`).
+
+### Changed
+
+- Approval halts (`/ship` plan + release gates, `/refactor` plan gate) now
+  use `AskUserQuestion` instead of prose `reply "approve" / "edit
+  <comment>" / "reject"` instructions. Each option's `description` carries
+  the consequence in plain language.
+- `.claude/rules/decision-surfacing.md`: added the Open-Decisions ⇔
+  AskUserQuestion pairing rule and the "approval halts use
+  AskUserQuestion" rule. Both enforced by
+  `scripts/validate-claude-config.sh` (pure bash, no new dependency).
+- `.claude/rules/output-style.md`: Glyph Legend (invariant I5) extended
+  with `style::hyperlink`.
+
+### Tests
+
+- `tests/style/hyperlink_capability.sh`,
+  `tests/style/strip_ansi_osc8.sh`,
+  `tests/parse-phase-timings.sh`,
+  `tests/validator/open-decisions-pairing.sh` — all green.
+
 ## [0.13.0] - 2026-05-09
 
 ### Added
