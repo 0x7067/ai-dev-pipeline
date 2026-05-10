@@ -5,6 +5,31 @@ All notable changes to `ai-dev-pipeline` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- New `release` skill (`.claude/skills/release/SKILL.md`) automating the
+  version-bump → gates → manifest sync → CHANGELOG rewrite → commit → tag →
+  push sequence. Skill-only (no slash command). Halts twice for explicit
+  human approval (proposed version, push). Triggers on "cut a release",
+  "bump tag", "tag v…", "ship a release", "release this".
+- Pure FC core: `scripts/release/lib/semver-core.sh` (SemVer parser +
+  `next_version` + `compare_semver`) and `scripts/release/lib/changelog-core.sh`
+  (`infer_bump_from_changelog`).
+- Boundary parser at `scripts/release/parse-changelog.sh` (typed records;
+  rejects malformed headers, unknown labels, duplicate version sections).
+- Five tests cover the new surface: changelog accept/reject, SemVer
+  property (monotonicity + round-trip), 3-file lockstep contract,
+  ERR-trap rollback on Phase B mutation failure, and boundary parse of
+  `RELEASE_STATE_FILE` on resume.
+
+### Fixed
+
+- `CLAUDE.md` no longer references a non-existent root `plugin.json`; the
+  version-sync check runs between `.claude-plugin/plugin.json` and
+  `.claude-plugin/marketplace.json` only.
+
 ## [0.15.1] - 2026-05-10
 
 ### Changed
