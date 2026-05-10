@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-05-10
+
 ### Added
 
 - New `release` skill (`.claude/skills/release/SKILL.md`) automating the

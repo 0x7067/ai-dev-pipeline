@@ -1,14 +1,14 @@
 {
   "name": "0x7067-ai-dev-pipeline",
   "owner": {
-    "name": "Pedro Guimar\u00e3es"
+    "name": "Pedro Guimarães"
   },
   "plugins": [
     {
       "name": "ai-dev-pipeline",
       "source": "./",
       "description": "Structured AI development workflow with FC/IS architecture, verification gates, and human approval checkpoints",
-      "version": "0.15.1"
+      "version": "0.16.0"
     }
   ]
 }
