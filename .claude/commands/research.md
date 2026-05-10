@@ -17,6 +17,14 @@ Steps:
    `▶ researcher starting (run=$RUN_ID)`
 
 2. Invoke the `researcher` subagent via the Task tool. Pass the user's request as input AND ensure `RUN_ID` and `RUN_DIR` are present in the subagent's environment so `${RUN_DIR}/research/<topic>.md` resolves correctly. Wait for it to return.
+   - **Story-shaped topics auto-trigger INVEST decomposition.** The
+     researcher applies the conservative heuristic documented in
+     `.claude/agents/researcher.md` (`<invest-mode>`): topics containing
+     `as a <role>`, both `i want` and `so that`, or an explicit
+     acceptance-criteria / given-when-then block produce an additional
+     "INVEST Decomposition" section in the research note. Non-story
+     topics produce output byte-identical to today (invariant I4). No
+     modifier or env-var gates this — detection is always-on.
 
 3. The researcher's response ends with a single line in the form
    `STATUS: <state> | <summary> | report=<path>`

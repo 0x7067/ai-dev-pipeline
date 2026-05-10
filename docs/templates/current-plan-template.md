@@ -61,6 +61,21 @@ in higher-risk plans.) -->
 
 ## Acceptance Criteria
 
+## Norms applied
+<!-- Optional: omit for risk=low. List the .claude/rules/*.md files this plan
+adheres to. LINKS ONLY — do not paraphrase rule prose. Each bullet MUST be a
+rule-file path under `.claude/rules/`. Rationale: paraphrasing drifts; links
+do not. Enforced by scripts/validate-claude-config.sh (rule: a Norms applied
+or Safeguards applied section must contain only `.claude/rules/<name>.md`
+path references). -->
+
+## Safeguards applied
+<!-- Optional: omit for risk=low. Same shape as "Norms applied": list
+`.claude/rules/<name>.md` paths only — no quoting, no paraphrase. Use this
+section when the plan deliberately invokes a safeguard rule (e.g.
+boundary-parse-dont-validate, security-baseline) to make the reliance
+auditable. -->
+
 ## Open Decisions (provisional)
 <!-- OPTIONAL — include only when the planner deferred non-load-bearing
 choices for batched resolution at the plan-approval gate, per

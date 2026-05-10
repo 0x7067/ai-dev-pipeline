@@ -19,6 +19,24 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 `ai-dev-pipeline` enforces a deterministic Functional Core / Imperative Shell workflow with explicit human approval gates (see `.claude/rules/release-and-verification.md`). Skipping the pipeline — by jumping straight to edits, "quick fixes", or ad-hoc reasoning — bypasses risk-tier classification, parse-at-boundary enforcement, and the gate runner. The whole point of this repo is that those gates run.
 
+## Command surface stability
+
+The five primary slash commands — **`/ship`**, **`/review`**, **`/refactor`**,
+**`/audit`**, **`/research`** — are a **stable contract**. Downstream agents,
+hooks, scripts, and user muscle memory all depend on these names. They will
+not be renamed.
+
+In particular, a `/spdd-*` rename (e.g. `/spdd-plan`, `/spdd-implement`) is
+**explicitly rejected**. The pipeline borrows selectively from
+Structured Prompt-Driven Development (persistent feature specs, INVEST-style
+decomposition for story-shaped topics, link-only Norms/Safeguards in plans)
+WITHOUT pivoting the command surface. Source: research note
+`docs/runs/20260510T150126-666528-5c/research/spdd-pivot.md` and the
+SPDD-borrows plan that adopted it.
+
+Per-phase logic that previously had its own slash command is reachable via
+skills (see "Skills (no slash)" below) — that surface is also stable.
+
 ## Intent → command mapping
 
 Match what the user actually says. When the user types one of these signals, invoke the matching pipeline entry-point as your **first action**, before any other tool call or reply.

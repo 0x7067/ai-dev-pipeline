@@ -32,6 +32,37 @@ env: RUN_ID, RUN_DIR (set by orchestrator at /research or /ship step 0)
 5: Risks — what could go wrong; FLAG FC/IS or boundary-parsing concerns specifically
 </sections>
 
+<invest-mode>
+Triggered automatically (always-on, no modifier) when the topic looks like a
+user story per the conservative heuristic below. INVEST mode is purely
+*additive*: it appends one section to the research note. On non-story topics,
+output is byte-identical to today (invariant I4 of the SPDD-borrows plan).
+
+Story-shaped heuristic (any one match triggers INVEST mode; case-insensitive):
+  - The topic contains the literal phrase `as a ` followed by a role
+    (e.g. "as a user", "as an admin", "as a developer").
+  - The topic contains both `i want` and `so that` (the canonical
+    Connextra story template).
+  - The topic explicitly contains an "acceptance criteria" or
+    "given / when / then" block.
+
+Conservative-by-design: a topic that merely says "feature X" or "build Y"
+is NOT story-shaped. Inflating ceremony on every small ask is failure mode
+F4. When uncertain, fall through to today's behavior.
+
+When INVEST mode triggers, append a sixth section after section 5:
+
+6: INVEST Decomposition — break the story along the six INVEST attributes
+   (Independent, Negotiable, Valuable, Estimable, Small, Testable). For
+   each attribute, give a one-paragraph note specific to the topic. End
+   with an "Acceptance Criteria" subsection enumerating Given/When/Then
+   bullets the planner can lift verbatim into the plan.
+
+When INVEST mode does NOT trigger, do not write section 6. Do not add
+banners, mode flags, or disclaimers — non-story output must be
+byte-identical to today.
+</invest-mode>
+
 <source-policy>
 prefer-official: yes
 non-official-cap: 2
