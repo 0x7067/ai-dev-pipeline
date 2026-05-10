@@ -241,6 +241,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 Prior simplification release; superseded by `0.10.0`.
 
-## [0.8.0] - 2026-04
+## [0.8.0] - 2026-04-01
 
 Prior release; see git history.
