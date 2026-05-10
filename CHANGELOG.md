@@ -7,6 +7,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- `release` skill resume contract now dispatches from the state file's
+  recorded `phase` rather than the undocumented `RELEASE_PHASE` env var.
+  Previously, re-entering with `RELEASE_RESUME=1 RELEASE_ANSWER=approve`
+  after the push-confirm halt re-ran Phase B and errored with
+  `tag already exists`. New typed boundary parser
+  (`scripts/release/parse-release-state.sh`) and pure core dispatcher
+  (`scripts/release/lib/resume-core.sh`) make the resume path total
+  and deterministic. Two new contract tests
+  (`test-release-resume-phase-b-complete-{approve,reject}.sh`).
+
 ## [0.16.0] - 2026-05-10
 
 ### Added
