@@ -51,12 +51,16 @@ default_artifact_path() {
 }
 
 default_specs_glob() {
+  # Per-run spec copies remain Markdown under ${RUN_DIR}/specs/. The
+  # persistent home is docs/specs/<id>/spec.yaml (D4 of the specs-redesign
+  # plan); its layout is enforced by tests/scripts/test-specs-layout.sh,
+  # so this function only checks the per-run shape.
   if [ -n "${RUN_DIR:-}" ]; then
     printf '%s/specs/*.md\n' "$RUN_DIR"
   elif [ -L "docs/latest" ] || [ -d "docs/latest" ]; then
     printf 'docs/latest/specs/*.md\n'
   else
-    printf 'docs/specs/*.md\n'
+    printf 'docs/specs/*/spec.yaml\n'
   fi
 }
 

@@ -24,28 +24,43 @@ env: RUN_ID, RUN_DIR (set by orchestrator at /ship step 0)
 <deliverables>
 required: ${RUN_DIR}/current-plan.md
 conditional: ${RUN_DIR}/specs/<feature>.md (when plan introduces new feature surface)
-mirror: docs/artifacts/specs/<feature>.md (persistent mirror — see <persistent-spec-mirror>)
+mirror: docs/specs/<feature>/spec.yaml (persistent machine-readable mirror — see <persistent-spec-mirror>)
 </deliverables>
 
 <persistent-spec-mirror>
-When (and only when) a feature spec is written to `${RUN_DIR}/specs/<feature>.md`,
-ALSO write a byte-identical copy to `docs/artifacts/specs/<feature>.md`. This
-is a write-only egress mirror in this run — no agent reads it back yet.
+When (and only when) a feature spec is produced for the run, write the
+persistent machine-readable mirror at
+`docs/specs/<feature>/spec.yaml`. The optional human-readable prose body
+lives at the sibling `docs/specs/<feature>/spec.md` and is referenced
+from `spec.yaml` via the `body_path` field.
 
-Procedure (atomic, last-writer-wins is acceptable because the artifact is
-advisory):
+This is the persistent home for the spec — there is no longer a
+`docs/artifacts/specs/` mirror. Per-run copies under
+`${RUN_DIR}/specs/<feature>.md` remain as the ephemeral working artifact;
+the canonical persistent shape is `docs/specs/<feature>/spec.yaml`.
 
-1. Write `${RUN_DIR}/specs/<feature>.md` first (the canonical per-run spec).
-2. Ensure `docs/artifacts/specs/` exists (create if missing).
-3. Write the same bytes to a temp file in `docs/artifacts/specs/`, then
-   `mv` it to `docs/artifacts/specs/<feature>.md`. The temp+rename pattern
-   is the egress hygiene from `.claude/rules/boundary-parse-dont-validate.md`.
-4. Do NOT post-process or reformat between the two writes — invariant I2
-   requires byte-equality. A direct copy (e.g. `cp` or identical `Write`
-   call with the same content) is correct; any rendering layer is wrong.
+Procedure (atomic, last-writer-wins is acceptable because the per-run
+copy is advisory):
+
+1. Write `${RUN_DIR}/specs/<feature>.md` first (the per-run spec).
+2. Ensure `docs/specs/<feature>/` exists (create if missing).
+3. Emit `docs/specs/<feature>/spec.yaml` in the schema accepted by
+   `scripts/specs/parse-spec.sh`. Required fields: `id`, `title`,
+   `status` (`draft|accepted|superseded`), `risk` (`low|medium|high`),
+   `tags`, `summary`, `motivation`, `scope`, `acceptance_criteria`,
+   `invariants`, `boundary_map`, `references`. Optional: `body_path`.
+4. If the plan includes long-form prose, write it to
+   `docs/specs/<feature>/spec.md` and set `body_path: spec.md`.
+5. Use temp+rename for the YAML file to keep the egress atomic per
+   `.claude/rules/boundary-parse-dont-validate.md`.
+6. Validate the result with `bash scripts/specs/parse-spec.sh --check
+   docs/specs/<feature>/spec.yaml` BEFORE returning. The parser fails
+   closed on schema violations.
+7. Add an entry for the spec to `docs/specs/index.yaml`. Keep entries
+   sorted by `id`.
 
 If no feature spec is produced (non-feature change), do NOT touch
-`docs/artifacts/specs/`. (AC2 of the SPDD-borrows plan.)
+`docs/specs/`.
 </persistent-spec-mirror>
 
 <template name="current-plan-template.md" required=true>
@@ -61,7 +76,7 @@ placeholders: replace with concrete plan | omit non-applicable sections — no e
 </template>
 
 <constraints>
-write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md + docs/artifacts/specs/<feature>.md ONLY
+write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md + docs/specs/<feature>/{spec.yaml,spec.md} + docs/specs/index.yaml ONLY
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.

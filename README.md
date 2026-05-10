@@ -78,7 +78,7 @@ Every primary command mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_D
 
 Step 0 atomically maintains three discovery pointers: `docs/latest` (symlink), `docs/latest.txt` (text fallback), and `.claude/workflow-state/active`. Read-only verification gates (`typecheck`, `lint`, `security`) run in parallel inside `scripts/run-verification-gates.sh`; test gates remain sequential.
 
-See [docs/specs/run-id-isolation.md](docs/specs/run-id-isolation.md) and [`.claude/skills/using-pipeline/SKILL.md`](.claude/skills/using-pipeline/SKILL.md).
+See [docs/specs/run-id-isolation/spec.yaml](docs/specs/run-id-isolation/spec.yaml) and [`.claude/skills/using-pipeline/SKILL.md`](.claude/skills/using-pipeline/SKILL.md).
 
 ## Environment Variables
 

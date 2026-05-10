@@ -5,6 +5,31 @@ All notable changes to `ai-dev-pipeline` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-05-10
+
+### Changed
+
+- Persistent feature specs now live at `docs/specs/<id>/spec.yaml` (one
+  directory per spec, parsed via `scripts/specs/parse-spec.sh`).
+  Supersedes the `docs/artifacts/specs/<feature>.md` location announced in
+  `[0.15.0]` — that path no longer exists in the tree (INV-6 enforced by
+  `tests/scripts/test-specs-layout.sh`). The new shape ships with a typed
+  boundary parser, a static HTML renderer (`scripts/specs/render-html.sh`),
+  and the index at `docs/specs/index.yaml`.
+
+### Fixed
+
+- `parse-spec.sh` now treats `boundary_map` as a required (possibly-empty)
+  list, matching the schema declared in the parser comments.
+- `parse_spec_index` rejects an index containing two items with the same
+  `id` value (`tests/scripts/test-spec-parser.sh` reject-set).
+- `render-html.sh` parses each `spec.yaml` exactly once per render — the
+  index pass reads the typed records captured during the per-spec pass
+  rather than re-invoking the parser. Output bytes are unchanged
+  (INV-4 idempotence test still passes).
+- `render-html.sh` short-circuits explicitly when no specs are present;
+  removes the `${arr[@]:-}` `set -u` workaround.
+
 ## [0.15.0] - 2026-05-10
 
 ### Added

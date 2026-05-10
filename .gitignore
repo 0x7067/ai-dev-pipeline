@@ -41,9 +41,9 @@ docs/*
 !docs/pragmatic-tips-mapping.md
 !docs/schemas/
 !docs/schemas/**
-!docs/artifacts/
-!docs/artifacts/specs/
-!docs/artifacts/specs/**
+!docs/specs/
+!docs/specs/**
+docs/specs/_site/
 
 .claude/workflow-state/
 .claude/settings.local.json

@@ -1,0 +1,49 @@
+id: decision-surfacing
+title: Decision-Surfacing Directive (Planner + Researcher)
+status: accepted
+risk: low
+tags:
+  - policy
+  - planner
+  - researcher
+  - hitl
+summary: |
+  Bind the planner and researcher agents to a single rule that requires them
+  to invoke AskUserQuestion for meaningful design choices, while leaving
+  them autonomous on trivia. The directive is delivered as
+  .claude/rules/decision-surfacing.md, referenced from CLAUDE.md, with a
+  one-line pointer added to each agent's constraint section.
+motivation: |
+  Without this rule, planners and researchers tend to silently bake defaults
+  (library picks, naming conventions, threshold values, mode grammar) into
+  docs/current-plan.md or docs/research/<topic>.md. Once written, these
+  defaults acquire false authority and are rarely re-litigated. Surfacing
+  them at the moment of choice — via AskUserQuestion, with the agent's pick
+  clearly marked (Recommended) — keeps the human in the loop on decisions
+  that materially shape the artifact, without dragging them through trivia.
+scope: |
+  In-scope: new rule file; CLAUDE.md include; one-line constraint addition
+  in planner.md and researcher.md; two contract tests; plugin cache mirror
+  sync. Out of scope: implementer, reviewer, tester, verifier, auditor; no
+  behavioral code changes; no boundary parsing; no hook changes.
+acceptance_criteria:
+  - .claude/rules/decision-surfacing.md exists and contains the meaningful set, trivial set, ambiguous-arrow-ask clause, (Recommended) convention, and timing requirement.
+  - CLAUDE.md @-list contains @.claude/rules/decision-surfacing.md.
+  - .claude/agents/planner.md constraints reference the new rule path.
+  - .claude/agents/researcher.md constraints reference the new rule path.
+  - tests/scripts/test-decision-surfacing-rule-exists.sh passes.
+  - tests/scripts/test-planner-researcher-cite-rule.sh passes.
+  - Plugin cache mirror has the four source files in sync with the repo.
+  - scripts/validate-claude-config.sh and scripts/run-verification-gates.sh exit 0.
+invariants:
+  - Meaningful decisions must be surfaced via AskUserQuestion before being baked into the plan/research note.
+  - Recommended option is option #1 with the literal suffix (Recommended).
+  - Ambiguous classification falls open to the user (treat as meaningful and ask).
+  - Trivial decisions (mechanics with no consumer-visible contract impact) are decided autonomously.
+  - The directive applies only to planner and researcher agents.
+boundary_map: []
+references:
+  - .claude/rules/release-and-verification.md
+  - .claude/rules/architecture-fcis.md
+  - docs/templates/current-plan-template.md
+body_path: spec.md
