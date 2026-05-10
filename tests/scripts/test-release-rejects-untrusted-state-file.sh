@@ -40,9 +40,11 @@ cat > "$tmp/CHANGELOG.md" <<'EOF'
 EOF
 
 ln -s "$REPO_ROOT/scripts/release/parse-changelog.sh"     "$tmp/scripts/release/parse-changelog.sh"
+ln -s "$REPO_ROOT/scripts/release/parse-release-state.sh" "$tmp/scripts/release/parse-release-state.sh"
 ln -s "$REPO_ROOT/scripts/release/release.sh"             "$tmp/scripts/release/release.sh"
 ln -s "$REPO_ROOT/scripts/release/lib/semver-core.sh"     "$tmp/scripts/release/lib/semver-core.sh"
 ln -s "$REPO_ROOT/scripts/release/lib/changelog-core.sh"  "$tmp/scripts/release/lib/changelog-core.sh"
+ln -s "$REPO_ROOT/scripts/release/lib/resume-core.sh"     "$tmp/scripts/release/lib/resume-core.sh"
 
 ( cd "$tmp" && git init -q && git config user.email t@test && git config user.name t \
     && git add -A && git commit -q -m initial )

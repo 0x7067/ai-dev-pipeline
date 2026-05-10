@@ -95,11 +95,15 @@ release gate has no `edit` option.)
 Resume by invoking:
 ```
 RELEASE_RESUME=1 \
-RELEASE_PHASE=push \
 RELEASE_STATE_FILE=<state-file-from-halt> \
 RELEASE_ANSWER=approve|reject \
 bash scripts/release/release.sh
 ```
+
+The state sidecar carries a `phase` field that distinguishes Halt 1 from
+Halt 2; no out-of-band `RELEASE_PHASE` env var is required. The legacy
+`RELEASE_PHASE=push` token is **deprecated and ignored** — passing it
+prints a one-line deprecation notice but does not change the dispatch.
 
 ## Failure handling
 
@@ -117,9 +121,12 @@ bash scripts/release/release.sh
 
 - **Core (pure):** `scripts/release/lib/semver-core.sh` (`parse_semver`,
   `format_semver`, `next_version`, `compare_semver`),
-  `scripts/release/lib/changelog-core.sh` (`infer_bump_from_changelog`).
+  `scripts/release/lib/changelog-core.sh` (`infer_bump_from_changelog`),
+  `scripts/release/lib/resume-core.sh` (`release_resume_decide`).
 - **Boundary:** `scripts/release/parse-changelog.sh` (typed records,
-  fail-closed reject set).
+  fail-closed reject set), `scripts/release/parse-release-state.sh`
+  (typed sidecar parser — emits `{phase, bump, current, proposed,
+  target_version?, tag?}`).
 - **Shell:** `scripts/release/release.sh` (file mutations, `git add /
   commit / tag / push`, gate dispatch, halt protocol).
 

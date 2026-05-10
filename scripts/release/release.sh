@@ -24,6 +24,11 @@
 #   plus RELEASE_STATE_FILE pointing at the sidecar file the script wrote
 #   on the prior halt so it can pick up where it left off.
 #
+#   The state sidecar carries a `phase` field that is the SOLE source of
+#   truth for which halt this resume answers. The legacy `RELEASE_PHASE`
+#   env var is no longer consulted; if set, a deprecation warning is
+#   printed and the value is ignored.
+#
 # Modes:
 #   release.sh                 (no args) — fresh run from CWD repo root.
 #   RELEASE_RESUME=1 release.sh         — resume from RELEASE_STATE_FILE.
@@ -56,6 +61,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." >/dev/null 2>&1 && pwd -P)"
 source "$SCRIPT_DIR/lib/semver-core.sh"
 # shellcheck source=scripts/release/lib/changelog-core.sh
 source "$SCRIPT_DIR/lib/changelog-core.sh"
+# shellcheck source=scripts/release/lib/resume-core.sh
+source "$SCRIPT_DIR/lib/resume-core.sh"
+STATE_PARSER="$SCRIPT_DIR/parse-release-state.sh"
 
 EX_TEMPFAIL=75
 
@@ -126,18 +134,34 @@ else
   fi
 fi
 
-write_state() {
+write_state_phase_a() {
+  # Sidecar after Phase A halt — `phase=pending-version-confirm`.
+  # I-monotonic-phase: this is only invoked from the fresh-run branch
+  # before any answer is known.
   local proposed="$1" bump="$2" current="$3"
   jq -n \
+    --arg phase    "pending-version-confirm" \
     --arg proposed "$proposed" \
     --arg bump     "$bump" \
     --arg current  "$current" \
-    '{proposed:$proposed, bump:$bump, current:$current}' \
+    '{phase:$phase, proposed:$proposed, bump:$bump, current:$current}' \
     > "$state_file"
 }
 
-read_state_field() {
-  jq -r ".$1" "$state_file"
+write_state_phase_b_complete() {
+  # Sidecar after Phase B mutations + commit + tag succeed — advances
+  # `phase` to `phase-b-complete` and pins target_version + tag so the
+  # resume into Phase C (push) can dispatch without re-deriving anything.
+  local target_version="$1" bump="$2" current="$3"
+  jq -n \
+    --arg phase   "phase-b-complete" \
+    --arg proposed "$target_version" \
+    --arg bump    "$bump" \
+    --arg current "$current" \
+    --arg tv      "$target_version" \
+    --arg tag     "v$target_version" \
+    '{phase:$phase, proposed:$proposed, bump:$bump, current:$current, target_version:$tv, tag:$tag}' \
+    > "$state_file"
 }
 
 # NOTE on state-file lifetime (I-tempclean):
@@ -147,7 +171,7 @@ read_state_field() {
 # _release_remove_state_on_exit=1.
 emit_halt_version() {
   local proposed="$1" bump="$2" current="$3"
-  write_state "$proposed" "$bump" "$current"
+  write_state_phase_a "$proposed" "$bump" "$current"
   printf 'RELEASE_HALT: kind=version-confirm proposed=%s bump=%s current=%s\n' \
     "$proposed" "$bump" "$current"
   printf 'RELEASE_STATE_FILE=%s\n' "$state_file"
@@ -222,52 +246,103 @@ if [[ "${RELEASE_RESUME:-0}" != "1" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Phase B (resume): user has answered the version prompt.
+# Resume dispatch: parse state at boundary, decide branch in core, then run.
 # ---------------------------------------------------------------------------
 if [[ ! -f "$state_file" ]]; then
   err "RELEASE_RESUME=1 but RELEASE_STATE_FILE missing or unreadable"
   exit 1
 fi
 
-answer="${RELEASE_ANSWER:-}"
-proposed="$(read_state_field proposed)"
-bump="$(read_state_field bump)"
-current_version="$(read_state_field current)"
-
-# Push-phase short-circuit: this resume invocation answers Halt 2, not Halt 1.
-if [[ "${RELEASE_PHASE:-}" == "push" ]]; then
-  target_version="$proposed"
-  case "$answer" in
-    approve)
-      info "pushing HEAD and tag v$target_version"
-      if (( DRY_RUN )); then
-        info "(dry-run) skipping git push"
-      else
-        git push && git push origin "v$target_version"
-      fi
-      _release_remove_state_on_exit=1
-      exit 0
-      ;;
-    reject|"")
-      info "push declined; commit + tag remain local (v$target_version)"
-      _release_remove_state_on_exit=1
-      exit 0
-      ;;
-    *)
-      err "ambiguous RELEASE_ANSWER for push phase: '$answer' (expected approve|reject)"
-      exit 1
-      ;;
-  esac
+# Deprecation: RELEASE_PHASE is no longer consulted. Warn if a caller still
+# sets it so the migration is visible without breaking the resume.
+if [[ -n "${RELEASE_PHASE:-}" ]]; then
+  info "(deprecated) RELEASE_PHASE='$RELEASE_PHASE' is ignored; phase is read from the state file"
 fi
+
+# Boundary parse of the untrusted sidecar.
+if ! state_typed="$("$STATE_PARSER" "$state_file")"; then
+  exit 1
+fi
+
+state_phase=""
+state_bump=""
+state_current=""
+state_proposed=""
+state_tag=""
+while IFS=$'\t' read -r _k _v; do
+  case "$_k" in
+    phase)    state_phase="$_v" ;;
+    bump)     state_bump="$_v" ;;
+    current)  state_current="$_v" ;;
+    proposed) state_proposed="$_v" ;;
+    tag)      state_tag="$_v" ;;
+    # target_version is validated by the parser; we use $state_tag downstream.
+  esac
+done <<< "$state_typed"
+
+answer="${RELEASE_ANSWER:-}"
+action="$(release_resume_decide "$state_phase" "$answer")"
+
+case "$action" in
+  error:unknown-phase)
+    err "state file recorded unknown phase '$state_phase'"
+    exit 1
+    ;;
+  error:ambiguous-answer)
+    case "$state_phase" in
+      pending-version-confirm)
+        err "ambiguous RELEASE_ANSWER for version-confirm: '$answer' (expected approve|reject|pick:<X.Y.Z>)"
+        ;;
+      phase-b-complete)
+        err "ambiguous RELEASE_ANSWER for push-confirm: '$answer' (expected approve|reject)"
+        ;;
+    esac
+    exit 1
+    ;;
+  reject-pre-mutation)
+    info "release rejected at version-confirm gate; no changes made"
+    _release_remove_state_on_exit=1
+    exit 0
+    ;;
+  reject-post-mutation)
+    info "push declined; commit + tag remain local ($state_tag)"
+    _release_remove_state_on_exit=1
+    exit 0
+    ;;
+  push)
+    # I-no-retag: no mutations on this branch. Verify the tag actually exists
+    # before pushing — if the state claims phase-b-complete but the tag is
+    # absent, the local repo has been tampered with; fail closed.
+    if ! git rev-parse "$state_tag" >/dev/null 2>&1; then
+      err "state claims phase-b-complete but tag $state_tag absent; manual recovery required"
+      exit 1
+    fi
+    info "pushing HEAD and tag $state_tag"
+    if (( DRY_RUN )); then
+      info "(dry-run) skipping git push"
+    else
+      git push && git push origin "$state_tag"
+    fi
+    _release_remove_state_on_exit=1
+    exit 0
+    ;;
+  run-phase-b)
+    : # fall through to Phase B below
+    ;;
+  *)
+    err "internal: unrecognized resume action '$action'"
+    exit 1
+    ;;
+esac
+
+# At this point: action=run-phase-b, phase=pending-version-confirm.
+proposed="$state_proposed"
+bump="$state_bump"
+current_version="$state_current"
 
 case "$answer" in
   approve)
     target_version="$proposed"
-    ;;
-  reject|"")
-    info "release rejected at version-confirm gate; no changes made"
-    _release_remove_state_on_exit=1
-    exit 0
     ;;
   pick:*)
     candidate="${answer#pick:}"
@@ -283,7 +358,8 @@ case "$answer" in
     target_version="$candidate"
     ;;
   *)
-    err "ambiguous RELEASE_ANSWER: '$answer' (expected approve|reject|pick:<X.Y.Z>)"
+    # Unreachable: release_resume_decide already filtered ambiguous answers.
+    err "internal: unexpected answer '$answer' at run-phase-b"
     exit 1
     ;;
 esac
@@ -401,9 +477,11 @@ trap - ERR
 rm -f "$tag_body_file"
 tag_body_file=""
 
-# Persist the resolved target so the push phase can read it.
-write_state "$target_version" "$bump" "$current_version"
+# Advance phase to `phase-b-complete` BEFORE emitting the push-confirm halt
+# so the resume invocation observes the committed-and-tagged state (I-monotonic-phase).
+write_state_phase_b_complete "$target_version" "$bump" "$current_version"
 
 # Halt for push approval. The skill instructs Claude to re-invoke with
-# RELEASE_PHASE=push and RELEASE_ANSWER=approve|reject.
+# RELEASE_RESUME=1 and RELEASE_ANSWER=approve|reject; phase is read from the
+# state sidecar.
 emit_halt_push "v$target_version"
