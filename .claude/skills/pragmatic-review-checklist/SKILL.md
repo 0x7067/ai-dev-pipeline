@@ -89,4 +89,4 @@ If a section surfaces nothing, omit it. If nothing surfaces at all, write a sing
 
 ## Reference
 - Thomas & Hunt, *The Pragmatic Programmer: Your Journey to Mastery*, 20th Anniversary Edition, 2nd Edition.
-- Mapping document: `docs/pragmatic-tips-mapping.md`.
+- Mapping document: `docs/reference/pragmatic-tips-mapping.md`.

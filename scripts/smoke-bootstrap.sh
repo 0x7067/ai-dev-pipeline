@@ -92,7 +92,7 @@ run_check_required_files "required_bootstrap_files" \
   scripts/check-boundary-violations.sh \
   scripts/harness-lib.sh \
   scripts/run-verification-gates.sh \
-  docs/verification/acceptance-checklist.md \
+  docs/reference/acceptance-checklist.md \
   docs/templates/workflow-assessment-prompt-template.md \
   docs/templates/workflow-assessment-rubric-template.md \
   docs/templates/workflow-assessment-report-template.md

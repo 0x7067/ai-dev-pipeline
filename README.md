@@ -82,7 +82,7 @@ See [docs/specs/run-id-isolation/spec.yaml](docs/specs/run-id-isolation/spec.yam
 
 ## Environment Variables
 
-Full reference in [docs/env-vars.md](docs/env-vars.md). Notable knobs:
+Full reference in [docs/reference/env-vars.md](docs/reference/env-vars.md). Notable knobs:
 
 - `RUN_ID`, `RUN_DIR` — active run-id and resolved directory; set by step 0.
 - `RUN_RETENTION` — run dirs to keep under `docs/runs/` (default `10`); honored by `scripts/prune-runs.sh`. CI=true is a no-op.
@@ -94,7 +94,7 @@ Full reference in [docs/env-vars.md](docs/env-vars.md). Notable knobs:
 - `VERIFY_REQUIRE_PROPERTY=1`, `VERIFY_REQUIRE_CONTRACT=1`, `VERIFY_REQUIRE_FULL_SUITE=1` — make optional test discovery failures blocking.
 - `HARNESS_JS_PACKAGE_MANAGER=pnpm` — force a JS package manager when auto-detection falls short.
 
-Portability notes and source references are in [docs/harness-engineering.md](docs/harness-engineering.md).
+Portability notes and source references are in [docs/reference/harness-engineering.md](docs/reference/harness-engineering.md).
 
 ## Tuning
 

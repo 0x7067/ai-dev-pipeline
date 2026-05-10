@@ -34,11 +34,8 @@ build/
 # Generated docs (recreated by agents each run)
 docs/*
 !docs/templates/
-!docs/env-vars.md
-!docs/harness-engineering.md
-!docs/verification/
-!docs/hook-recipes.md
-!docs/pragmatic-tips-mapping.md
+!docs/reference/
+!docs/reference/**
 !docs/schemas/
 !docs/schemas/**
 !docs/specs/
@@ -49,3 +46,4 @@ docs/specs/_site/
 .claude/settings.local.json
 .claude/worktrees
 .dev/
+.claude/scheduled_tasks.lock
