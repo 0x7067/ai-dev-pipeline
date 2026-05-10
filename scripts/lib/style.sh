@@ -1,4 +1,5 @@
 # style.sh — shared output style helpers for plugin shell surfaces.
+# shellcheck shell=bash
 #
 # This file is sourced, not executed. It provides a small set of
 # capability-aware emitters that produce a consistent set of status glyphs,
