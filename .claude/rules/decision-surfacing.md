@@ -107,7 +107,41 @@ If a user answers an `AskUserQuestion` invocation ambiguously:
 
 Do not silently default.
 
+## Open-Decisions ⇔ AskUserQuestion pairing (mandatory)
+
+Any agent file under `.claude/agents/*.md` that contains an "Open
+Decisions" section (literal Markdown heading, any case, optional trailing
+parenthetical such as `(provisional)`) MUST also contain an explicit
+`AskUserQuestion` instruction. The pairing is enforced by
+`scripts/validate-claude-config.sh`:
+
+- An "Open Decisions" heading without `AskUserQuestion` anywhere in the
+  same file is a hard error — the validator exits non-zero with the
+  offending file path.
+- The validator is pure-bash (no extra dependency) and runs as part of
+  the standard CI gate.
+
+## Approval halts use AskUserQuestion (not prose)
+
+Approval halts in `.claude/commands/*.md` (plan gate, release gate, any
+analogous gate) MUST be expressed as an `AskUserQuestion` invocation, not
+as a prose `reply "approve" / "edit <comment>" / "reject"` instruction.
+The orchestrator command file MUST contain an `AskUserQuestion` block in
+the same section as the halt.
+
+- Plan gate: option #1 `Approve (Recommended)`; option #2 `Reject`. The
+  free-text "Other" entry is interpreted as `edit <comment>` (the
+  comment is the user's free text). Each option's `description` should
+  state the consequence in plain language — no fixed prefix required.
+- Release gate: option #1 `Approve (Recommended)`; option #2 `Reject`.
+  No `edit` option (HITL plan invariant 8).
+
+The validator flags any `.claude/commands/*.md` containing the literal
+prose pattern `reply "approve"` or `reply "reject"` without a paired
+`AskUserQuestion` block in the same section.
+
 ## References
 - `.claude/agents/planner.md`
 - `.claude/agents/researcher.md`
 - `.claude/rules/release-and-verification.md` (approval gates)
+- `scripts/validate-claude-config.sh` (enforces the Open-Decisions pairing rule)

@@ -13,8 +13,12 @@ Steps:
    - Run `bash scripts/prune-runs.sh` (no-op when `CI=true`).
    - Print `▶ run minted RUN_ID=$RUN_ID RUN_DIR=$RUN_DIR`.
 
-1. Print to the user:
-   `▶ reviewer starting (run=$RUN_ID)`
+1. Capture phase start time and print to the user:
+   ```sh
+   _phase_t0=$SECONDS
+   _phase_started_at="$(date -u +%FT%TZ)"
+   printf '▶ reviewer starting (run=%s)\n' "$RUN_ID"
+   ```
 
 2. Invoke the `reviewer` subagent via the Task tool. Pass the user's request as input AND ensure `RUN_ID` and `RUN_DIR` are present in the subagent's environment so `${RUN_DIR}/review-report.md` resolves correctly. Wait for it to return.
 
@@ -22,9 +26,27 @@ Steps:
    `STATUS: <state> | blocking=<n> advisory=<n> | <summary> | report=<path>`
    Capture that line.
 
-4. Print ONE line to the user:
-   - If STATUS starts with `STATUS: ok` → `✓ reviewer — <everything after "STATUS: ">`
-   - Otherwise → `✗ reviewer — <everything after "STATUS: ">`
+4. Compute elapsed seconds, derive the phase outcome from the STATUS
+   line, and print ONE line with the per-phase annotation `(Ns)`:
+   ```sh
+   _phase_secs=$(( SECONDS - _phase_t0 ))
+   case "$STATUS_LINE" in
+     "STATUS: ok"*) reviewer_ok=1 ;;
+     *)             reviewer_ok=0 ;;
+   esac
+   ```
+   - If `reviewer_ok=1` → `✓ reviewer ok (${_phase_secs}s) — <everything after "STATUS: ">`
+   - Otherwise        → `✗ reviewer failed (${_phase_secs}s) — <everything after "STATUS: ">`
+
+   Then append the timing record (additive; failure logged but never
+   blocks the run):
+   ```sh
+   bash scripts/append-phase-timing.sh \
+     --run-dir "$RUN_DIR" --name reviewer \
+     --status "$([ "$reviewer_ok" = 1 ] && echo ok || echo fail)" \
+     --seconds "$_phase_secs" --started-at "$_phase_started_at" \
+     || printf '↷ phase-timing append skipped (rc=%d)\n' "$?"
+   ```
 
 5. Expected output is `${RUN_DIR}/review-report.md`. The reviewer runs the pragmatic-review-checklist second pass automatically for `medium`/`high` risk changes; do not invoke it from here.
 
@@ -35,8 +57,19 @@ Steps:
    helper with anchor `"## Advisory findings"`. Missing report or anchor →
    emit nothing (fail-closed). Preview lines never start with `STATUS:` (I2).
 
-6. **End-of-run artifact summary.** As the very last output, render the
-   end-of-run artifact summary block per
-   `docs/templates/end-of-run-summary-template.md`. Use absolute paths and
-   only list artifacts that exist on disk. The same block is shared verbatim
+6. **End-of-run artifact summary.** As the very last output, invoke the
+   shared renderer:
+
+   ```sh
+   bash scripts/render-end-of-run.sh --run-dir "$RUN_DIR" --run-id "$RUN_ID"
+   ```
+
+   The renderer reads `${RUN_DIR}/phase_timings.json` (via the boundary
+   parser `scripts/parse-phase-timings.sh` — never raw `jq`/`cat`),
+   `${RUN_DIR}/decisions.jsonl`, and the optional
+   `${RUN_DIR}/.failure-summary` to produce the canonical block in
+   order: failures → timings → decisions → Artifacts. Artifact paths
+   become OSC-8 hyperlinks on TTYs with `STYLE_COLOR=1`; `NO_COLOR=1`
+   or non-TTY output suppresses all escapes. Same block shared verbatim
    across `/ship`, `/review`, `/refactor`, `/audit`, `/research`.
+   Contract: `docs/templates/end-of-run-summary-template.md`.

@@ -76,9 +76,27 @@ YAML. Decisions are sourced from this typed form via `policy_apply` in
 
 For each subagent phase:
 
-1. Print `▶ <phase> starting (<n>/<total>)`.
-2. Invoke the named subagent with the user's request and prior artifacts.
-3. Echo its final `STATUS:` line as `✓ <phase> - ...` for `ok`/`go`, otherwise `✗ <phase> - ...`.
+1. Capture the phase start time and timestamp before printing the banner:
+   ```sh
+   _phase_t0=$SECONDS
+   _phase_started_at="$(date -u +%FT%TZ)"
+   ```
+2. Print `▶ <phase> starting (<n>/<total>)`.
+3. Invoke the named subagent with the user's request and prior artifacts.
+4. Compute elapsed seconds: `_phase_secs=$(( SECONDS - _phase_t0 ))` (integer
+   only; no sub-second jitter — invariant 10).
+5. Echo its final `STATUS:` line as `✓ <phase> ok (${_phase_secs}s) - ...`
+   for `ok`/`go`, otherwise `✗ <phase> failed (${_phase_secs}s) - ...`.
+6. Append the timing record atomically:
+   ```sh
+   bash scripts/append-phase-timing.sh \
+     --run-dir "$RUN_DIR" \
+     --name "<phase>" \
+     --status "<ok|fail>" \
+     --seconds "$_phase_secs" \
+     --started-at "$_phase_started_at"
+   ```
+   Failure of this writer is logged but never blocks the run (additive only).
 
 ## Lean Phases
 
@@ -91,8 +109,35 @@ For each subagent phase:
    - Before any approval prompt, preview the plan with:
      `bash scripts/preview.sh --anchor plan "${RUN_DIR}/current-plan.md"`.
    - In `auto` mode, continue without a prompt when `risk=low`.
-   - In `auto` mode with `risk=medium` or `risk=high`, halt with `⏸ plan approval required (run=$RUN_ID, risk=<tier> because <reason>) - reply "approve" to continue, "edit <comment>" to revise, "reject" to stop`.
-   - In `strict` mode, halt with `⏸ plan approval required (run=$RUN_ID, mode=strict, risk=<tier> because <reason>) - reply "approve" / "edit <comment>" / "reject"`.
+   - In `auto` mode with `risk=medium` or `risk=high`, OR in `strict` mode,
+     halt with the two-line plan-halt grammar (line 1 = halt summary,
+     line 2 = wrapped `risk=<tier> because <reason>` capped at terminal
+     cols or 80):
+
+     ```
+     ⏸ plan approval required (run=$RUN_ID[, mode=strict])
+       risk=<tier> because <reason>
+     ```
+
+     Then invoke `AskUserQuestion` with these options (option #1 ends in
+     the literal suffix `(Recommended)` per `.claude/rules/decision-surfacing.md`;
+     each option's `description` should state the consequence in plain
+     language):
+
+     ```
+     AskUserQuestion:
+       question: "Approve the plan? (run=$RUN_ID, risk=<tier>)"
+       options:
+         - label: "Approve (Recommended)"
+           description: continue to Implement; record verb=approve
+         - label: "Reject"
+           description: stop the run; record verb=reject
+       allow_other: true   # free-text "Other" is interpreted as `edit <comment>`
+     ```
+
+     The free-text "Other" entry is parsed as `edit <comment>`; the
+     comment payload is the user's free text. The plan gate is the ONLY
+     gate that accepts `edit` (HITL plan invariant 8).
    - On `edit <comment>`: re-invoke the `planner` with the comment as additional input; record the event in `${RUN_DIR}/decisions.jsonl` with `gate=plan, verb=edit, plan_hash=<hash of new plan>` via `scripts/append-decision.sh`. The plan gate is the ONLY gate that accepts `edit` (HITL plan invariant 8); the release gate accepts `approve | reject` only.
    - On any plan-gate transition, append one record to `${RUN_DIR}/decisions.jsonl`:
      `bash scripts/append-decision.sh --run-dir "$RUN_DIR" --ts "$(date -u +%FT%TZ)" --actor user --gate plan --verb <approve|edit|reject> --rationale "<short>" --plan-hash "<hash>"`
@@ -124,7 +169,25 @@ For each subagent phase:
 
      The function returns `auto-approve | prompt | reject`. Per HITL plan invariant 1 (auto-approve safety), any malformed/unrecognized input fails closed to `prompt` or `reject` — NEVER `auto-approve`.
    - On `auto-approve`: print `⏵ release auto-approved (auto, risk=low, gates green)`, append a decision record with `actor=auto, gate=release, verb=approve, rationale="all gates green"`, and finish.
-   - On `prompt`: halt with `⏸ release approval required (run=$RUN_ID) - reply "approve" to finish, "reject" to stop`. The release gate accepts ONLY `approve | reject` (HITL plan invariant 8 — `edit` is plan-gate only). On the user's response, the rationale recorded is the user's own short reason (or `"user approved"` / `"user rejected"` when none was given) — `reject_reason` from `policy_apply` is NOT relevant here because `prompt` had no machine reject.
+   - On `prompt`: halt with `⏸ release approval required (run=$RUN_ID)`
+     and invoke `AskUserQuestion` (no `edit` option — release-gate only
+     accepts `approve | reject` per HITL plan invariant 8):
+
+     ```
+     AskUserQuestion:
+       question: "Approve the release? (run=$RUN_ID)"
+       options:
+         - label: "Approve (Recommended)"
+           description: finalize the run; record verb=approve
+         - label: "Reject"
+           description: do not finish; record verb=reject
+       allow_other: false
+     ```
+
+     On the user's response, the rationale recorded is the user's own
+     short reason (or `"user approved"` / `"user rejected"` when none
+     was given) — `reject_reason` from `policy_apply` is NOT relevant
+     here because `prompt` had no machine reject.
    - On `reject`: print `✗ release rejected (${reject_reason:-policy})`, record `verb=reject` with `rationale="${reject_reason:-policy}"`, do not finish. The `reject_reason` MUST be one of `verifier-crashed | gates-failed | smoke-failed` (the typed values `policy_apply` emits); if absent or unrecognized, fall back to the literal `policy` so the audit log never carries arbitrary stderr bytes.
    - On every release-gate transition append exactly one record:
      `bash scripts/append-decision.sh --run-dir "$RUN_DIR" --ts "$(date -u +%FT%TZ)" --actor <user|auto> --gate release --verb <approve|reject> --rationale "<short>" --plan-hash "${PLAN_HASH:-}"`
@@ -222,4 +285,31 @@ Stop on missing required artifacts, unresolved blocking review findings, failed 
 
 ## End-of-Run Summary
 
-After success or halt, render `docs/templates/end-of-run-summary-template.md` as the final output. Include only artifacts that exist.
+After success or halt, render the end-of-run block as the final output.
+The canonical renderer is `scripts/render-end-of-run.sh`, which reads
+`${RUN_DIR}/phase_timings.json` (via the boundary parser
+`scripts/parse-phase-timings.sh`), `${RUN_DIR}/decisions.jsonl`, and
+the optional `${RUN_DIR}/.failure-summary` file, then prints the block
+in the order: failures (if any) → timing strip → decision trail →
+Artifacts list. Artifact paths are wrapped via `style::hyperlink`
+(active only on a TTY with `STYLE_COLOR=1`).
+
+```sh
+bash scripts/render-end-of-run.sh --run-dir "$RUN_DIR" --run-id "$RUN_ID"
+```
+
+When a phase failed, the orchestrator MUST write the failure summary
+file before invoking the renderer. The first line is a one-line
+citation; an optional second line of the form `log=<absolute-path>`
+points the renderer at the captured log so it can preview the last
+20 lines (hard cap, no env knob — invariant 8).
+
+```sh
+{
+  printf '%s failed (rc=%d)\n' "$failed_phase" "$rc"
+  printf 'log=%s\n' "$captured_log_path"
+} > "$RUN_DIR/.failure-summary"
+```
+
+Follow `docs/templates/end-of-run-summary-template.md` for the block
+contract; the renderer is the executable form.

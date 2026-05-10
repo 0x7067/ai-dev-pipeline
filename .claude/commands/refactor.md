@@ -40,7 +40,32 @@ Same as `/ship`: print `▶ <phase> starting (<n>/<total>)` before, echo `✓` o
    - Classify via the pure core function `refactor_scope_classify` in `scripts/lib/hitl-core.sh`:
      `bash -c 'source scripts/lib/hitl-core.sh; refactor_scope_classify "$FILES" "$LOC" "$FILES_THR" "$LOC_THR"'`
      Result is `above` or `below`.
-   - On `above`: halt and print `⏸ refactor plan approval required (run=$RUN_ID, scope=above-threshold) — reply "approve" to continue, "reject" to stop`. Append one record to `${RUN_DIR}/decisions.jsonl` via `scripts/append-decision.sh` with `gate=refactor-plan, verb=<approve|reject>` after the user's reply.
+   - On `above`: halt with the two-line halt grammar (line 1 = halt
+     summary, line 2 = wrapped `scope=above-threshold (files=N, loc=N)`):
+
+     ```
+     ⏸ refactor plan approval required (run=$RUN_ID)
+       scope=above-threshold (files=<N>, loc=<N>)
+     ```
+
+     Then invoke `AskUserQuestion` (per `.claude/rules/decision-surfacing.md`,
+     option #1 ends with `(Recommended)`; each option's `description`
+     should state the consequence in plain language):
+
+     ```
+     AskUserQuestion:
+       question: "Approve the refactor plan? (run=$RUN_ID, scope=above-threshold)"
+       options:
+         - label: "Approve (Recommended)"
+           description: continue to Implement; record verb=approve
+         - label: "Reject"
+           description: stop the run; record verb=reject
+       allow_other: false
+     ```
+
+     Append one record to `${RUN_DIR}/decisions.jsonl` via
+     `scripts/append-decision.sh` with `gate=refactor-plan, verb=<approve|reject>`
+     after the user's reply.
    - On `below`: print `↷ refactor plan gate skipped (scope below threshold)` and proceed without a halt. The pre-existing pre/post verification gates remain unchanged.
 
    Per HITL plan invariant 1 (fail-closed), if the policy parser errors or the diff cannot be measured, treat as `above` and halt — never silently skip.

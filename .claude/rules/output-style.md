@@ -38,9 +38,17 @@ under `set -euo pipefail`.
 | `─`     | `-`            | rule           | `style::rule`     | horizontal divider              |
 | n/a     | n/a            | section header | `style::header`   | `== Verification gates ==`      |
 | n/a     | n/a            | boxed message  | `style::box`      | framed callout                  |
+| n/a     | n/a            | OSC-8 hyperlink | `style::hyperlink` | `style::hyperlink file:///abs/x.log x.log` |
 
 Every glyph emitted by `scripts/lib/style.sh` MUST appear in this table
 (invariant I5 of the standardization plan).
+
+`style::hyperlink` does not introduce a printable glyph; it wraps the given
+text in an OSC-8 escape sequence. It is gated by the readonly internal flag
+`STYLE_HYPERLINKS`, derived ONCE at source-time as `STYLE_COLOR=1 AND
+[ -t 1 ]`. There is NO new env var. When the flag is 0 (NO_COLOR,
+CLICOLOR=0, or non-TTY stdout), the emitter prints the text only, with NO
+escapes. `style::strip_ansi` strips OSC 8 in addition to CSI/SGR.
 
 ## Capability Environment Variables
 

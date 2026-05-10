@@ -105,7 +105,20 @@ _style::detect_gum() {
 STYLE_COLOR="$(_style::detect_color)"
 STYLE_UNICODE="$(_style::detect_unicode)"
 STYLE_USE_GUM="$(_style::detect_gum "$STYLE_COLOR" "$STYLE_UNICODE")"
-readonly STYLE_COLOR STYLE_UNICODE STYLE_USE_GUM
+
+# _style::detect_hyperlinks — derived flag (no env var). Active iff
+# STYLE_COLOR=1 AND stdout is a TTY. Emitters branch on this typed value
+# only; raw env reads happen exactly once at source-time.
+_style::detect_hyperlinks() {
+  if [[ "$STYLE_COLOR" = "1" ]] && [[ -t 1 ]]; then
+    printf '1\n'
+  else
+    printf '0\n'
+  fi
+  return 0
+}
+STYLE_HYPERLINKS="$(_style::detect_hyperlinks)"
+readonly STYLE_COLOR STYLE_UNICODE STYLE_USE_GUM STYLE_HYPERLINKS
 
 # ---------------------------------------------------------------------------
 # Internal palette (resolved once from STYLE_COLOR)
@@ -264,9 +277,29 @@ style::rule() {
   return 0
 }
 
-# style::strip_ansi — filter stdin, removing CSI/SGR escape sequences.
-# Useful when redirecting styled output to docs/* files.
+# style::hyperlink <url> <text> — emit OSC-8 hyperlink when capable, else
+# plain text. Capability gated by STYLE_HYPERLINKS (derived once from
+# STYLE_COLOR + isatty). Always newline-free; caller adds spacing.
+style::hyperlink() {
+  local url="${1:-}" text="${2:-}"
+  if [[ -z "$text" ]]; then
+    text="$url"
+  fi
+  if [[ "$STYLE_HYPERLINKS" = "1" ]]; then
+    # OSC 8 ; ; <url> ST <text> OSC 8 ; ; ST  (ST = ESC \)
+    printf '\033]8;;%s\033\\%s\033]8;;\033\\' "$url" "$text"
+  else
+    printf '%s' "$text"
+  fi
+  return 0
+}
+
+# style::strip_ansi — filter stdin, removing CSI/SGR escape sequences AND
+# OSC 8 hyperlink sequences. Useful when redirecting styled output to docs/*
+# files. OSC 8 form: ESC ] 8 ; <params> ; <uri> ST   (ST = BEL or ESC \).
 style::strip_ansi() {
-  sed -E $'s/\x1b\\[[0-9;]*[A-Za-z]//g'
+  # First pass: strip OSC 8 (terminated by BEL or ESC\). Second pass: CSI/SGR.
+  sed -E -e $'s/\x1b\\]8;[^\x07\x1b]*(\x07|\x1b\\\\)//g' \
+         -e $'s/\x1b\\[[0-9;]*[A-Za-z]//g'
   return 0
 }

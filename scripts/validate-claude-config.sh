@@ -79,6 +79,47 @@ if ls .claude/agents/*.md >/dev/null 2>&1; then
   fi
 fi
 
+# Boundary check: decision-surfacing pairing rules (per
+# .claude/rules/decision-surfacing.md). Two sub-checks, both pure bash:
+#   (a) Agent files with an "## Open Decisions" heading must mention
+#       AskUserQuestion somewhere in the same file.
+#   (b) Command files containing prose halts (`reply "approve"` or
+#       `reply "reject"`) must also reference AskUserQuestion in the same
+#       file (relaxed proximity check).
+_decision_pairing_violations=0
+_emit_pair_err() {
+  echo "validate: ✗ $1" >&2
+  _decision_pairing_violations=$((_decision_pairing_violations + 1))
+}
+
+# (a) Open Decisions ⇔ AskUserQuestion (agent files only).
+if ls .claude/agents/*.md >/dev/null 2>&1; then
+  for f in .claude/agents/*.md; do
+    [ -f "$f" ] || continue
+    # Heading match: ^##\s+Open Decisions, case-insensitive, optional trailing parenthetical.
+    if grep -Eiq '^##[[:space:]]+Open Decisions([[:space:]]*\(.*\))?[[:space:]]*$' "$f"; then
+      if ! grep -q 'AskUserQuestion' "$f"; then
+        _emit_pair_err "${f}: Open Decisions section without AskUserQuestion pairing"
+      fi
+    fi
+  done
+fi
+
+# (b) Prose halt patterns (reply "approve"/"reject") in command files require AskUserQuestion in same file.
+for f in .claude/commands/*.md; do
+  [ -f "$f" ] || continue
+  if grep -Eq 'reply "(approve|reject)"' "$f"; then
+    if ! grep -q 'AskUserQuestion' "$f"; then
+      _emit_pair_err "${f}: prose halt template without AskUserQuestion pairing"
+    fi
+  fi
+done
+
+if [ "$_decision_pairing_violations" -gt 0 ]; then
+  echo "validate: ERROR: $_decision_pairing_violations decision-surfacing pairing violation(s)" >&2
+  exit 1
+fi
+
 rc=0
 bash scripts/check-crossrefs.sh             || rc=1
 bash scripts/check-boundary-violations.sh   || rc=1
