@@ -24,7 +24,29 @@ env: RUN_ID, RUN_DIR (set by orchestrator at /ship step 0)
 <deliverables>
 required: ${RUN_DIR}/current-plan.md
 conditional: ${RUN_DIR}/specs/<feature>.md (when plan introduces new feature surface)
+mirror: docs/artifacts/specs/<feature>.md (persistent mirror — see <persistent-spec-mirror>)
 </deliverables>
+
+<persistent-spec-mirror>
+When (and only when) a feature spec is written to `${RUN_DIR}/specs/<feature>.md`,
+ALSO write a byte-identical copy to `docs/artifacts/specs/<feature>.md`. This
+is a write-only egress mirror in this run — no agent reads it back yet.
+
+Procedure (atomic, last-writer-wins is acceptable because the artifact is
+advisory):
+
+1. Write `${RUN_DIR}/specs/<feature>.md` first (the canonical per-run spec).
+2. Ensure `docs/artifacts/specs/` exists (create if missing).
+3. Write the same bytes to a temp file in `docs/artifacts/specs/`, then
+   `mv` it to `docs/artifacts/specs/<feature>.md`. The temp+rename pattern
+   is the egress hygiene from `.claude/rules/boundary-parse-dont-validate.md`.
+4. Do NOT post-process or reformat between the two writes — invariant I2
+   requires byte-equality. A direct copy (e.g. `cp` or identical `Write`
+   call with the same content) is correct; any rendering layer is wrong.
+
+If no feature spec is produced (non-feature change), do NOT touch
+`docs/artifacts/specs/`. (AC2 of the SPDD-borrows plan.)
+</persistent-spec-mirror>
 
 <template name="current-plan-template.md" required=true>
 resolve:
@@ -39,7 +61,7 @@ placeholders: replace with concrete plan | omit non-applicable sections — no e
 </template>
 
 <constraints>
-write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md ONLY
+write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md + docs/artifacts/specs/<feature>.md ONLY
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.

@@ -120,6 +120,101 @@ if [ "$_decision_pairing_violations" -gt 0 ]; then
   exit 1
 fi
 
+# Boundary check: Norms/Safeguards content style (invariant I3 of the
+# SPDD-borrows plan). When a plan or plan template contains a
+# `## Norms applied` or `## Safeguards applied` section, every non-empty,
+# non-comment, non-bullet-marker line in that section must reference a
+# `.claude/rules/<name>.md` file path. Rule prose, paraphrases, or
+# arbitrary commentary are forbidden — links only. Enforced inline so
+# there is no extra script dependency.
+_norms_violations=0
+_check_norms_block() {
+  local file="$1"
+  awk -v file="$file" '
+    BEGIN { in_block = 0; in_comment = 0; bad = 0 }
+    /^##[[:space:]]+/ {
+      if ($0 ~ /^##[[:space:]]+(Norms applied|Safeguards applied)[[:space:]]*$/) {
+        in_block = 1; next
+      } else {
+        in_block = 0
+      }
+    }
+    in_block {
+      raw = $0
+      # Track multi-line HTML comments. A line that opens a comment
+      # without closing it on the same line enters a comment region;
+      # subsequent lines stay skipped until `-->` is seen.
+      if (in_comment) {
+        if (raw ~ /-->/) in_comment = 0
+        next
+      }
+      if (raw ~ /<!--/ && raw !~ /-->/) {
+        in_comment = 1
+        next
+      }
+      # Single-line comment fully on one line.
+      if (raw ~ /^[[:space:]]*<!--.*-->[[:space:]]*$/) next
+      line = raw
+      # Strip leading whitespace and bullet markers (-, *, +, digits.).
+      sub(/^[[:space:]]*([-*+]|[0-9]+\.)?[[:space:]]*/, "", line)
+      # Skip empty lines.
+      if (line ~ /^[[:space:]]*$/) next
+      # Accept: line contains a `.claude/rules/<name>.md` path AND no
+      # other non-whitespace text outside that path/markdown link wrapper.
+      # Permitted shapes:
+      #   .claude/rules/foo.md
+      #   `.claude/rules/foo.md`
+      #   [.claude/rules/foo.md](.claude/rules/foo.md)
+      #   [foo](.claude/rules/foo.md)   <-- still link-only, accepted
+      # Forbid paraphrases by requiring the line to match one of these
+      # link-only shapes end-to-end after stripping wrapping punctuation.
+      stripped = line
+      # Remove backticks.
+      gsub(/`/, "", stripped)
+      # If it is a markdown link [text](path), accept iff path is a rules path.
+      if (match(stripped, /^\[[^]]*\]\([^)]+\)[[:space:]]*$/)) {
+        # Extract the URL portion.
+        url = stripped
+        sub(/^\[[^]]*\]\(/, "", url)
+        sub(/\)[[:space:]]*$/, "", url)
+        if (url ~ /^\.claude\/rules\/[a-zA-Z0-9_-]+\.md$/) next
+        printf "validate: ✗ %s: Norms/Safeguards link target not a .claude/rules path: %s\n", file, line > "/dev/stderr"
+        bad++
+        next
+      }
+      # Otherwise require the entire trimmed line to be a bare rules path.
+      sub(/^[[:space:]]+/, "", stripped)
+      sub(/[[:space:]]+$/, "", stripped)
+      if (stripped ~ /^\.claude\/rules\/[a-zA-Z0-9_-]+\.md$/) next
+      printf "validate: ✗ %s: Norms/Safeguards section contains non-link text: %s\n", file, line > "/dev/stderr"
+      bad++
+    }
+    END { exit (bad > 0 ? 1 : 0) }
+  ' "$file"
+}
+
+# Files to scan: the plan template + every current-plan.md under docs/runs.
+_norms_targets=()
+[ -f docs/templates/current-plan-template.md ] && _norms_targets+=(docs/templates/current-plan-template.md)
+if [ -d docs/runs ]; then
+  while IFS= read -r f; do
+    [ -n "$f" ] && _norms_targets+=("$f")
+  done < <(find docs/runs -type f -name 'current-plan.md' 2>/dev/null)
+fi
+
+for f in "${_norms_targets[@]:-}"; do
+  [ -z "$f" ] && continue
+  [ -f "$f" ] || continue
+  if ! _check_norms_block "$f"; then
+    _norms_violations=$((_norms_violations + 1))
+  fi
+done
+
+if [ "$_norms_violations" -gt 0 ]; then
+  echo "validate: ERROR: $_norms_violations file(s) contain non-link text in Norms/Safeguards section (invariant I3)" >&2
+  exit 1
+fi
+
 rc=0
 bash scripts/check-crossrefs.sh             || rc=1
 bash scripts/check-boundary-violations.sh   || rc=1
