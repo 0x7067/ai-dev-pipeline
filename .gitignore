@@ -45,3 +45,4 @@ docs/*
 .claude/workflow-state/
 .claude/settings.local.json
 .claude/worktrees
+.dev/
