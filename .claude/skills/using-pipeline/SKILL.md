@@ -53,7 +53,7 @@ The primary user-facing surface is exactly five slash commands:
 
 > **Zero-setup default**: as of v0.4.0, the pipeline works directly from the marketplace install with no scaffolding step. The `setup` skill is opt-in and primarily exists to satisfy CI gate authority (CI does not load Claude Code plugins). Do not suggest `setup` as a precondition for interactive commands.
 
-> **Skills (no slash)**: per-phase logic that previously had its own slash command is now reachable only via skills. Invoke by skill name through the `Skill` tool: `setup` (vendor artifacts for CI), `reset` (clear `.claude/workflow-state.json`), `requirement-analysis` (planning specs, used by `planner`), `code-review` (used by `reviewer`), `test-gen` (used by `tester`), `static-analysis` (used by `verifier`), `research` (used by `researcher`), `fcis-architecture`, `pragmatic-review-checklist`. The corresponding agents (`planner`, `implementer`, `tester`, `verifier`, `researcher`) are dispatched by `/ship` by name; you do not need to invoke them directly.
+> **Skills (no slash)**: per-phase logic that previously had its own slash command is now reachable only via skills. Invoke by skill name through the `Skill` tool: `setup` (vendor artifacts for CI), `reset` (clear `.claude/workflow-state.json`), `requirement-analysis` (planning specs, used by `planner`), `code-review` (used by `reviewer`), `test-gen` (used by `tester`), `static-analysis` (used by `verifier`), `research` (used by `researcher`), `release` (cut a release: SemVer bump + CHANGELOG rewrite + manifest sync + annotated tag, triggers: "cut a release", "bump tag", "tag v…", "ship a release", "release this"), `fcis-architecture`, `pragmatic-review-checklist`. The corresponding agents (`planner`, `implementer`, `tester`, `verifier`, `researcher`) are dispatched by `/ship` by name; you do not need to invoke them directly.
 
 When in doubt between two: process skills (requirement-analysis, research) come **before** implementation skills, but for any user-visible action prefer the command surface above.
 
@@ -69,6 +69,7 @@ The following skills are reference/process material that the pipeline agents inv
 - `test-gen` — used by `tester`
 - `refactor` — used by `/refactor`
 - `research` — used by `researcher`
+- `release` — invoked directly by users on release-cut intents ("cut a release", "bump tag", "tag v…", "ship a release", "release this")
 
 ## Run-ID isolation contract
 
