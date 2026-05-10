@@ -30,6 +30,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `render-html.sh` short-circuits explicitly when no specs are present;
   removes the `${arr[@]:-}` `set -u` workaround.
 
+### Docs
+
+- Loose top-level reference docs (`env-vars.md`, `harness-engineering.md`,
+  `hook-recipes.md`, `pragmatic-tips-mapping.md`, and the former
+  `verification/acceptance-checklist.md`) are grouped under
+  `docs/reference/`. The empty `docs/verification/` directory is removed.
+  Inbound links in `README.md`, `scripts/smoke-bootstrap.sh`, and the
+  `pragmatic-review-checklist` skill are updated. New `docs/.gitignore`
+  ignores `.DS_Store` and `.verify-retry.json`.
+- `.claude/scheduled_tasks.lock` is now gitignored.
+
 ## [0.15.0] - 2026-05-10
 
 ### Added
