@@ -5,6 +5,33 @@ All notable changes to `ai-dev-pipeline` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-05-10
+
+### Added
+
+- SPDD selective borrows (run `20260510T150529-666528-5b`), informed by
+  Fowler's *Structured Prompt-Driven Development*
+  (https://martinfowler.com/articles/structured-prompt-driven). No
+  paradigm pivot: the five-command surface and tool-derived gate
+  authority are preserved.
+  - Persistent feature specs at `docs/artifacts/specs/<feature>.md`.
+    Egress-only this run; the planner mirrors the per-run spec when one
+    is produced. A typed boundary parser is required before any agent
+    reads from the tree (deferred to a future plan — SPDD borrow #2,
+    code→spec sync).
+  - Plan template gains optional `## Norms applied` and
+    `## Safeguards applied` sections (links-only, flat list). The
+    validator lints both as bare `.claude/rules/*.md` paths or markdown
+    links targeting the same; non-link prose is rejected.
+  - `<invest-mode>` in `.claude/agents/researcher.md`: always-on
+    INVEST decomposition when the topic looks story-shaped. Conservative
+    heuristic — requires `i want` + `so that`, OR `as a <role>`. Output
+    on the non-trigger path is byte-identical (no banner, no mode flag).
+  - `using-pipeline` SKILL gains a "Command surface stability"
+    subsection that names the five commands and explicitly rejects a
+    `/spdd-*` rename.
+  - `.gitignore` allowlist extended to track `docs/artifacts/specs/**`.
+
 ## [0.14.0] - 2026-05-10
 
 ### Added
