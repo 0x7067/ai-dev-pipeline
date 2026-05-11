@@ -31,6 +31,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 source "${SCRIPT_DIR}/parse-run-id.sh"
 # shellcheck source=scripts/lib/promote-core.sh
 source "${SCRIPT_DIR}/lib/promote-core.sh"
+# shellcheck source=scripts/lib/project-root.sh
+source "${SCRIPT_DIR}/lib/project-root.sh"
 
 # ---- boundary ----------------------------------------------------------------
 
@@ -109,8 +111,10 @@ atomic_update_active_green() {
 
 main() {
   local run_id="" verify_status="" review_blocking=""
-  local docs_root="docs"
-  local ws_root=".claude/workflow-state"
+  # Roots are resolved AFTER arg parsing so the CLI test hooks
+  # --docs-root and --ws-root act as the first boundary step — if either
+  # is supplied, no resolver call is made for that root.
+  local docs_root="" ws_root=""
 
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -125,6 +129,24 @@ main() {
         return 2 ;;
     esac
   done
+
+  # Resolve defaults only for roots the caller did not provide. Anchors
+  # to the consumer project (or the plugin itself for self-tests), never
+  # to cwd-relative paths.
+  if [ -z "$docs_root" ] || [ -z "$ws_root" ]; then
+    local _proj
+    _proj="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+      printf 'promote-latest-green: ERROR: could not resolve AIDP_PROJECT_ROOT\n' >&2
+      return 2; }
+    if [ -z "$docs_root" ]; then
+      docs_root="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$_proj")}" || {
+        printf 'promote-latest-green: ERROR: could not resolve AIDP_ARTIFACTS_ROOT\n' >&2
+        return 2; }
+    fi
+    if [ -z "$ws_root" ]; then
+      ws_root="${_proj}/.claude/workflow-state"
+    fi
+  fi
 
   if [ -z "$run_id" ] || [ -z "$verify_status" ] || [ -z "$review_blocking" ]; then
     printf 'promote-latest-green: ERROR: --run-id, --verify-status, and --review-blocking are required\n' >&2

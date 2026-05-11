@@ -221,6 +221,7 @@ bash scripts/check-boundary-violations.sh   || rc=1
 bash scripts/check-plugin-version-sync.sh   || rc=1
 bash scripts/check-skill-triggers.sh        || rc=1
 bash scripts/check-write-allowed.sh         || rc=1
+bash scripts/tests/test-project-root.sh     || rc=1
 
 if [ "$rc" -ne 0 ]; then
   echo "validate: FAILED — one or more sub-checks reported errors above" >&2

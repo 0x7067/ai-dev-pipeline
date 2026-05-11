@@ -2,6 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/lib/project-root.sh
+source "${SCRIPT_DIR}/lib/project-root.sh"
+# Resolve roots BEFORE harness_cd_repo_root cd's us into the plugin. The
+# helper consults CLAUDE_PROJECT_DIR → $(pwd); after the chdir, $(pwd)
+# would be the plugin and the fallback would resolve to the wrong tree.
+AIDP_PROJECT_ROOT="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+  echo "workflow-artifacts: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2; exit 2; }
+AIDP_ARTIFACTS_ROOT="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$AIDP_PROJECT_ROOT")}" || {
+  echo "workflow-artifacts: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2; exit 2; }
 # shellcheck source=scripts/harness-lib.sh
 source "${SCRIPT_DIR}/harness-lib.sh"
 harness_cd_repo_root
@@ -43,10 +52,13 @@ default_artifact_path() {
   local name="$1"
   if [ -n "${RUN_DIR:-}" ]; then
     printf '%s/%s\n' "$RUN_DIR" "$name"
-  elif [ -L "docs/latest" ] || [ -d "docs/latest" ]; then
-    printf 'docs/latest/%s\n' "$name"
+  elif [ -L "${AIDP_ARTIFACTS_ROOT}/latest" ] || [ -d "${AIDP_ARTIFACTS_ROOT}/latest" ]; then
+    printf '%s/latest/%s\n' "$AIDP_ARTIFACTS_ROOT" "$name"
   else
-    printf 'docs/%s\n' "$name"
+    # Top-level fallback for repos that haven't minted a run yet. Always
+    # absolute — never cwd-relative (which would resolve under the plugin
+    # after harness_cd_repo_root).
+    printf '%s/%s\n' "$AIDP_ARTIFACTS_ROOT" "$name"
   fi
 }
 
@@ -57,10 +69,10 @@ default_specs_glob() {
   # so this function only checks the per-run shape.
   if [ -n "${RUN_DIR:-}" ]; then
     printf '%s/specs/*.md\n' "$RUN_DIR"
-  elif [ -L "docs/latest" ] || [ -d "docs/latest" ]; then
-    printf 'docs/latest/specs/*.md\n'
+  elif [ -L "${AIDP_ARTIFACTS_ROOT}/latest" ] || [ -d "${AIDP_ARTIFACTS_ROOT}/latest" ]; then
+    printf '%s/latest/specs/*.md\n' "$AIDP_ARTIFACTS_ROOT"
   else
-    printf 'docs/specs/*/spec.yaml\n'
+    printf '%s/specs/*/spec.yaml\n' "$AIDP_ARTIFACTS_ROOT"
   fi
 }
 
@@ -75,7 +87,7 @@ specs_glob="${WORKFLOW_SPECS_GLOB:-$(default_specs_glob)}"
 # file path is still consulted as a soft fallback so freshly-cut runs that
 # pre-date the fold remain checkable.
 check_file "$plan_file"
-legacy_summary="${WORKFLOW_SUMMARY_PATH:-docs/impl-summary.md}"
+legacy_summary="${WORKFLOW_SUMMARY_PATH:-${AIDP_ARTIFACTS_ROOT}/impl-summary.md}"
 if [ -f "$legacy_summary" ]; then
   check_file "$legacy_summary"
 fi

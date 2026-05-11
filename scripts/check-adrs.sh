@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# Validate lightweight ADR artifacts under docs/runs/<RUN_ID>/adrs/.
+# Validate lightweight ADR artifacts under
+# ${AIDP_ARTIFACTS_ROOT}/runs/<RUN_ID>/adrs/.
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/lib/project-root.sh
+source "${SCRIPT_DIR}/lib/project-root.sh"
+AIDP_PROJECT_ROOT="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+  echo "adrs: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2; exit 2; }
+AIDP_ARTIFACTS_ROOT="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$AIDP_PROJECT_ROOT")}" || {
+  echo "adrs: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2; exit 2; }
 # shellcheck source=scripts/harness-lib.sh
 source "${SCRIPT_DIR}/harness-lib.sh"
 harness_cd_repo_root
@@ -22,10 +29,11 @@ fail() {
 default_adrs_glob() {
   if [ -n "${RUN_DIR:-}" ]; then
     printf '%s/adrs/*.md\n' "$RUN_DIR"
-  elif [ -L "docs/latest" ] || [ -d "docs/latest" ]; then
-    printf 'docs/latest/adrs/*.md\n'
   else
-    printf 'docs/runs/*/adrs/*.md\n'
+    # No-RUN_DIR fallback: walk every run under the artifacts root. The
+    # cwd-relative `docs/latest` and `docs/runs/*/...` patterns are gone —
+    # they would resolve under the plugin after harness_cd_repo_root.
+    printf '%s/runs/*/adrs/*.md\n' "$AIDP_ARTIFACTS_ROOT"
   fi
 }
 

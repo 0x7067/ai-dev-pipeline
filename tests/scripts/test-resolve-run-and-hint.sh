@@ -30,13 +30,19 @@ POISON_TRAVERSAL="../../../../etc/passwd"
 POISON_SLASH="foo/bar"
 POISON_EMPTY_GARBAGE="not a valid id"
 
-# Each case uses its own sandbox + cwd so resolve-run.sh's relative
-# probes (.claude/workflow-state/active, docs/latest, docs/latest.txt)
-# are isolated from the live repo.
+# Each case uses its own sandbox + cwd so resolve-run.sh's anchored probes
+# are isolated from the live repo. We drop a plugin.json with the
+# ai-dev-pipeline name into each sandbox so aidp_resolve_artifacts_root
+# classifies it as plugin-self and uses the legacy <root>/docs layout the
+# original tests were written against — the resolve-run contract is what
+# this file exercises, not the consumer-vs-plugin classifier (which has
+# its own test in scripts/tests/test-project-root.sh).
 make_sandbox() {
   local sb
   sb=$(mktemp -d)
-  mkdir -p "$sb/.claude/workflow-state" "$sb/docs"
+  mkdir -p "$sb/.claude/workflow-state" "$sb/docs" "$sb/.claude-plugin"
+  printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+    > "$sb/.claude-plugin/plugin.json"
   printf '%s\n' "$sb"
 }
 
@@ -116,14 +122,17 @@ else
 fi
 rm -rf "$sb"
 
-# A7: 'dir' subcommand returns docs/runs/<id> for a valid env id.
+# A7: 'dir' subcommand returns <artifacts-root>/runs/<id> for a valid
+# env id. Under the plugin-self sandbox (see make_sandbox), artifacts
+# root resolves to <sb>/docs, canonicalized via pwd -P.
 sb=$(make_sandbox)
+sb_canonical=$( cd "$sb" >/dev/null 2>&1 && pwd -P )
 got=$( cd "$sb" && RUN_ID="$VALID_ID" bash "$RESOLVE" dir 2>/dev/null )
 rc=$?
-if [ "$rc" -eq 0 ] && [ "$got" = "docs/runs/${VALID_ID}" ]; then
-  pass "'dir' subcommand returns docs/runs/<id>"
+if [ "$rc" -eq 0 ] && [ "$got" = "${sb_canonical}/docs/runs/${VALID_ID}" ]; then
+  pass "'dir' subcommand returns <artifacts-root>/runs/<id>"
 else
-  fail "'dir' subcommand wrong (rc=$rc got=$got)"
+  fail "'dir' subcommand wrong (rc=$rc got=$got want=${sb_canonical}/docs/runs/${VALID_ID})"
 fi
 rm -rf "$sb"
 
@@ -146,12 +155,17 @@ rm -rf "$sb"
 
 sb_g=$(mktemp -d)
 trap 'rm -rf "$sb_g"' EXIT
-mkdir -p "$sb_g/scripts/lib" "$sb_g/.claude/hooks"
+mkdir -p "$sb_g/scripts/lib" "$sb_g/.claude/hooks" "$sb_g/.claude-plugin"
+# Plugin-self manifest keeps the sandbox on the legacy docs/ layout (see
+# make_sandbox above); without it mint-run-id would write under docs/aidp/.
+printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+  > "$sb_g/.claude-plugin/plugin.json"
 cp "$REPO_ROOT/scripts/run-verification-gates.sh" "$sb_g/scripts/"
 cp "$REPO_ROOT/scripts/harness-lib.sh"            "$sb_g/scripts/"
 cp "$REPO_ROOT/scripts/parse-run-id.sh"           "$sb_g/scripts/"
 cp "$REPO_ROOT/scripts/mint-run-id.sh"            "$sb_g/scripts/"
 cp "$REPO_ROOT/scripts/lib/style.sh"              "$sb_g/scripts/lib/"
+cp "$REPO_ROOT/scripts/lib/project-root.sh"       "$sb_g/scripts/lib/"
 chmod +x "$sb_g/scripts/"*.sh
 
 run_id=$( cd "$sb_g" && bash scripts/mint-run-id.sh --write-pointers )

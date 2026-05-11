@@ -67,6 +67,24 @@ run_check_required_files() {
 }
 
 run_check "validate_claude_config" bash scripts/validate-claude-config.sh
+
+# Artifact-quality checks consume $RUN_DIR. When called from `/ship`, RUN_DIR
+# is anchored to AIDP_ARTIFACTS_ROOT and absolute. A relative or empty RUN_DIR
+# would silently resolve under the plugin checkout (harness_cd_repo_root
+# chdir'd us here), scanning the wrong tree. Fail closed instead.
+# Distinguish set-but-empty (caller bug) from unset (legitimate fallback to
+# docs/latest in downstream scripts).
+if [ "${RUN_DIR+set}" = "set" ]; then
+  case "${RUN_DIR}" in
+    /*) ;;
+    *)
+      echo "smoke-bootstrap: ERROR: RUN_DIR must be a non-empty absolute path, got '${RUN_DIR}'" >&2
+      echo "smoke-bootstrap: anchor RUN_DIR to \${AIDP_ARTIFACTS_ROOT}/runs/<id> in the caller" >&2
+      exit 2
+      ;;
+  esac
+fi
+
 run_check "report_quality" bash scripts/check-report-quality.sh
 run_check "workflow_artifacts" bash scripts/check-workflow-artifacts.sh
 run_check "adrs" bash scripts/check-adrs.sh

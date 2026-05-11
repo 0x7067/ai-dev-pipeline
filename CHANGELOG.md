@@ -7,6 +7,64 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-05-11
+
+### Added
+
+- **`AIDP_PROJECT_ROOT` / `AIDP_ARTIFACTS_ROOT` anchoring.** New boundary
+  parser at `scripts/lib/project-root.sh` exposes
+  `aidp_resolve_project_root` (canonicalizes `CLAUDE_PROJECT_DIR` →
+  `$(pwd)` via `pwd -P`) and `aidp_resolve_artifacts_root` (returns
+  `${root}/docs/aidp` for consumer projects; `${root}/docs` when the
+  plugin's own `.claude-plugin/plugin.json` with `name=ai-dev-pipeline`
+  is present). `/ship`, `/review`, `/refactor`, `/audit`, `/research`
+  export both vars at Step 0; every helper script consumes them. Fixes
+  the long-standing issue where running `/ship` from an external
+  consuming repo silently wrote run artifacts into the plugin checkout
+  because `harness_cd_repo_root` chdir's into the plugin for self-checks.
+- `scripts/tests/test-project-root.sh` — boundary-parser contract tests
+  (8 cases incl. plugin-name detection, consumer-vs-plugin classification,
+  fail-closed on missing dirs). Registered in
+  `scripts/validate-claude-config.sh`.
+
+### Changed
+
+- **Run artifact layout for consumer projects** moves from
+  `docs/runs/<id>/` (cwd-relative) to
+  `${AIDP_ARTIFACTS_ROOT}/runs/<id>/` (absolute). Pointer files
+  (`latest`, `latest.txt`, `latest-green.txt`) move alongside; the
+  workflow-state pointer (`.claude/workflow-state/active`) stays under
+  `AIDP_PROJECT_ROOT`. Consumer projects now namespace plugin output
+  under `docs/aidp/` instead of polluting the project's top-level
+  `docs/`. The plugin's own development checkout keeps the legacy
+  `docs/` layout. `RUN_DIR` is always absolute; `smoke-bootstrap.sh`
+  rejects a relative or empty `RUN_DIR` fail-closed.
+- Migrated to the new anchor: `mint-run-id.sh`, `prune-runs.sh`,
+  `resolve-run.sh`, `run-verification-gates.sh`, `promote-latest-green.sh`,
+  `coverage-precondition.sh`, `check-adrs.sh`, `check-workflow-artifacts.sh`,
+  `check-report-quality.sh`, `smoke-bootstrap.sh`, and the
+  `.claude/hooks/plan-gate.sh` + `_hook_lib.sh` hook helpers. No
+  cwd-relative `docs/runs` or `docs/latest` paths remain in production
+  code.
+- Plugin-vs-consumer detection is hardened to require
+  `"name":"ai-dev-pipeline"` in `plugin.json`, not just file presence,
+  so consumers that happen to ship their own Claude plugins are
+  classified correctly.
+- `resolve-run.sh` `dir` subcommand now returns the absolute
+  `${AIDP_ARTIFACTS_ROOT}/runs/<id>` path; previously returned bare
+  `docs/runs/<id>`.
+
+### Migration notes
+
+- Consumers updating in place: artifacts previously written to
+  `<your-project>/docs/runs/<id>/…` will now land in
+  `<your-project>/docs/aidp/runs/<id>/…`. Pre-existing runs are not
+  migrated; you can `mv docs/runs docs/aidp/runs && mv docs/latest{,.txt}
+  docs/aidp/` if you want history continuity, or just let new runs
+  populate the new location.
+- Anyone scripting against `docs/runs` / `docs/latest` directly should
+  read `AIDP_ARTIFACTS_ROOT` from the orchestrator instead.
+
 ## [0.16.2] - 2026-05-11
 
 ### Fixed

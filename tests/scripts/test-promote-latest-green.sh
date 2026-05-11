@@ -59,7 +59,14 @@ fi
 make_sandbox() {
   local sb
   sb=$(mktemp -d)
-  mkdir -p "$sb/docs/runs/$GREEN_ID" "$sb/.claude/workflow-state"
+  # TEST-ONLY: drop a plugin.json with `name=ai-dev-pipeline` so the
+  # project-root resolver classifies the sandbox as a plugin-self
+  # checkout (legacy docs/ layout). Real consumer projects MUST NOT
+  # have this file — it's the plugin's own self-identification marker.
+  # See scripts/lib/project-root.sh::aidp_resolve_artifacts_root.
+  mkdir -p "$sb/docs/runs/$GREEN_ID" "$sb/.claude/workflow-state" "$sb/.claude-plugin"
+  printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+    > "$sb/.claude-plugin/plugin.json"
   # Existing latest triplet — must be left untouched.
   ( cd "$sb/docs" && ln -sfn "runs/$GREEN_ID" latest )
   printf '%s\n' "$GREEN_ID" > "$sb/docs/latest.txt"
@@ -217,7 +224,9 @@ rm -rf "$sb"
 sb=$(mktemp -d)
 trap 'rm -rf "$sb"' EXIT
 cd "$sb" || exit 2
-mkdir -p docs/runs .claude/workflow-state
+mkdir -p docs/runs .claude/workflow-state .claude-plugin
+printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+  > .claude-plugin/plugin.json
 make_id() { printf '20260508T%06d-a1b2c3-%02x' "$1" "$(( $1 % 256 ))"; }
 ids=()
 for n in $(seq 1 15); do

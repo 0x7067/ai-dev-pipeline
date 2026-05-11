@@ -25,9 +25,11 @@ make_workdir() {
 setup_workdir() {
   # $1 = workdir
   local work="$1"
-  mkdir -p "$work/docs" "$work/scripts"
+  mkdir -p "$work/docs" "$work/scripts/lib" "$work/.claude-plugin"
   ln -s "${REPO_ROOT}/scripts/harness-lib.sh" "$work/scripts/harness-lib.sh"
+  ln -s "${REPO_ROOT}/scripts/lib/project-root.sh" "$work/scripts/lib/project-root.sh"
   ln -s "$SCRIPT" "$work/scripts/check-report-quality.sh"
+  printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' > "$work/.claude-plugin/plugin.json"
 }
 
 write_verify_report() {

@@ -2,6 +2,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/lib/project-root.sh
+source "${SCRIPT_DIR}/lib/project-root.sh"
+AIDP_PROJECT_ROOT="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+  echo "check-report-quality: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2; exit 2; }
+AIDP_ARTIFACTS_ROOT="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$AIDP_PROJECT_ROOT")}" || {
+  echo "check-report-quality: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2; exit 2; }
 # shellcheck source=scripts/harness-lib.sh
 source "${SCRIPT_DIR}/harness-lib.sh"
 harness_cd_repo_root
@@ -377,18 +383,20 @@ check_one() {
 #   1. Honor explicit env overrides (REPORT_*_PATH) when set — these
 #      win unconditionally so callers can target a specific run dir.
 #   2. Otherwise, if RUN_DIR is set, default to ${RUN_DIR}/<report>.md.
-#   3. Otherwise, if a docs/latest symlink exists, default to
-#      docs/latest/<report>.md.
-#   4. Otherwise, fall back to the historical docs/<report>.md path so
-#      this script remains usable in repos that haven't minted a run.
+#   3. Otherwise, anchor to ${AIDP_ARTIFACTS_ROOT}/latest/<report>.md so
+#      this script remains usable in repos that haven't minted a run yet.
+#      The cwd-relative `docs/latest` / `docs/<report>.md` fallbacks are
+#      gone — they would resolve under the plugin after harness_cd_repo_root.
 default_report_path() {
   local name="$1"
   if [ -n "${RUN_DIR:-}" ]; then
     printf '%s/%s\n' "$RUN_DIR" "$name"
-  elif [ -L "docs/latest" ] || [ -d "docs/latest" ]; then
-    printf 'docs/latest/%s\n' "$name"
+  elif [ -L "${AIDP_ARTIFACTS_ROOT}/latest" ] || [ -d "${AIDP_ARTIFACTS_ROOT}/latest" ]; then
+    printf '%s/latest/%s\n' "$AIDP_ARTIFACTS_ROOT" "$name"
   else
-    printf 'docs/%s\n' "$name"
+    # Top-level fallback for repos that haven't minted a run yet. Still
+    # absolute (anchored to AIDP_ARTIFACTS_ROOT) — never cwd-relative.
+    printf '%s/%s\n' "$AIDP_ARTIFACTS_ROOT" "$name"
   fi
 }
 
@@ -410,14 +418,14 @@ verify_path="${REPORT_VERIFY_PATH:-$(default_report_path verify-report.md)}"
 #
 # Manifest discovery order:
 #   1. ${RUN_DIR}/manifest.json (when RUN_DIR set)
-#   2. docs/latest/manifest.json (when no RUN_DIR)
+#   2. ${AIDP_ARTIFACTS_ROOT}/latest/manifest.json (when no RUN_DIR)
 # We do NOT extend the manifest schema here — only its consumer surface.
 # All ingress goes through the canonical boundary parser.
 manifest_path=""
 if [ -n "${RUN_DIR:-}" ] && [ -f "${RUN_DIR}/manifest.json" ]; then
   manifest_path="${RUN_DIR}/manifest.json"
-elif [ -z "${RUN_DIR:-}" ] && [ -f "docs/latest/manifest.json" ]; then
-  manifest_path="docs/latest/manifest.json"
+elif [ -z "${RUN_DIR:-}" ] && [ -f "${AIDP_ARTIFACTS_ROOT}/latest/manifest.json" ]; then
+  manifest_path="${AIDP_ARTIFACTS_ROOT}/latest/manifest.json"
 fi
 
 # Manifest artifact paths, one per line (relative to the manifest's run-dir).

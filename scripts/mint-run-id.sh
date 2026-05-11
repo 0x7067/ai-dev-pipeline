@@ -99,7 +99,13 @@ atomic_update_latest() {
 
 atomic_update_active_workflow_state() {
   local id="$1"
-  local dir=".claude/workflow-state"
+  # shellcheck source=lib/project-root.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)/lib/project-root.sh"
+  local _proj
+  _proj="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+    printf 'mint-run-id: ERROR: could not resolve AIDP_PROJECT_ROOT\n' >&2
+    return 2; }
+  local dir="${_proj}/.claude/workflow-state"
   local suffix="$$.${RANDOM:-0}"
   mkdir -p "$dir"
   printf '%s\n' "$id" > "$dir/active.tmp.$suffix"
@@ -110,7 +116,20 @@ atomic_update_active_workflow_state() {
 
 main() {
   local write_pointers=0
-  local runs_root="docs/runs"
+  # Anchor under the consumer project's artifacts root (docs/aidp for
+  # consumers; docs for the plugin's own self-tests). CLI --run-dir still
+  # overrides. Resolution goes through scripts/lib/project-root.sh — the
+  # single source of truth for project + artifacts root canonicalization.
+  # shellcheck source=lib/project-root.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)/lib/project-root.sh"
+  local _project_root _artifacts_root
+  _project_root="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+    printf 'mint-run-id: ERROR: could not resolve AIDP_PROJECT_ROOT\n' >&2
+    exit 2; }
+  _artifacts_root="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$_project_root")}" || {
+    printf 'mint-run-id: ERROR: could not resolve AIDP_ARTIFACTS_ROOT\n' >&2
+    exit 2; }
+  local runs_root="${_artifacts_root}/runs"
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --write-pointers) write_pointers=1; shift ;;

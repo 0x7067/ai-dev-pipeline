@@ -35,18 +35,26 @@
 
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
+# shellcheck source=scripts/lib/project-root.sh
+source "${SCRIPT_DIR}/lib/project-root.sh"
+
 THRESHOLD="${COVERAGE_THRESHOLD:-80}"
 TARGET="${1:-}"
 # Per-run fragment path:
 #   1. COVERAGE_FRAGMENT_OUT env override wins.
 #   2. Else, if RUN_DIR is set (orchestrator step 0), write under it.
-#   3. Else fall back to the legacy docs/ path.
+#   3. Else anchor to ${AIDP_ARTIFACTS_ROOT}/.refactor-precondition.md.
 if [ -n "${COVERAGE_FRAGMENT_OUT:-}" ]; then
   FRAGMENT="$COVERAGE_FRAGMENT_OUT"
 elif [ -n "${RUN_DIR:-}" ]; then
   FRAGMENT="${RUN_DIR}/.refactor-precondition.md"
 else
-  FRAGMENT="docs/.refactor-precondition.md"
+  _cp_proj="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+    echo "coverage-precondition: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2; exit 2; }
+  _cp_arts="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$_cp_proj")}" || {
+    echo "coverage-precondition: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2; exit 2; }
+  FRAGMENT="${_cp_arts}/.refactor-precondition.md"
 fi
 
 # --- Boundary: parse threshold ---

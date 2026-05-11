@@ -6,6 +6,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 source "${SCRIPT_DIR}/harness-lib.sh"
 # shellcheck source=scripts/lib/style.sh
 source "${SCRIPT_DIR}/lib/style.sh"
+# shellcheck source=scripts/lib/project-root.sh
+source "${SCRIPT_DIR}/lib/project-root.sh"
+# Resolve roots BEFORE the optional harness_cd_repo_root below.
+AIDP_PROJECT_ROOT="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+  echo "verify-gates: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2; exit 2; }
+AIDP_ARTIFACTS_ROOT="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$AIDP_PROJECT_ROOT")}" || {
+  echo "verify-gates: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2; exit 2; }
 
 # Zero-setup support: if invoked from a consuming repo that has not vendored
 # the gate runner (i.e. the script lives under ${CLAUDE_PLUGIN_ROOT}/scripts),
@@ -205,7 +212,7 @@ _full_suite_cache_hit() {
   if [ -n "${RUN_DIR:-}" ]; then
     cache="${RUN_DIR}/test-results.json"
   elif [ -n "${RUN_ID:-}" ]; then
-    cache="docs/runs/${RUN_ID}/test-results.json"
+    cache="${AIDP_ARTIFACTS_ROOT}/runs/${RUN_ID}/test-results.json"
   else
     return 1
   fi
@@ -305,17 +312,17 @@ MAX_VERIFY_RETRIES="${MAX_VERIFY_RETRIES:-1}"
 # Sleep between retry attempts (seconds). Override via VERIFY_RETRY_SLEEP_S.
 VERIFY_RETRY_SLEEP_S="${VERIFY_RETRY_SLEEP_S:-2}"
 # Per-run hint file: when an active run is in flight (RUN_DIR set, or
-# resolvable via docs/latest), the hint file lives under that run's dir
-# so concurrent /ship sessions don't stomp each other. Falls back to
-# the historical docs/.verify-retry.json default for repos that haven't
-# minted a run yet.
+# RUN_ID composes a path under AIDP_ARTIFACTS_ROOT), the hint file lives
+# under that run's dir so concurrent /ship sessions don't stomp each other.
+# Falls back to ${AIDP_ARTIFACTS_ROOT}/.verify-retry.json for repos that
+# haven't minted a run yet — never a cwd-relative path.
 if [ -z "${VERIFY_RETRY_HINT_FILE:-}" ]; then
   if [ -n "${RUN_DIR:-}" ]; then
     VERIFY_RETRY_HINT_FILE="${RUN_DIR}/.verify-retry.json"
   elif [ -n "${RUN_ID:-}" ]; then
-    VERIFY_RETRY_HINT_FILE="docs/runs/${RUN_ID}/.verify-retry.json"
+    VERIFY_RETRY_HINT_FILE="${AIDP_ARTIFACTS_ROOT}/runs/${RUN_ID}/.verify-retry.json"
   else
-    VERIFY_RETRY_HINT_FILE="docs/.verify-retry.json"
+    VERIFY_RETRY_HINT_FILE="${AIDP_ARTIFACTS_ROOT}/.verify-retry.json"
   fi
 fi
 VERIFY_REQUIRE_FULL_SUITE="${VERIFY_REQUIRE_FULL_SUITE:-0}"
@@ -353,7 +360,7 @@ if [ -n "${RUN_DIR:-}" ]; then
   GATE_LOG_DIR="${RUN_DIR}"
   mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
 elif [ -n "${RUN_ID:-}" ]; then
-  GATE_LOG_DIR="docs/runs/${RUN_ID}"
+  GATE_LOG_DIR="${AIDP_ARTIFACTS_ROOT}/runs/${RUN_ID}"
   mkdir -p "$GATE_LOG_DIR" 2>/dev/null || true
 else
   GATE_LOG_DIR="$(mktemp -d -t verify-gates.XXXXXX)"

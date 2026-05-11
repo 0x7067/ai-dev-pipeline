@@ -40,9 +40,13 @@ trap 'rm -rf "$sandbox_a" "$sandbox_b" "$sandbox_g"' EXIT
 # that by giving each its own sandbox; the property we care about is
 # "two distinct mints produce two distinct RUN_DIR trees". We sleep
 # briefly between mints so timestamps differ and the property is sharp.
-mkdir -p "$sandbox_a/docs/runs" "$sandbox_a/.claude/workflow-state"
+mkdir -p "$sandbox_a/docs/runs" "$sandbox_a/.claude/workflow-state" "$sandbox_a/.claude-plugin"
+printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+  > "$sandbox_a/.claude-plugin/plugin.json"
 sandbox_b=$(mktemp -d)
-mkdir -p "$sandbox_b/docs/runs" "$sandbox_b/.claude/workflow-state"
+mkdir -p "$sandbox_b/docs/runs" "$sandbox_b/.claude/workflow-state" "$sandbox_b/.claude-plugin"
+printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+  > "$sandbox_b/.claude-plugin/plugin.json"
 
 id_a=$(cd "$sandbox_a" && bash "$MINT" --write-pointers)
 sleep 1
@@ -72,7 +76,9 @@ fi
 
 # ---------- B) parallel gate determinism ----------
 sandbox_g=$(mktemp -d)
-mkdir -p "$sandbox_g/docs/runs" "$sandbox_g/scripts/lib" "$sandbox_g/.claude/hooks"
+mkdir -p "$sandbox_g/docs/runs" "$sandbox_g/scripts/lib" "$sandbox_g/.claude/hooks" "$sandbox_g/.claude-plugin"
+printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+  > "$sandbox_g/.claude-plugin/plugin.json"
 # The gate runner cd's to repo root if a vendored copy exists locally OR
 # if PWD == its repo root (see top of run-verification-gates.sh). We give
 # the sandbox a vendored copy at scripts/run-verification-gates.sh so the
@@ -82,6 +88,7 @@ cp "$REPO_ROOT/scripts/harness-lib.sh"            "$sandbox_g/scripts/"
 cp "$REPO_ROOT/scripts/parse-run-id.sh"           "$sandbox_g/scripts/"
 cp "$REPO_ROOT/scripts/mint-run-id.sh"            "$sandbox_g/scripts/"
 cp "$REPO_ROOT/scripts/lib/style.sh"              "$sandbox_g/scripts/lib/"
+cp "$REPO_ROOT/scripts/lib/project-root.sh"       "$sandbox_g/scripts/lib/"
 chmod +x "$sandbox_g/scripts/"*.sh
 
 # Mint a run-id inside the sandbox so RUN_DIR resolves into the sandbox's

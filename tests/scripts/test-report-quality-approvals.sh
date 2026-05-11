@@ -76,9 +76,11 @@ run_case() {
   local work
   work="$(make_workdir)"
   ( cd "$work" \
-    && mkdir -p docs scripts \
+    && mkdir -p docs scripts/lib .claude-plugin \
     && ln -s "${REPO_ROOT}/scripts/harness-lib.sh" scripts/harness-lib.sh \
+    && ln -s "${REPO_ROOT}/scripts/lib/project-root.sh" scripts/lib/project-root.sh \
     && ln -s "$SCRIPT" scripts/check-report-quality.sh \
+    && printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' > .claude-plugin/plugin.json \
     && write_verify_report docs/verify-report.md "$risk" "$plan" "$elevated" "$release" \
     && bash scripts/check-report-quality.sh >/tmp/cq.out 2>&1
   )

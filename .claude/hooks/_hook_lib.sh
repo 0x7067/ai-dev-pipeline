@@ -130,26 +130,45 @@ detect_pkg_manager() {
 # resolve_workflow_state_path: prints the path of the workflow-state JSON
 # file the hooks should read/write. Resolution order, fail-soft:
 #   1. $WORKFLOW_STATE_PATH if explicitly set (orchestrator override).
-#   2. .claude/workflow-state/<active>.json when an active pointer exists
-#      AND the active value parses through scripts/parse-run-id.sh.
-#   3. .claude/workflow-state.json (legacy single-state default).
-# Never echoes an unparsed run-id; falls back to legacy on parse failure.
+#   2. <project>/.claude/workflow-state/<active>.json when an active pointer
+#      exists AND the active value parses through scripts/parse-run-id.sh.
+#   3. <project>/.claude/workflow-state.json (legacy single-state default).
+# Anchors to AIDP_PROJECT_ROOT (CLAUDE_PROJECT_DIR → $(pwd)). Never echoes
+# an unparsed run-id; falls back to legacy on parse failure.
 resolve_workflow_state_path() {
   if [ -n "${WORKFLOW_STATE_PATH:-}" ]; then
     printf '%s\n' "$WORKFLOW_STATE_PATH"
     return 0
   fi
-  local active_file=".claude/workflow-state/active"
-  local parser="scripts/parse-run-id.sh"
+  local _proj_raw="${AIDP_PROJECT_ROOT:-${CLAUDE_PROJECT_DIR:-$PWD}}"
+  # Canonicalize to keep results stable across /tmp ↔ /private/tmp style
+  # OS symlinks (matches aidp_resolve_project_root's pwd -P behavior).
+  #
+  # INTENTIONAL DIVERGENCE from scripts/lib/project-root.sh: this hook
+  # helper fail-SOFTS on a non-existent project root (returns the raw
+  # path), whereas aidp_resolve_project_root fail-CLOSES (non-zero exit).
+  # Reason: PostToolUse hooks must NEVER block editing on a missing
+  # working-tree directory — falling back to the raw path lets the
+  # downstream consumer (resolve_workflow_state_path callers) emit a
+  # path the user can inspect, instead of aborting the user's edit.
+  local _proj
+  _proj="$(cd "$_proj_raw" >/dev/null 2>&1 && pwd -P)" || _proj="$_proj_raw"
+  local active_file="${_proj}/.claude/workflow-state/active"
+  local parser
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/parse-run-id.sh" ]; then
+    parser="${CLAUDE_PLUGIN_ROOT}/scripts/parse-run-id.sh"
+  else
+    parser="${_proj}/scripts/parse-run-id.sh"
+  fi
   if [ -f "$active_file" ] && [ -f "$parser" ]; then
     local active
     active=$(head -n1 "$active_file" 2>/dev/null | tr -d '[:space:]')
     if [ -n "$active" ] && bash "$parser" "$active" >/dev/null 2>&1; then
-      printf '.claude/workflow-state/%s.json\n' "$active"
+      printf '%s/.claude/workflow-state/%s.json\n' "$_proj" "$active"
       return 0
     fi
   fi
-  printf '.claude/workflow-state.json\n'
+  printf '%s/.claude/workflow-state.json\n' "$_proj"
 }
 
 # Detect Python package manager (uv > poetry > pip).

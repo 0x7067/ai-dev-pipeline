@@ -72,7 +72,12 @@ got=$(
   unset WORKFLOW_STATE_PATH
   env HOOK_NAME=test bash -c "source '$HOOK_LIB'; resolve_workflow_state_path"
 )
-expected=".claude/workflow-state/${VALID_ID_A}.json"
+# The resolver now returns an absolute path anchored to AIDP_PROJECT_ROOT
+# (or CLAUDE_PROJECT_DIR / pwd). Inside each sandbox AIDP_PROJECT_ROOT
+# defaults to $sb. macOS canonicalizes /var/folders → /private/var/folders
+# via pwd -P, so we resolve $sb the same way the helper would.
+sb_canonical=$( cd "$sb" >/dev/null 2>&1 && pwd -P )
+expected="${sb_canonical}/.claude/workflow-state/${VALID_ID_A}.json"
 if [ "$got" = "$expected" ]; then
   pass "active pointer with parseable id → $expected"
 else
@@ -82,6 +87,7 @@ rm -rf "$sb"
 
 # --- Case 3: malformed active content → legacy default (fail-closed) ---
 sb=$(make_sandbox)
+sb_canonical=$( cd "$sb" >/dev/null 2>&1 && pwd -P )
 got=$(
   cd "$sb" || exit 99
   # Path-traversal poison: if the resolver echoed this unparsed, it
@@ -90,7 +96,7 @@ got=$(
   unset WORKFLOW_STATE_PATH
   env HOOK_NAME=test bash -c "source '$HOOK_LIB'; resolve_workflow_state_path"
 )
-if [ "$got" = ".claude/workflow-state.json" ]; then
+if [ "$got" = "${sb_canonical}/.claude/workflow-state.json" ]; then
   pass "malformed active content falls back to legacy default (no traversal)"
 else
   fail "expected legacy fallback, got $got (parse-once invariant violated)"
@@ -99,12 +105,13 @@ rm -rf "$sb"
 
 # --- Case 4: missing active pointer + no override → legacy default ---
 sb=$(make_sandbox)
+sb_canonical=$( cd "$sb" >/dev/null 2>&1 && pwd -P )
 got=$(
   cd "$sb" || exit 99
   unset WORKFLOW_STATE_PATH
   env HOOK_NAME=test bash -c "source '$HOOK_LIB'; resolve_workflow_state_path"
 )
-if [ "$got" = ".claude/workflow-state.json" ]; then
+if [ "$got" = "${sb_canonical}/.claude/workflow-state.json" ]; then
   pass "no active pointer + no override → legacy default"
 else
   fail "expected legacy default, got $got"
@@ -114,13 +121,15 @@ rm -rf "$sb"
 # --- Case 5: two concurrent runs resolve to two distinct paths ---
 sb_a=$(make_sandbox)
 sb_b=$(make_sandbox)
+sb_a_canonical=$( cd "$sb_a" >/dev/null 2>&1 && pwd -P )
+sb_b_canonical=$( cd "$sb_b" >/dev/null 2>&1 && pwd -P )
 printf '%s\n' "$VALID_ID_A" > "$sb_a/.claude/workflow-state/active"
 printf '%s\n' "$VALID_ID_B" > "$sb_b/.claude/workflow-state/active"
 got_a=$( cd "$sb_a" && unset WORKFLOW_STATE_PATH && env HOOK_NAME=test bash -c "source '$HOOK_LIB'; resolve_workflow_state_path" )
 got_b=$( cd "$sb_b" && unset WORKFLOW_STATE_PATH && env HOOK_NAME=test bash -c "source '$HOOK_LIB'; resolve_workflow_state_path" )
 if [ "$got_a" != "$got_b" ] \
-   && [ "$got_a" = ".claude/workflow-state/${VALID_ID_A}.json" ] \
-   && [ "$got_b" = ".claude/workflow-state/${VALID_ID_B}.json" ]; then
+   && [ "$got_a" = "${sb_a_canonical}/.claude/workflow-state/${VALID_ID_A}.json" ] \
+   && [ "$got_b" = "${sb_b_canonical}/.claude/workflow-state/${VALID_ID_B}.json" ]; then
   pass "two concurrent active pointers resolve to two distinct per-run paths"
 else
   fail "isolation violated: a=$got_a b=$got_b"
@@ -129,6 +138,7 @@ rm -rf "$sb_a" "$sb_b"
 
 # --- Case 6: late binding (resolution at fire time, not at load time) ---
 sb=$(make_sandbox)
+sb_canonical=$( cd "$sb" >/dev/null 2>&1 && pwd -P )
 got=$(
   cd "$sb" || exit 99
   unset WORKFLOW_STATE_PATH
@@ -143,13 +153,28 @@ got=$(
 )
 first="${got%%|*}"
 second="${got##*|}"
-if [ "$first" = ".claude/workflow-state/${VALID_ID_A}.json" ] \
-   && [ "$second" = ".claude/workflow-state/${VALID_ID_B}.json" ]; then
+if [ "$first" = "${sb_canonical}/.claude/workflow-state/${VALID_ID_A}.json" ] \
+   && [ "$second" = "${sb_canonical}/.claude/workflow-state/${VALID_ID_B}.json" ]; then
   pass "late binding: pointer change between calls is observed"
 else
   fail "late binding broken: first=$first second=$second"
 fi
 rm -rf "$sb"
+
+# --- Case 7: non-existent project root → fail-soft to raw path ---
+# Hooks must never block editing on a missing working-tree dir; the
+# resolver falls back to the raw input rather than failing closed (which
+# scripts/lib/project-root.sh deliberately does for non-hook callers).
+got=$(
+  unset WORKFLOW_STATE_PATH
+  AIDP_PROJECT_ROOT="/definitely/does/not/exist/aidp" \
+    env HOOK_NAME=test bash -c "source '$HOOK_LIB'; resolve_workflow_state_path"
+)
+if [ "$got" = "/definitely/does/not/exist/aidp/.claude/workflow-state.json" ]; then
+  pass "fail-soft on non-existent project root (hooks must never block edits)"
+else
+  fail "expected raw-path fail-soft, got $got"
+fi
 
 if [ "$failures" -gt 0 ]; then
   echo "test-workflow-state-resolver: FAILED ($failures)" >&2

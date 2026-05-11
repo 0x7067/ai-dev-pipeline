@@ -26,6 +26,25 @@ Reject anything else with:
 Before any phase, create a run directory and export the run environment:
 
 ```sh
+# Resolve the project root once. All run artifacts anchor here, NOT under
+# the plugin checkout (harness_cd_repo_root chdir's into the plugin for
+# self-validation, which would otherwise scatter artifacts into the plugin
+# source tree). See scripts/lib/project-root.sh.
+# shellcheck source=../../scripts/lib/project-root.sh
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/project-root.sh"
+if ! AIDP_PROJECT_ROOT="$(aidp_resolve_project_root)" || [ -z "$AIDP_PROJECT_ROOT" ]; then
+  printf '✗ ship: could not resolve AIDP_PROJECT_ROOT (CLAUDE_PROJECT_DIR=%q)\n' "${CLAUDE_PROJECT_DIR:-}" >&2
+  exit 1
+fi
+export AIDP_PROJECT_ROOT
+# Artifacts root: docs/aidp in consumer projects, docs/ in the plugin itself.
+if ! AIDP_ARTIFACTS_ROOT="$(aidp_resolve_artifacts_root "$AIDP_PROJECT_ROOT")" || [ -z "$AIDP_ARTIFACTS_ROOT" ]; then
+  printf '✗ ship: could not resolve AIDP_ARTIFACTS_ROOT under %q\n' "$AIDP_PROJECT_ROOT" >&2
+  exit 1
+fi
+export AIDP_ARTIFACTS_ROOT
+mkdir -p "$AIDP_ARTIFACTS_ROOT"
+
 if [ -n "${RUN_ID:-}" ]; then
   RUN_ID="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/parse-run-id.sh" "$RUN_ID")"
 elif [ -n "${GITHUB_RUN_ID:-}" ]; then
@@ -34,13 +53,19 @@ else
   RUN_ID="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")"
 fi
 export RUN_ID
-export RUN_DIR="docs/runs/${RUN_ID}"
-mkdir -p "$RUN_DIR" "$RUN_DIR/research" "$RUN_DIR/specs" "$RUN_DIR/adrs" .claude/workflow-state
+export RUN_DIR="${AIDP_ARTIFACTS_ROOT}/runs/${RUN_ID}"
+mkdir -p "$RUN_DIR" "$RUN_DIR/research" "$RUN_DIR/specs" "$RUN_DIR/adrs" \
+         "${AIDP_PROJECT_ROOT}/.claude/workflow-state"
 _t="$$.${RANDOM:-0}"
-ln -sfn "runs/$RUN_ID" docs/latest
-printf '%s\n' "$RUN_ID" > "docs/latest.txt.tmp.$_t" && mv "docs/latest.txt.tmp.$_t" docs/latest.txt
-printf '%s\n' "$RUN_ID" > ".claude/workflow-state/active.tmp.$_t" && mv ".claude/workflow-state/active.tmp.$_t" .claude/workflow-state/active
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh"
+ln -sfn "runs/$RUN_ID" "${AIDP_ARTIFACTS_ROOT}/latest"
+printf '%s\n' "$RUN_ID" > "${AIDP_ARTIFACTS_ROOT}/latest.txt.tmp.$_t" \
+  && mv "${AIDP_ARTIFACTS_ROOT}/latest.txt.tmp.$_t" "${AIDP_ARTIFACTS_ROOT}/latest.txt"
+printf '%s\n' "$RUN_ID" > "${AIDP_PROJECT_ROOT}/.claude/workflow-state/active.tmp.$_t" \
+  && mv "${AIDP_PROJECT_ROOT}/.claude/workflow-state/active.tmp.$_t" \
+        "${AIDP_PROJECT_ROOT}/.claude/workflow-state/active"
+RUNS_ROOT="${AIDP_ARTIFACTS_ROOT}/runs" \
+ARTIFACTS_ROOT="${AIDP_ARTIFACTS_ROOT}" \
+  bash "${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh"
 printf '▶ run minted RUN_ID=%s RUN_DIR=%s\n' "$RUN_ID" "$RUN_DIR"
 ```
 

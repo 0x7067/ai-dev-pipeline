@@ -8,9 +8,10 @@ Steps:
 
 0. **Mint run-id and export environment.** Same protocol as `/ship` step 0:
    - Reuse `RUN_ID` if already set (validated through `${CLAUDE_PLUGIN_ROOT}/scripts/parse-run-id.sh`); else if `GITHUB_RUN_ID` is set, mint via `RUN_ID=$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")`; else `RUN_ID=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")`.
-   - `export RUN_ID` and `export RUN_DIR="docs/runs/${RUN_ID}"`.
-   - Create `${RUN_DIR}` and update `docs/latest`, `docs/latest.txt`, `.claude/workflow-state/active` atomically (`tmp + mv`).
-   - Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh"` (no-op when `CI=true`).
+   - Resolve `AIDP_PROJECT_ROOT` and `AIDP_ARTIFACTS_ROOT` via `source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/project-root.sh"` then `AIDP_PROJECT_ROOT="$(aidp_resolve_project_root)"` and `AIDP_ARTIFACTS_ROOT="$(aidp_resolve_artifacts_root "$AIDP_PROJECT_ROOT")"`. Export both. Fail closed on resolution error.
+   - `export RUN_ID` and `export RUN_DIR="${AIDP_ARTIFACTS_ROOT}/runs/${RUN_ID}"`.
+   - Create `${RUN_DIR}` and update `${AIDP_ARTIFACTS_ROOT}/latest`, `${AIDP_ARTIFACTS_ROOT}/latest.txt`, `${AIDP_PROJECT_ROOT}/.claude/workflow-state/active` atomically (`tmp + mv`).
+   - Run `RUNS_ROOT="${AIDP_ARTIFACTS_ROOT}/runs" ARTIFACTS_ROOT="${AIDP_ARTIFACTS_ROOT}" bash "${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh"` (no-op when `CI=true`).
    - Print `▶ run minted RUN_ID=$RUN_ID RUN_DIR=$RUN_DIR`.
 
 1. Print to the user:

@@ -24,7 +24,31 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 source "${SCRIPT_DIR}/parse-run-id.sh"
 
 RETENTION="${RUN_RETENTION:-10}"
-RUNS_ROOT="${RUNS_ROOT:-docs/runs}"
+# Resolve the artifacts root via scripts/lib/project-root.sh (single
+# source of truth). Callers in /ship pass RUNS_ROOT and ARTIFACTS_ROOT
+# explicitly; the helper resolves the consumer-vs-plugin classification
+# for standalone invocations.
+# shellcheck source=lib/project-root.sh
+source "${SCRIPT_DIR}/lib/project-root.sh"
+_aidp_project_root="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+  echo "prune-runs: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2; exit 2; }
+# Resolution order for the artifacts root:
+#   1. explicit ARTIFACTS_ROOT (callers in /ship pass this).
+#   2. dirname of an explicit RUNS_ROOT (single-override callers).
+#   3. helper-derived project-root + plugin/consumer classifier.
+if [ -n "${ARTIFACTS_ROOT:-}" ]; then
+  _aidp_artifacts_root="$ARTIFACTS_ROOT"
+elif [ -n "${RUNS_ROOT:-}" ]; then
+  _aidp_artifacts_root="$(dirname "$RUNS_ROOT")"
+else
+  _aidp_artifacts_root="$(aidp_resolve_artifacts_root "$_aidp_project_root")" || {
+    echo "prune-runs: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2; exit 2; }
+fi
+RUNS_ROOT="${RUNS_ROOT:-${_aidp_artifacts_root}/runs}"
+# Pointer files (latest, latest.txt, latest-green.txt) live in the artifacts
+# root; the workflow-state pointer stays under .claude/ in the project root.
+PROTECTED_BASE="$_aidp_project_root"
+ARTIFACTS_BASE="$_aidp_artifacts_root"
 
 if [ "${CI:-false}" = "true" ]; then
   echo "prune-runs: CI=true; skipping prune"
@@ -44,27 +68,28 @@ esac
 
 # Build protected set.
 protected=()
-if [ -L "docs/latest" ]; then
-  t=$(readlink "docs/latest" 2>/dev/null || true)
+if [ -L "${ARTIFACTS_BASE}/latest" ]; then
+  t=$(readlink "${ARTIFACTS_BASE}/latest" 2>/dev/null || true)
   [ -n "$t" ] && protected+=("$(basename "$t")")
 fi
-if [ -f "docs/latest.txt" ]; then
-  v=$(head -n1 "docs/latest.txt" 2>/dev/null | tr -d '[:space:]')
+if [ -f "${ARTIFACTS_BASE}/latest.txt" ]; then
+  v=$(head -n1 "${ARTIFACTS_BASE}/latest.txt" 2>/dev/null | tr -d '[:space:]')
   [ -n "$v" ] && protected+=("$v")
 fi
-if [ -f ".claude/workflow-state/active" ]; then
-  v=$(head -n1 ".claude/workflow-state/active" 2>/dev/null | tr -d '[:space:]')
+if [ -f "${PROTECTED_BASE}/.claude/workflow-state/active" ]; then
+  v=$(head -n1 "${PROTECTED_BASE}/.claude/workflow-state/active" 2>/dev/null | tr -d '[:space:]')
   [ -n "$v" ] && protected+=("$v")
 fi
 # Green pointer set (additive; absence = "no green yet, behave as before").
 # Prefer the workflow-state file as the authoritative green source, falling
-# back to docs/latest-green.txt. The symlink target is intentionally not read
-# here — the two text sources cover the same id and avoid readlink edge cases.
-if [ -f ".claude/workflow-state/active-green" ]; then
-  v=$(head -n1 ".claude/workflow-state/active-green" 2>/dev/null | tr -d '[:space:]')
+# back to <artifacts>/latest-green.txt. The symlink target is intentionally
+# not read here — the two text sources cover the same id and avoid readlink
+# edge cases.
+if [ -f "${PROTECTED_BASE}/.claude/workflow-state/active-green" ]; then
+  v=$(head -n1 "${PROTECTED_BASE}/.claude/workflow-state/active-green" 2>/dev/null | tr -d '[:space:]')
   [ -n "$v" ] && protected+=("$v")
-elif [ -f "docs/latest-green.txt" ]; then
-  v=$(head -n1 "docs/latest-green.txt" 2>/dev/null | tr -d '[:space:]')
+elif [ -f "${ARTIFACTS_BASE}/latest-green.txt" ]; then
+  v=$(head -n1 "${ARTIFACTS_BASE}/latest-green.txt" 2>/dev/null | tr -d '[:space:]')
   [ -n "$v" ] && protected+=("$v")
 fi
 

@@ -1,5 +1,11 @@
 # Release and Verification Rules
 
+## Run Artifact Anchoring
+- `RUN_DIR` is always absolute, rooted at `${AIDP_ARTIFACTS_ROOT}/runs/<id>/`.
+- `AIDP_PROJECT_ROOT` and `AIDP_ARTIFACTS_ROOT` are derived once by `scripts/lib/project-root.sh` and exported at the top of `/ship`. The project root comes from `CLAUDE_PROJECT_DIR` (fallback `$(pwd)`). The artifacts root is `${project}/docs/aidp` for consumer projects, `${project}/docs` when `.claude-plugin/plugin.json` is present (plugin self-development keeps the legacy layout).
+- Pointer files (`latest`, `latest.txt`, `latest-green.txt`) live under `AIDP_ARTIFACTS_ROOT`; the workflow-state pointer (`.claude/workflow-state/active`) lives under `AIDP_PROJECT_ROOT`. Helper scripts (`mint-run-id.sh`, `prune-runs.sh`, `smoke-bootstrap.sh`) must keep these paths absolute; a relative `RUN_DIR` is rejected by `smoke-bootstrap.sh`.
+- Rationale: `harness_cd_repo_root` anchors plugin self-checks to the plugin checkout; run artifacts must stay inside the consumer project and not pollute its top-level `docs/`.
+
 ## Gate Policy
 - Blocking: type errors, test failures, security findings at error severity.
 - Advisory: warnings (tracked but non-blocking in v1).
@@ -47,11 +53,15 @@
 - Numeric impact claims without evidence are invalid and treated as advisory at minimum.
 
 ## Output Artifacts
-- `docs/test-report.md`
-- `docs/verify-report.md`
-- `docs/review-report.md`
-- `docs/refactor-report.md`
-- `docs/audit-report.md`
+Per-run reports are written inside `RUN_DIR` (see "Run Artifact Anchoring" above) — i.e. `${AIDP_ARTIFACTS_ROOT}/runs/<id>/<name>-report.md` (`docs/aidp/runs/<id>/…` in consumer projects, `docs/runs/<id>/…` in the plugin checkout):
+
+- `${RUN_DIR}/test-report.md` — `test-gen` skill
+- `${RUN_DIR}/verify-report.md` — `static-analysis` skill
+- `${RUN_DIR}/review-report.md` — `code-review` skill
+- `${RUN_DIR}/refactor-report.md` — `refactor` skill
+- `${RUN_DIR}/audit-report.md` — `auditor` agent
+
+Template (repo-level, not per-run):
 - `docs/templates/workflow-assessment-report-template.md`
 
 ## Reuse Guidance

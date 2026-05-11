@@ -22,11 +22,16 @@ failures=0
 pass() { echo "  ok: $1"; }
 fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 
-# Sandbox.
+# Sandbox. The plugin-self manifest keeps the sandbox on the legacy docs/
+# layout; aidp_resolve_artifacts_root would otherwise classify a bare
+# sandbox as a consumer project and look under docs/aidp/. This file
+# tests prune semantics, not the consumer-vs-plugin classifier.
 sandbox=$(mktemp -d)
 trap 'rm -rf "$sandbox"' EXIT
 cd "$sandbox" || exit 2
-mkdir -p docs/runs .claude/workflow-state
+mkdir -p docs/runs .claude/workflow-state .claude-plugin
+printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
+  > .claude-plugin/plugin.json
 
 # Fabricate 15 parseable run-ids with strictly increasing mtimes.
 # Use 'touch -t' for portable mtime control.

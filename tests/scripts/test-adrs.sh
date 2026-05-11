@@ -18,9 +18,11 @@ run_in_workdir() {
   shift
   (
     cd "$work" \
-      && mkdir -p scripts \
+      && mkdir -p scripts/lib .claude-plugin \
       && ln -s "${REPO_ROOT}/scripts/harness-lib.sh" scripts/harness-lib.sh \
+      && ln -s "${REPO_ROOT}/scripts/lib/project-root.sh" scripts/lib/project-root.sh \
       && ln -s "$SCRIPT" scripts/check-adrs.sh \
+      && printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' > .claude-plugin/plugin.json \
       && "$@" bash scripts/check-adrs.sh >/tmp/adrs-test.out 2>&1
   )
 }

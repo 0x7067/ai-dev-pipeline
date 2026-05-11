@@ -127,31 +127,47 @@ if [ -f "$state_file" ] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 
-# Resolve RUN_DIR: env RUN_DIR wins, else env RUN_ID composes docs/runs/<id>,
-# else the active-pointer-derived state file path tells us the run-id, else
-# fail through to docs/. No symlink/text-file ladder — the orchestrator
-# guarantees RUN_DIR/RUN_ID is exported in every Task call.
+# Resolve RUN_DIR: env RUN_DIR wins, else compose from RUN_ID under the
+# consumer project's artifacts root, else derive run-id from the resolved
+# state-file path, else fail through to the artifacts root. The
+# orchestrator guarantees RUN_DIR/RUN_ID is exported in every Task call,
+# so this ladder is the diagnostic-fallback path.
+# Resolve roots via the shared helper. CLAUDE_PLUGIN_ROOT is set by the
+# Claude Code harness for hooks; fall back to a relative path from this
+# script for direct invocation.
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/lib/project-root.sh" ]; then
+  # shellcheck source=../../scripts/lib/project-root.sh
+  source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/project-root.sh"
+else
+  # shellcheck source=../../scripts/lib/project-root.sh
+  source "$(dirname "${BASH_SOURCE[0]}")/../../scripts/lib/project-root.sh"
+fi
+_pg_project_root="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+  echo "plan-gate: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2; exit 2; }
+_pg_artifacts_root="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$_pg_project_root")}" || {
+  echo "plan-gate: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2; exit 2; }
+
 resolved_run_dir=""
 if [ -n "${RUN_DIR:-}" ]; then
   resolved_run_dir="$RUN_DIR"
 elif [ -n "${RUN_ID:-}" ] && [ -f scripts/parse-run-id.sh ] \
   && bash scripts/parse-run-id.sh "$RUN_ID" >/dev/null 2>&1; then
-  resolved_run_dir="docs/runs/${RUN_ID}"
+  resolved_run_dir="${_pg_artifacts_root}/runs/${RUN_ID}"
 else
   # Derive run-id from the resolved state-file path, if it points into
   # .claude/workflow-state/<id>.json.
   case "$state_file" in
-    .claude/workflow-state/*.json)
+    *.claude/workflow-state/*.json)
       _id="${state_file##*/}"; _id="${_id%.json}"
       if [ -n "$_id" ] && bash scripts/parse-run-id.sh "$_id" >/dev/null 2>&1; then
-        resolved_run_dir="docs/runs/${_id}"
+        resolved_run_dir="${_pg_artifacts_root}/runs/${_id}"
       fi
       unset _id
       ;;
   esac
 fi
 if [ -z "$resolved_run_dir" ]; then
-  resolved_run_dir="docs"
+  resolved_run_dir="$_pg_artifacts_root"
 fi
 
 plan_path="${resolved_run_dir}/current-plan.md"
