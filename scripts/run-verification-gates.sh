@@ -113,7 +113,7 @@ run_typecheck() {
     run_override "Type/compile" "VERIFY_TYPECHECK_CMD"
     return $?
   fi
-  run bash .claude/hooks/type-check.sh
+  run bash "$(harness_resolve_artifact .claude/hooks/type-check.sh)"
 }
 
 run_lint() {
@@ -121,7 +121,7 @@ run_lint() {
     run_override "Lint" "VERIFY_LINT_CMD"
     return $?
   fi
-  run bash .claude/hooks/lint-on-edit.sh
+  run bash "$(harness_resolve_artifact .claude/hooks/lint-on-edit.sh)"
 }
 
 run_security() {
@@ -129,7 +129,7 @@ run_security() {
     run_override "Security" "VERIFY_SECURITY_CMD"
     return $?
   fi
-  run bash scripts/security-scan.sh
+  run bash "$(harness_resolve_artifact scripts/security-scan.sh)"
 }
 
 run_property() {

@@ -45,7 +45,7 @@ copy is advisory):
 1. Write `${RUN_DIR}/specs/<feature>.md` first (the per-run spec).
 2. Ensure `docs/specs/<feature>/` exists (create if missing).
 3. Emit `docs/specs/<feature>/spec.yaml` in the schema accepted by
-   `scripts/specs/parse-spec.sh`. Required fields: `id`, `title`,
+   `${CLAUDE_PLUGIN_ROOT}/scripts/specs/parse-spec.sh`. Required fields: `id`, `title`,
    `status` (`draft|accepted|superseded`), `risk` (`low|medium|high`),
    `tags`, `summary`, `motivation`, `scope`, `acceptance_criteria`,
    `invariants`, `boundary_map`, `references`. Optional: `body_path`.
@@ -53,7 +53,7 @@ copy is advisory):
    `docs/specs/<feature>/spec.md` and set `body_path: spec.md`.
 5. Use temp+rename for the YAML file to keep the egress atomic per
    `.claude/rules/boundary-parse-dont-validate.md`.
-6. Validate the result with `bash scripts/specs/parse-spec.sh --check
+6. Validate the result with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/specs/parse-spec.sh" --check
    docs/specs/<feature>/spec.yaml` BEFORE returning. The parser fails
    closed on schema violations.
 7. Add an entry for the spec to `docs/specs/index.yaml`. Keep entries
@@ -80,7 +80,7 @@ write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md + docs
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.
-- Batching: when a plan introduces multiple non-load-bearing choices, you MAY draft the plan with `(provisional)` markers in an "Open Decisions" section and emit ONE `AskUserQuestion` batch at the plan-approval gate. Single load-bearing decisions still ask first per the rule. After resolution, re-emit the plan and record each answered decision via `scripts/append-decision.sh` to `${RUN_DIR}/decisions.jsonl`.
+- Batching: when a plan introduces multiple non-load-bearing choices, you MAY draft the plan with `(provisional)` markers in an "Open Decisions" section and emit ONE `AskUserQuestion` batch at the plan-approval gate. Single load-bearing decisions still ask first per the rule. After resolution, re-emit the plan and record each answered decision via `${CLAUDE_PLUGIN_ROOT}/scripts/append-decision.sh` to `${RUN_DIR}/decisions.jsonl`.
 </constraints>
 
 <requirements>
@@ -97,7 +97,7 @@ shape: `STATUS: <ok|fail|blocked> | risk=<low|medium|high|unknown> | risk_reason
 ok: plan written
 fail: internal error | missing template
 blocked: cannot plan without more user input
-parsing: the orchestrator parses this line via `scripts/parse-status-line.sh`. Missing `risk_reason=` is backward-compatible (defaults to `(unspecified)`), but new plans MUST emit it so the plan-gate banner can render `risk=<tier> because <reason>`.
+parsing: the orchestrator parses this line via `${CLAUDE_PLUGIN_ROOT}/scripts/parse-status-line.sh`. Missing `risk_reason=` is backward-compatible (defaults to `(unspecified)`), but new plans MUST emit it so the plan-gate banner can render `risk=<tier> because <reason>`.
 examples:
   - `STATUS: ok | risk=medium | risk_reason=cross-module + new policy parser | OAuth PKCE plan; 3 boundary parsers | report=${RUN_DIR}/current-plan.md`
   - `STATUS: ok | risk=low | risk_reason=docs-only | typo sweep | report=${RUN_DIR}/current-plan.md`

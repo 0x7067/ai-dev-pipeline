@@ -7,10 +7,10 @@ You are the orchestrator for `/research`. Do NOT research yourself — delegate 
 Steps:
 
 0. **Mint run-id and export environment.** Same protocol as `/ship` step 0:
-   - Reuse `RUN_ID` if already set (validated through `scripts/parse-run-id.sh`); else if `GITHUB_RUN_ID` is set, mint via `RUN_ID=$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash scripts/mint-run-id.sh)`; else `RUN_ID=$(bash scripts/mint-run-id.sh)`.
+   - Reuse `RUN_ID` if already set (validated through `${CLAUDE_PLUGIN_ROOT}/scripts/parse-run-id.sh`); else if `GITHUB_RUN_ID` is set, mint via `RUN_ID=$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")`; else `RUN_ID=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")`.
    - `export RUN_ID` and `export RUN_DIR="docs/runs/${RUN_ID}"`.
    - Create `${RUN_DIR}/research/` and update `docs/latest`, `docs/latest.txt`, `.claude/workflow-state/active` atomically (`tmp + mv`).
-   - Run `bash scripts/prune-runs.sh` (no-op when `CI=true`).
+   - Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh"` (no-op when `CI=true`).
    - Print `▶ run minted RUN_ID=$RUN_ID RUN_DIR=$RUN_DIR`.
 
 1. Print to the user:
@@ -38,6 +38,6 @@ Steps:
 
 6. **End-of-run artifact summary.** As the very last output, render the
    end-of-run artifact summary block per
-   `docs/templates/end-of-run-summary-template.md`. Use absolute paths and
+   `${CLAUDE_PLUGIN_ROOT}/docs/templates/end-of-run-summary-template.md`. Use absolute paths and
    only list artifacts that exist on disk. The same block is shared verbatim
    across `/ship`, `/review`, `/refactor`, `/audit`, `/research`.

@@ -71,7 +71,7 @@ risk: add rollback notes for risky/cross-cutting changes
 intended bash command shapes (allowed):
 - Build/test/lint invocations detected from project files (e.g. `npm test`, `pnpm build`, `cargo test`, `pytest`, `go test ./...`).
 - Read-only inspection: `ls`, `find`, `cat`, `git status`, `git diff`.
-- Project scripts under `scripts/` (e.g. `bash scripts/run-verification-gates.sh`).
+- Project scripts under `scripts/` (e.g. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-verification-gates.sh"`).
 - Targeted file edits via Edit/Write tools — prefer those over shell redirection. Heredoc `cat > file << EOF` is acceptable only when no Write-tool path applies.
 bash-timeout: long-running suites or gate runners SHOULD pass `timeout: 600000` (10 minutes, the Bash tool maximum) explicitly. Default `timeout` is 120000 (2 min) and will kill slow test suites prematurely.
 </bash-usage>

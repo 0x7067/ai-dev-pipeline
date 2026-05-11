@@ -7,6 +7,32 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-05-11
+
+### Fixed
+
+- All bare `scripts/<x>` and `docs/templates/<x>` references in
+  `.claude/commands/*.md` and `.claude/agents/*.md` are now prefixed with
+  `${CLAUDE_PLUGIN_ROOT}/`. Previously these paths resolved against the
+  consuming project's CWD (where nothing exists), breaking `/ship`,
+  `/review`, `/refactor`, `/audit`, and `/research` on a fresh install.
+  Write-target paths (`${RUN_DIR}/...`, `docs/runs/...`, user project
+  artifacts) are intentionally left unprefixed — they must land in the
+  consuming repo. Agent files that already had the correct dual
+  `repo-wins / ${CLAUDE_PLUGIN_ROOT} fallback` template-resolve pattern
+  are left untouched. Backwards compatibility is explicitly not a goal
+  for this fix; `${CLAUDE_PLUGIN_ROOT}` is set in both plugin-install and
+  in-repo development contexts.
+- `scripts/run-verification-gates.sh` previously hard-coded
+  `bash .claude/hooks/type-check.sh`, `bash .claude/hooks/lint-on-edit.sh`,
+  and `bash scripts/security-scan.sh` as CWD-relative invocations. On a
+  zero-setup install these paths did not exist in the consuming project,
+  causing every typecheck/lint/security gate to crash. Each invocation
+  now routes through `harness_resolve_artifact`, which prefers a
+  repo-local copy and falls back to `${CLAUDE_PLUGIN_ROOT}/` when the
+  user has not vendored the script. End-to-end verified from a clean
+  tmpdir: all six gates green, exit 0.
+
 ## [0.16.1] - 2026-05-10
 
 ### Fixed

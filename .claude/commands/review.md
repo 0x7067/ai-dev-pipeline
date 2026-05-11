@@ -7,10 +7,10 @@ You are the orchestrator for `/review`. Do NOT review yourself — delegate to t
 Steps:
 
 0. **Mint run-id and export environment.** Same protocol as `/ship` step 0:
-   - Reuse `RUN_ID` if already set (validated through `scripts/parse-run-id.sh`); else if `GITHUB_RUN_ID` is set, mint via `RUN_ID=$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash scripts/mint-run-id.sh)`; else `RUN_ID=$(bash scripts/mint-run-id.sh)`.
+   - Reuse `RUN_ID` if already set (validated through `${CLAUDE_PLUGIN_ROOT}/scripts/parse-run-id.sh`); else if `GITHUB_RUN_ID` is set, mint via `RUN_ID=$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")`; else `RUN_ID=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")`.
    - `export RUN_ID` and `export RUN_DIR="docs/runs/${RUN_ID}"`.
    - Create `${RUN_DIR}` and update `docs/latest`, `docs/latest.txt`, `.claude/workflow-state/active` atomically (`tmp + mv`).
-   - Run `bash scripts/prune-runs.sh` (no-op when `CI=true`).
+   - Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh"` (no-op when `CI=true`).
    - Print `▶ run minted RUN_ID=$RUN_ID RUN_DIR=$RUN_DIR`.
 
 1. Capture phase start time and print to the user:
@@ -41,7 +41,7 @@ Steps:
    Then append the timing record (additive; failure logged but never
    blocks the run):
    ```sh
-   bash scripts/append-phase-timing.sh \
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/append-phase-timing.sh" \
      --run-dir "$RUN_DIR" --name reviewer \
      --status "$([ "$reviewer_ok" = 1 ] && echo ok || echo fail)" \
      --seconds "$_phase_secs" --started-at "$_phase_started_at" \
@@ -52,7 +52,7 @@ Steps:
 
    **A3 finding preview.** Immediately after the `✓|✗ reviewer — STATUS:…`
    echo, if `blocking>0` run
-   `bash scripts/preview-finding-titles.sh "${RUN_DIR}/review-report.md" "## Blocking findings"`
+   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-finding-titles.sh" "${RUN_DIR}/review-report.md" "## Blocking findings"`
    and print up to 3 indented title lines; else if `advisory>0`, run the
    helper with anchor `"## Advisory findings"`. Missing report or anchor →
    emit nothing (fail-closed). Preview lines never start with `STATUS:` (I2).
@@ -61,15 +61,15 @@ Steps:
    shared renderer:
 
    ```sh
-   bash scripts/render-end-of-run.sh --run-dir "$RUN_DIR" --run-id "$RUN_ID"
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/render-end-of-run.sh" --run-dir "$RUN_DIR" --run-id "$RUN_ID"
    ```
 
    The renderer reads `${RUN_DIR}/phase_timings.json` (via the boundary
-   parser `scripts/parse-phase-timings.sh` — never raw `jq`/`cat`),
+   parser `${CLAUDE_PLUGIN_ROOT}/scripts/parse-phase-timings.sh` — never raw `jq`/`cat`),
    `${RUN_DIR}/decisions.jsonl`, and the optional
    `${RUN_DIR}/.failure-summary` to produce the canonical block in
    order: failures → timings → decisions → Artifacts. Artifact paths
    become OSC-8 hyperlinks on TTYs with `STYLE_COLOR=1`; `NO_COLOR=1`
    or non-TTY output suppresses all escapes. Same block shared verbatim
    across `/ship`, `/review`, `/refactor`, `/audit`, `/research`.
-   Contract: `docs/templates/end-of-run-summary-template.md`.
+   Contract: `${CLAUDE_PLUGIN_ROOT}/docs/templates/end-of-run-summary-template.md`.

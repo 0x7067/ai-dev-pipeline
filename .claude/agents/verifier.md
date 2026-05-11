@@ -18,7 +18,7 @@ runs-before: merge/release
 state: repository (current branch)
 plan: ${RUN_DIR}/current-plan.md (risk tier + required approvals)
 prior-phases: ${RUN_DIR}/current-plan.md (includes `## Implementation` section appended by implementer — 2026-05 fold), ${RUN_DIR}/review-report.md
-gate-output: `bash scripts/run-verification-gates.sh` (canonical gate runner; reads RUN_DIR from env to write per-gate logs)
+gate-output: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-verification-gates.sh"` (canonical gate runner; reads RUN_DIR from env to write per-gate logs)
 env: RUN_ID, RUN_DIR (set by orchestrator)
 </inputs>
 
@@ -59,9 +59,9 @@ no-assume: language/framework
 
 <bash-usage>
 intended bash command shapes (allowed, scoped):
-- `bash scripts/run-verification-gates.sh` — the canonical gate runner. This is the primary command verifier issues.
+- `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-verification-gates.sh"` — the canonical gate runner. This is the primary command verifier issues.
 - `git status`, `git diff` — inspect current branch state and the diff under review.
-- Read-only inspection: `ls`, `find`, `cat` of report templates and artifacts under `${RUN_DIR}` or `docs/templates/`.
+- Read-only inspection: `ls`, `find`, `cat` of report templates and artifacts under `${RUN_DIR}` or `${CLAUDE_PLUGIN_ROOT}/docs/templates/`.
 forbidden bash:
 - Verifier must not use `sed -i` or any other write-via-shell idiom — file writes go through the Write tool, never through shell redirection (heredoc remains a legacy fallback for the verify report only, see <deliverable>).
 - No mutating git commands (`git commit`, `git push`, `git reset`, branch creation, etc.).

@@ -11,9 +11,9 @@ Accepted forms:
 - `/ship` or `/ship auto` - default. Research is off. Plan approval is automatic for `risk=low`; `risk=medium` and `risk=high` require approval before implementation.
 - `/ship strict` - require explicit approval before implementation and before release, regardless of risk.
 - `/ship research <topic>` - run research first, then continue in `auto` mode.
-- `/ship queue` - at the next halt, write a pending-approval marker via `scripts/queue-pending-approval.sh` and exit 0 with `STATUS: queued`. A subsequent `/ship` resume reads the marker (parsed via `scripts/parse-pending-approval.sh`) and proceeds.
+- `/ship queue` - at the next halt, write a pending-approval marker via `${CLAUDE_PLUGIN_ROOT}/scripts/queue-pending-approval.sh` and exit 0 with `STATUS: queued`. A subsequent `/ship` resume reads the marker (parsed via `${CLAUDE_PLUGIN_ROOT}/scripts/parse-pending-approval.sh`) and proceeds.
 
-Halts may take an optional `time-box=<seconds>` modifier. The orchestrator stores the deadline; when `time_box_resolve` (core, in `scripts/lib/hitl-core.sh`) reports `expired=true`, the orchestrator auto-rejects the halt and records `actor=time-box, verb=reject, rationale=elapsed` in `${RUN_DIR}/decisions.jsonl`. Default is OFF; opt-in per halt only.
+Halts may take an optional `time-box=<seconds>` modifier. The orchestrator stores the deadline; when `time_box_resolve` (core, in `${CLAUDE_PLUGIN_ROOT}/scripts/lib/hitl-core.sh`) reports `expired=true`, the orchestrator auto-rejects the halt and records `actor=time-box, verb=reject, rationale=elapsed` in `${RUN_DIR}/decisions.jsonl`. Default is OFF; opt-in per halt only.
 
 Reject anything else with:
 
@@ -27,11 +27,11 @@ Before any phase, create a run directory and export the run environment:
 
 ```sh
 if [ -n "${RUN_ID:-}" ]; then
-  RUN_ID="$(bash scripts/parse-run-id.sh "$RUN_ID")"
+  RUN_ID="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/parse-run-id.sh" "$RUN_ID")"
 elif [ -n "${GITHUB_RUN_ID:-}" ]; then
-  RUN_ID="$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash scripts/mint-run-id.sh)"
+  RUN_ID="$(GITHUB_RUN_ID="$GITHUB_RUN_ID" bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")"
 else
-  RUN_ID="$(bash scripts/mint-run-id.sh)"
+  RUN_ID="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/mint-run-id.sh")"
 fi
 export RUN_ID
 export RUN_DIR="docs/runs/${RUN_ID}"
@@ -40,7 +40,7 @@ _t="$$.${RANDOM:-0}"
 ln -sfn "runs/$RUN_ID" docs/latest
 printf '%s\n' "$RUN_ID" > "docs/latest.txt.tmp.$_t" && mv "docs/latest.txt.tmp.$_t" docs/latest.txt
 printf '%s\n' "$RUN_ID" > ".claude/workflow-state/active.tmp.$_t" && mv ".claude/workflow-state/active.tmp.$_t" .claude/workflow-state/active
-bash scripts/prune-runs.sh
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh"
 printf '▶ run minted RUN_ID=%s RUN_DIR=%s\n' "$RUN_ID" "$RUN_DIR"
 ```
 
@@ -54,9 +54,9 @@ orchestrator NEVER reads `approvals.yaml` directly — it routes through
 the parser, which fails closed on malformed input.
 
 ```sh
-POLICY_FILE="${POLICY_FILE:-.claude/policy/approvals.yaml}"
+POLICY_FILE="${POLICY_FILE:-${CLAUDE_PLUGIN_ROOT}/.claude/policy/approvals.yaml}"
 if [ -f "$POLICY_FILE" ]; then
-  if ! POLICY_KV="$(bash scripts/parse-approvals-policy.sh "$POLICY_FILE" 2>&1)"; then
+  if ! POLICY_KV="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/parse-approvals-policy.sh" "$POLICY_FILE" 2>&1)"; then
     printf '✗ approvals policy invalid; refusing to run\n%s\n' "$POLICY_KV" >&2
     exit 2
   fi
@@ -70,7 +70,7 @@ fi
 `POLICY_KV` is the typed key=value form. Consumers grep specific keys
 (e.g. `release_gate.auto_approve_when.risk`) — they NEVER re-read the
 YAML. Decisions are sourced from this typed form via `policy_apply` in
-`scripts/lib/hitl-core.sh`.
+`${CLAUDE_PLUGIN_ROOT}/scripts/lib/hitl-core.sh`.
 
 ## Phase Contract
 
@@ -89,7 +89,7 @@ For each subagent phase:
    for `ok`/`go`, otherwise `✗ <phase> failed (${_phase_secs}s) - ...`.
 6. Append the timing record atomically:
    ```sh
-   bash scripts/append-phase-timing.sh \
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/append-phase-timing.sh" \
      --run-dir "$RUN_DIR" \
      --name "<phase>" \
      --status "<ok|fail>" \
@@ -103,11 +103,11 @@ For each subagent phase:
 1. **Research (optional).** Run `researcher` only for `/ship research <topic>` or when planning blocks and explicitly requests research. Otherwise print `↷ research skipped (default)`.
 
 2. **Plan.** Run `planner`. It writes `${RUN_DIR}/current-plan.md` and emits a STATUS line containing `risk=<low|medium|high|unknown>` and `risk_reason=<phrase>`.
-   - Parse the planner's STATUS line via `bash scripts/parse-status-line.sh "<line>"` — this is the SINGLE STATUS-line parser; do not grep STATUS lines directly.
+   - Parse the planner's STATUS line via `bash "${CLAUDE_PLUGIN_ROOT}/scripts/parse-status-line.sh" "<line>"` — this is the SINGLE STATUS-line parser; do not grep STATUS lines directly.
    - Render the rationale banner (single line, no ANSI in committed artifacts):
      `risk=<tier> because <reason>` — reason sourced from the parsed `risk_reason` field; defaults to `(unspecified)` for backward compatibility.
    - Before any approval prompt, preview the plan with:
-     `bash scripts/preview.sh --anchor plan "${RUN_DIR}/current-plan.md"`.
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" --anchor plan "${RUN_DIR}/current-plan.md"`.
    - In `auto` mode, continue without a prompt when `risk=low`.
    - In `auto` mode with `risk=medium` or `risk=high`, OR in `strict` mode,
      halt with the two-line plan-halt grammar (line 1 = halt summary,
@@ -138,31 +138,31 @@ For each subagent phase:
      The free-text "Other" entry is parsed as `edit <comment>`; the
      comment payload is the user's free text. The plan gate is the ONLY
      gate that accepts `edit` (HITL plan invariant 8).
-   - On `edit <comment>`: re-invoke the `planner` with the comment as additional input; record the event in `${RUN_DIR}/decisions.jsonl` with `gate=plan, verb=edit, plan_hash=<hash of new plan>` via `scripts/append-decision.sh`. The plan gate is the ONLY gate that accepts `edit` (HITL plan invariant 8); the release gate accepts `approve | reject` only.
+   - On `edit <comment>`: re-invoke the `planner` with the comment as additional input; record the event in `${RUN_DIR}/decisions.jsonl` with `gate=plan, verb=edit, plan_hash=<hash of new plan>` via `${CLAUDE_PLUGIN_ROOT}/scripts/append-decision.sh`. The plan gate is the ONLY gate that accepts `edit` (HITL plan invariant 8); the release gate accepts `approve | reject` only.
    - On any plan-gate transition, append one record to `${RUN_DIR}/decisions.jsonl`:
-     `bash scripts/append-decision.sh --run-dir "$RUN_DIR" --ts "$(date -u +%FT%TZ)" --actor user --gate plan --verb <approve|edit|reject> --rationale "<short>" --plan-hash "<hash>"`
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/append-decision.sh" --run-dir "$RUN_DIR" --ts "$(date -u +%FT%TZ)" --actor user --gate plan --verb <approve|edit|reject> --rationale "<short>" --plan-hash "<hash>"`
 
 3. **Implement.** Run `implementer`. It edits the source tree and appends `## Implementation` to `${RUN_DIR}/current-plan.md`.
 
 4. **Review.** Run `reviewer`. If `blocking=0`, continue. If `blocking>0`, return to Implement once. If blocking findings remain after one fix pass, halt with `✗ review blocked - unresolved blocking findings`.
    - After the reviewer status, preview up to three findings:
-     `bash scripts/preview.sh --anchor review --top 3 --heading "## Blocking findings" "${RUN_DIR}/review-report.md"`.
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" --anchor review --top 3 --heading "## Blocking findings" "${RUN_DIR}/review-report.md"`.
 
-5. **Verify.** Run `verifier`. It runs `bash scripts/run-verification-gates.sh` and writes `${RUN_DIR}/verify-report.md`.
+5. **Verify.** Run `verifier`. It runs `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-verification-gates.sh"` and writes `${RUN_DIR}/verify-report.md`.
    - If verifier returns anything other than `STATUS: go`, preview failed gates with:
-     `bash scripts/preview.sh --anchor verify --top 3 --heading "## Gate Results" "${RUN_DIR}/verify-report.md"`.
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" --anchor verify --top 3 --heading "## Gate Results" "${RUN_DIR}/verify-report.md"`.
    - Stop on `no-go` or `fail`.
 
 6. **Smoke.** Run:
-   `REPORT_QUALITY_REQUIRE_CONTENT=1 WORKFLOW_REQUIRE_ARTIFACTS=1 bash scripts/smoke-bootstrap.sh`
+   `REPORT_QUALITY_REQUIRE_CONTENT=1 WORKFLOW_REQUIRE_ARTIFACTS=1 bash "${CLAUDE_PLUGIN_ROOT}/scripts/smoke-bootstrap.sh"`
    Print `✓ smoke gate ok` or `✗ smoke gate failed (rc=<code>)`.
 
 7. **Release.**
-   - Compute the release decision via the pure core function `policy_apply` in `scripts/lib/hitl-core.sh`. Capture BOTH stdout (the verdict) AND stderr (the audit-clarity signal) — `policy_apply` emits `reject-reason=<verifier-crashed|gates-failed|smoke-failed>` on stderr whenever the verdict is `reject`, and is silent on stderr for `auto-approve`/`prompt`:
+   - Compute the release decision via the pure core function `policy_apply` in `${CLAUDE_PLUGIN_ROOT}/scripts/lib/hitl-core.sh`. Capture BOTH stdout (the verdict) AND stderr (the audit-clarity signal) — `policy_apply` emits `reject-reason=<verifier-crashed|gates-failed|smoke-failed>` on stderr whenever the verdict is `reject`, and is silent on stderr for `auto-approve`/`prompt`:
 
      ```sh
      _err="$RUN_DIR/.policy_apply.stderr.$$"
-     verdict=$(bash -c 'source scripts/lib/hitl-core.sh; policy_apply "$SHIP_MODE" "$PLAN_RISK" "$REVIEW_BLOCKING" "$VERIFY_STATUS" "$SMOKE_STATUS"' 2>"$_err")
+     verdict=$(bash -c 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/hitl-core.sh"; policy_apply "$SHIP_MODE" "$PLAN_RISK" "$REVIEW_BLOCKING" "$VERIFY_STATUS" "$SMOKE_STATUS"' 2>"$_err")
      reject_reason=$(sed -n 's/^reject-reason=//p' "$_err" | head -n1)
      rm -f "$_err"
      ```
@@ -190,7 +190,7 @@ For each subagent phase:
      here because `prompt` had no machine reject.
    - On `reject`: print `✗ release rejected (${reject_reason:-policy})`, record `verb=reject` with `rationale="${reject_reason:-policy}"`, do not finish. The `reject_reason` MUST be one of `verifier-crashed | gates-failed | smoke-failed` (the typed values `policy_apply` emits); if absent or unrecognized, fall back to the literal `policy` so the audit log never carries arbitrary stderr bytes.
    - On every release-gate transition append exactly one record:
-     `bash scripts/append-decision.sh --run-dir "$RUN_DIR" --ts "$(date -u +%FT%TZ)" --actor <user|auto> --gate release --verb <approve|reject> --rationale "<short>" --plan-hash "${PLAN_HASH:-}"`
+     `bash "${CLAUDE_PLUGIN_ROOT}/scripts/append-decision.sh" --run-dir "$RUN_DIR" --ts "$(date -u +%FT%TZ)" --actor <user|auto> --gate release --verb <approve|reject> --rationale "<short>" --plan-hash "${PLAN_HASH:-}"`
 
 ## Architecture Decision Records
 
@@ -205,38 +205,38 @@ write one short Markdown file under:
 ${RUN_DIR}/adrs/YYYYMMDD-short-slug.md
 ```
 
-Use `docs/templates/adr-template.md`. Keep ADRs concise: context, decision,
+Use `${CLAUDE_PLUGIN_ROOT}/docs/templates/adr-template.md`. Keep ADRs concise: context, decision,
 consequences. The `Run:` field must contain the active `RUN_ID` so the ADR is
 traceable through the run manifest and end-of-run summary.
 
 Validation is intentionally artifact-native:
 
 ```sh
-bash scripts/check-adrs.sh
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-adrs.sh"
 ```
 
 The smoke gate runs this validator. Runs that contain ADR files are protected
-from `scripts/prune-runs.sh`, so the repo keeps durable decision records
+from `${CLAUDE_PLUGIN_ROOT}/scripts/prune-runs.sh`, so the repo keeps durable decision records
 without a parallel ADR registry.
 
 ## Queue Mode (`/ship queue`)
 
 When `SHIP_MODE=queue`, at the next halt the orchestrator does NOT block.
 Instead it writes a pending-approval marker via the atomic writer
-(`scripts/queue-pending-approval.sh`, tempfile + rename) and exits 0
+(`${CLAUDE_PLUGIN_ROOT}/scripts/queue-pending-approval.sh`, tempfile + rename) and exits 0
 with a `STATUS: queued | ...` line. A subsequent `/ship` resume reads
-the marker via the typed parser (`scripts/parse-pending-approval.sh`)
+the marker via the typed parser (`${CLAUDE_PLUGIN_ROOT}/scripts/parse-pending-approval.sh`)
 — the orchestrator NEVER reads the marker file directly.
 
 ```sh
 if [ "${SHIP_MODE:-auto}" = "queue" ]; then
-  bash scripts/queue-pending-approval.sh \
+  bash "${CLAUDE_PLUGIN_ROOT}/scripts/queue-pending-approval.sh" \
     --run-dir "$RUN_DIR" \
     --run-id "$RUN_ID" \
     --gate plan \
     --plan-hash "${PLAN_HASH:-}" \
     --created-at "$(date -u +%FT%TZ)"
-  bash scripts/append-decision.sh \
+  bash "${CLAUDE_PLUGIN_ROOT}/scripts/append-decision.sh" \
     --run-dir "$RUN_DIR" \
     --ts "$(date -u +%FT%TZ)" \
     --actor auto --gate plan --verb reject \
@@ -252,7 +252,7 @@ On resume:
 
 ```sh
 if [ -f "$RUN_DIR/.pending-approval.json" ]; then
-  PENDING_KV="$(bash scripts/parse-pending-approval.sh "$RUN_DIR/.pending-approval.json")" \
+  PENDING_KV="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/parse-pending-approval.sh" "$RUN_DIR/.pending-approval.json")" \
     || { printf '✗ pending-approval marker invalid; refusing to resume\n' >&2; exit 2; }
   # PENDING_KV contains run_id, gate, deadline_iso, plan_hash, created_at — typed.
 fi
@@ -263,7 +263,7 @@ fi
 A halt MAY take an optional `time-box=<seconds>` modifier. The
 orchestrator records `deadline = now + seconds` and, between user-input
 polls, evaluates the pure core function `time_box_resolve now deadline`
-from `scripts/lib/hitl-core.sh`. On `expired=true` the orchestrator
+from `${CLAUDE_PLUGIN_ROOT}/scripts/lib/hitl-core.sh`. On `expired=true` the orchestrator
 auto-rejects the halt and records:
 `actor=time-box, gate=<plan|release>, verb=reject, rationale=elapsed`.
 
@@ -284,7 +284,7 @@ On non-green runs the script no-ops (rc=0). Failure of the script is logged
 and ignored.
 
 ```sh
-bash scripts/promote-latest-green.sh \
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/promote-latest-green.sh" \
   --run-id "$RUN_ID" \
   --verify-status "${VERIFY_STATUS:-fail}" \
   --review-blocking "${REVIEW_BLOCKING:-1}" \
@@ -296,7 +296,7 @@ bash scripts/promote-latest-green.sh \
 After all phases complete (success or halt), emit the per-run manifest as the final orchestration step. Strictly additive — failure here MUST NOT change the release decision already taken.
 
 ```sh
-bash scripts/write-manifest.sh \
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/write-manifest.sh" \
   --command ship \
   --mode "${SHIP_MODE:-auto}" \
   --risk-tier "${PLAN_RISK:-unknown}" \
@@ -304,7 +304,7 @@ bash scripts/write-manifest.sh \
   || printf '↷ manifest emit skipped (rc=%d)\n' "$?"
 ```
 
-The writer reads `RUN_ID`/`RUN_DIR`, hashes every artifact under `RUN_DIR`, and writes `${RUN_DIR}/manifest.json` atomically. Schema: `docs/schemas/run-manifest/v1/manifest.schema.json`. Boundary parser for any future consumer: `scripts/parse-manifest.sh`.
+The writer reads `RUN_ID`/`RUN_DIR`, hashes every artifact under `RUN_DIR`, and writes `${RUN_DIR}/manifest.json` atomically. Schema: `docs/schemas/run-manifest/v1/manifest.schema.json`. Boundary parser for any future consumer: `${CLAUDE_PLUGIN_ROOT}/scripts/parse-manifest.sh`.
 
 ## Stop Conditions
 
@@ -313,16 +313,16 @@ Stop on missing required artifacts, unresolved blocking review findings, failed 
 ## End-of-Run Summary
 
 After success or halt, render the end-of-run block as the final output.
-The canonical renderer is `scripts/render-end-of-run.sh`, which reads
+The canonical renderer is `${CLAUDE_PLUGIN_ROOT}/scripts/render-end-of-run.sh`, which reads
 `${RUN_DIR}/phase_timings.json` (via the boundary parser
-`scripts/parse-phase-timings.sh`), `${RUN_DIR}/decisions.jsonl`, and
+`${CLAUDE_PLUGIN_ROOT}/scripts/parse-phase-timings.sh`), `${RUN_DIR}/decisions.jsonl`, and
 the optional `${RUN_DIR}/.failure-summary` file, then prints the block
 in the order: failures (if any) → timing strip → decision trail →
 Artifacts list. Artifact paths are wrapped via `style::hyperlink`
 (active only on a TTY with `STYLE_COLOR=1`).
 
 ```sh
-bash scripts/render-end-of-run.sh --run-dir "$RUN_DIR" --run-id "$RUN_ID"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/render-end-of-run.sh" --run-dir "$RUN_DIR" --run-id "$RUN_ID"
 ```
 
 When a phase failed, the orchestrator MUST write the failure summary
@@ -338,5 +338,5 @@ points the renderer at the captured log so it can preview the last
 } > "$RUN_DIR/.failure-summary"
 ```
 
-Follow `docs/templates/end-of-run-summary-template.md` for the block
+Follow `${CLAUDE_PLUGIN_ROOT}/docs/templates/end-of-run-summary-template.md` for the block
 contract; the renderer is the executable form.
