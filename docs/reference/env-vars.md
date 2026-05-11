@@ -30,6 +30,7 @@ All scripts respect these environment variables for project-specific customizati
 | `WORKFLOW_TEST_PATH` | `docs/test-report.md` | Override path for the optional test report artifact |
 | `WORKFLOW_VERIFY_PATH` | `docs/verify-report.md` | Override path for the verify report artifact |
 | `WORKFLOW_SPECS_GLOB` | `docs/specs/*.md` | Override glob for optional spec artifacts; present specs are content-checked in strict mode |
+| `WORKFLOW_ADRS_GLOB` | active run ADRs | Override glob for optional ADR artifacts; present ADRs are format-checked |
 
 ## Report quality
 

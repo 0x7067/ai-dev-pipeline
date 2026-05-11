@@ -72,7 +72,7 @@ fi
 
 # ---------- B) parallel gate determinism ----------
 sandbox_g=$(mktemp -d)
-mkdir -p "$sandbox_g/docs/runs" "$sandbox_g/scripts" "$sandbox_g/.claude/hooks"
+mkdir -p "$sandbox_g/docs/runs" "$sandbox_g/scripts/lib" "$sandbox_g/.claude/hooks"
 # The gate runner cd's to repo root if a vendored copy exists locally OR
 # if PWD == its repo root (see top of run-verification-gates.sh). We give
 # the sandbox a vendored copy at scripts/run-verification-gates.sh so the
@@ -81,6 +81,7 @@ cp "$REPO_ROOT/scripts/run-verification-gates.sh" "$sandbox_g/scripts/"
 cp "$REPO_ROOT/scripts/harness-lib.sh"            "$sandbox_g/scripts/"
 cp "$REPO_ROOT/scripts/parse-run-id.sh"           "$sandbox_g/scripts/"
 cp "$REPO_ROOT/scripts/mint-run-id.sh"            "$sandbox_g/scripts/"
+cp "$REPO_ROOT/scripts/lib/style.sh"              "$sandbox_g/scripts/lib/"
 chmod +x "$sandbox_g/scripts/"*.sh
 
 # Mint a run-id inside the sandbox so RUN_DIR resolves into the sandbox's

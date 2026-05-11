@@ -44,9 +44,10 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 RUN_ID="20260508T143022-a1b2c3-7f"
 RUN_DIR="$tmpdir/runs/$RUN_ID"
-mkdir -p "$RUN_DIR/research"
+mkdir -p "$RUN_DIR/research" "$RUN_DIR/adrs"
 echo "plan body" > "$RUN_DIR/current-plan.md"
 echo "research note" > "$RUN_DIR/research/topic.md"
+echo "# ADR: Test" > "$RUN_DIR/adrs/20260508-test.md"
 
 if RUN_ID="$RUN_ID" RUN_DIR="$RUN_DIR" bash "$WRITER" --command ship --mode auto --risk-tier low --status ok > "$tmpdir/writer.out" 2> "$tmpdir/writer.err"; then
   pass "writer succeeded"
@@ -59,6 +60,11 @@ if [ -f "$RUN_DIR/manifest.json" ]; then
   pass "manifest.json exists at expected path"
 else
   fail "manifest.json missing"
+fi
+if grep -q '"kind":"adr","path":"adrs/20260508-test.md"' "$RUN_DIR/manifest.json"; then
+  pass "writer classifies ADR artifacts"
+else
+  fail "writer did not classify ADR artifact kind"
 fi
 
 # Parse what the writer produced — assert parse(write(M)) == M.

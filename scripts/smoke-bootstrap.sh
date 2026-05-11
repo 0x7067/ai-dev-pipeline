@@ -69,6 +69,7 @@ run_check_required_files() {
 run_check "validate_claude_config" bash scripts/validate-claude-config.sh
 run_check "report_quality" bash scripts/check-report-quality.sh
 run_check "workflow_artifacts" bash scripts/check-workflow-artifacts.sh
+run_check "adrs" bash scripts/check-adrs.sh
 
 # shellcheck disable=SC2016 # the heredoc-style script body is intentionally single-quoted to defer expansion to the child bash
 run_check "hooks_executable" bash -c '
@@ -88,10 +89,13 @@ run_check_required_files "required_bootstrap_files" \
   scripts/validate-claude-config.sh \
   scripts/check-report-quality.sh \
   scripts/check-workflow-artifacts.sh \
+  scripts/check-adrs.sh \
   scripts/check-crossrefs.sh \
   scripts/check-boundary-violations.sh \
   scripts/harness-lib.sh \
+  scripts/lib/style.sh \
   scripts/run-verification-gates.sh \
+  docs/templates/adr-template.md \
   docs/reference/acceptance-checklist.md \
   docs/templates/workflow-assessment-prompt-template.md \
   docs/templates/workflow-assessment-rubric-template.md \

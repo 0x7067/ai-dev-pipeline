@@ -137,6 +137,7 @@ infer_kind() {
     test-report.md)         printf 'test' ;;
     refactor-report.md)     printf 'refactor' ;;
     audit-report.md)        printf 'audit' ;;
+    adrs/*.md)              printf 'adr' ;;
     research/*.md)          printf 'research' ;;
     specs/*.md)             printf 'spec' ;;
     *)                      printf 'other' ;;

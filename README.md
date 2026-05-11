@@ -74,7 +74,7 @@ Three workflows in `.github/workflows/`:
 
 ## Run-ID Isolation
 
-Every primary command mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, reports, gate logs, retry hints — write under `${RUN_DIR}/`. Concurrent runs (two `/ship` sessions, CI + local, two worktrees) are safe by construction.
+Every primary command mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, ADRs, reports, gate logs, retry hints — write under `${RUN_DIR}/`. Concurrent runs (two `/ship` sessions, CI + local, two worktrees) are safe by construction.
 
 Step 0 atomically maintains three discovery pointers: `docs/latest` (symlink), `docs/latest.txt` (text fallback), and `.claude/workflow-state/active`. Read-only verification gates (`typecheck`, `lint`, `security`) run in parallel inside `scripts/run-verification-gates.sh`; test gates remain sequential.
 
@@ -85,7 +85,7 @@ See [docs/specs/run-id-isolation/spec.yaml](docs/specs/run-id-isolation/spec.yam
 Full reference in [docs/reference/env-vars.md](docs/reference/env-vars.md). Notable knobs:
 
 - `RUN_ID`, `RUN_DIR` — active run-id and resolved directory; set by step 0.
-- `RUN_RETENTION` — run dirs to keep under `docs/runs/` (default `10`); honored by `scripts/prune-runs.sh`. CI=true is a no-op.
+- `RUN_RETENTION` — run dirs to keep under `docs/runs/` (default `10`); honored by `scripts/prune-runs.sh`. CI=true is a no-op. Runs containing `${RUN_DIR}/adrs/*.md` are not pruned.
 - `REPORT_REVIEW_PATH`, `REPORT_TEST_PATH`, `REPORT_VERIFY_PATH` — overrides for `scripts/check-report-quality.sh`. Defaults resolve through `${RUN_DIR}/`, then `docs/latest/`, then legacy `docs/<report>.md`.
 - `HOOKS_FAST=1` — change-scoped fast-path hooks (default `0`).
 - `WORKFLOW_GATES_SKIP=1` — bypass workflow-state gating.

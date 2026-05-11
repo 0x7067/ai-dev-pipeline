@@ -35,7 +35,7 @@ else
 fi
 export RUN_ID
 export RUN_DIR="docs/runs/${RUN_ID}"
-mkdir -p "$RUN_DIR" "$RUN_DIR/research" "$RUN_DIR/specs" .claude/workflow-state
+mkdir -p "$RUN_DIR" "$RUN_DIR/research" "$RUN_DIR/specs" "$RUN_DIR/adrs" .claude/workflow-state
 _t="$$.${RANDOM:-0}"
 ln -sfn "runs/$RUN_ID" docs/latest
 printf '%s\n' "$RUN_ID" > "docs/latest.txt.tmp.$_t" && mv "docs/latest.txt.tmp.$_t" docs/latest.txt
@@ -191,6 +191,33 @@ For each subagent phase:
    - On `reject`: print `✗ release rejected (${reject_reason:-policy})`, record `verb=reject` with `rationale="${reject_reason:-policy}"`, do not finish. The `reject_reason` MUST be one of `verifier-crashed | gates-failed | smoke-failed` (the typed values `policy_apply` emits); if absent or unrecognized, fall back to the literal `policy` so the audit log never carries arbitrary stderr bytes.
    - On every release-gate transition append exactly one record:
      `bash scripts/append-decision.sh --run-dir "$RUN_DIR" --ts "$(date -u +%FT%TZ)" --actor <user|auto> --gate release --verb <approve|reject> --rationale "<short>" --plan-hash "${PLAN_HASH:-}"`
+
+## Architecture Decision Records
+
+Use `${RUN_DIR}/decisions.jsonl` for gate events. Use ADRs only for durable
+"why" decisions that future maintainers would otherwise have to reconstruct
+from the chat, plan, or diff.
+
+When `/ship` or a related flow makes a durable architecture/workflow decision,
+write one short Markdown file under:
+
+```sh
+${RUN_DIR}/adrs/YYYYMMDD-short-slug.md
+```
+
+Use `docs/templates/adr-template.md`. Keep ADRs concise: context, decision,
+consequences. The `Run:` field must contain the active `RUN_ID` so the ADR is
+traceable through the run manifest and end-of-run summary.
+
+Validation is intentionally artifact-native:
+
+```sh
+bash scripts/check-adrs.sh
+```
+
+The smoke gate runs this validator. Runs that contain ADR files are protected
+from `scripts/prune-runs.sh`, so the repo keeps durable decision records
+without a parallel ADR registry.
 
 ## Queue Mode (`/ship queue`)
 

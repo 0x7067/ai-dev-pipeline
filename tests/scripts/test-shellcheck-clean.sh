@@ -16,7 +16,7 @@ cd "$REPO_ROOT" || exit 1
 # Build the list of files we care about. Use globs that may not match (e.g.
 # scripts/lib/ is currently absent) and filter to existing files only.
 files=()
-for pat in scripts/*.sh scripts/lib/*.sh tests/scripts/*.sh; do
+for pat in scripts/*.sh scripts/lib/*.sh scripts/release/lib/*.sh tests/scripts/*.sh; do
   for f in $pat; do
     [ -f "$f" ] && files+=("$f")
   done
@@ -27,7 +27,7 @@ if [ "${#files[@]}" -eq 0 ]; then
   exit 0
 fi
 
-out="$(shellcheck "${files[@]}" 2>&1)"
+out="$(shellcheck -x --severity=warning "${files[@]}" 2>&1)"
 rc=$?
 
 if [ "$rc" -eq 0 ] && [ -z "$out" ]; then

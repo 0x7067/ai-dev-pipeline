@@ -11,6 +11,7 @@
 #   - Never delete a directory whose name appears in the protected set:
 #       basename(readlink docs/latest), cat docs/latest.txt,
 #       cat .claude/workflow-state/active.
+#   - Never delete a run containing ADR artifacts under adrs/*.md.
 #   - In CI (CI=true), no-op: CI artifact retention is the CI provider's
 #     concern and we want green logs to be reproducible.
 #
@@ -83,6 +84,13 @@ is_protected() {
   return 1
 }
 
+has_adr_artifacts() {
+  local run_dir="$1"
+  [ -d "$run_dir/adrs" ] || return 1
+  find "$run_dir/adrs" -mindepth 1 -maxdepth 1 -type f -name '*.md' 2>/dev/null \
+    | grep -q .
+}
+
 # Collect candidates, newest first. Only entries whose names parse as
 # valid run-ids participate — anything else is left alone (foreign
 # directories should never be silently deleted by retention).
@@ -126,6 +134,10 @@ while IFS=$'\t' read -r _mtime path; do
   fi
   if is_protected "$name"; then
     echo "prune-runs: keeping protected $name (active/latest)"
+    continue
+  fi
+  if has_adr_artifacts "$path"; then
+    echo "prune-runs: keeping protected $name (adr)"
     continue
   fi
   echo "prune-runs: removing $path" >&2

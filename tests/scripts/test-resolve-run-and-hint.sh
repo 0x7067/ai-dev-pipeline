@@ -146,11 +146,12 @@ rm -rf "$sb"
 
 sb_g=$(mktemp -d)
 trap 'rm -rf "$sb_g"' EXIT
-mkdir -p "$sb_g/scripts" "$sb_g/.claude/hooks"
+mkdir -p "$sb_g/scripts/lib" "$sb_g/.claude/hooks"
 cp "$REPO_ROOT/scripts/run-verification-gates.sh" "$sb_g/scripts/"
 cp "$REPO_ROOT/scripts/harness-lib.sh"            "$sb_g/scripts/"
 cp "$REPO_ROOT/scripts/parse-run-id.sh"           "$sb_g/scripts/"
 cp "$REPO_ROOT/scripts/mint-run-id.sh"            "$sb_g/scripts/"
+cp "$REPO_ROOT/scripts/lib/style.sh"              "$sb_g/scripts/lib/"
 chmod +x "$sb_g/scripts/"*.sh
 
 run_id=$( cd "$sb_g" && bash scripts/mint-run-id.sh --write-pointers )

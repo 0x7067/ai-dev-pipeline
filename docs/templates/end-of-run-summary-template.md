@@ -23,6 +23,7 @@ Artifacts:
   ✓ plan          <abs>/current-plan.md       (N lines)   ← includes appended `## Implementation` section
   ✓ specs         <abs>/specs/                (N file(s))
   ✓ research      <abs>/research/             (N file(s))
+  ✓ adrs          <abs>/adrs/                 (N file(s))
   ✓ test-report   <abs>/test-report.md        (N lines)
   ✓ test-results  <abs>/test-results.json     (cached suite result)
   ✓ review-report <abs>/review-report.md      (N lines)
@@ -54,7 +55,7 @@ for pair in \
     printf '  ✓ %-13s %s/%s (%s lines)\n' "$label" "$abs_run_dir" "$rel" "$n"
   fi
 done
-for dir in specs research; do
+for dir in specs research adrs; do
   if [ -d "${abs_run_dir}/${dir}" ]; then
     n=$(find "${abs_run_dir}/${dir}" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
     [ "$n" -gt 0 ] && printf '  ✓ %-13s %s/%s/ (%s file(s))\n' "$dir" "$abs_run_dir" "$dir" "$n"

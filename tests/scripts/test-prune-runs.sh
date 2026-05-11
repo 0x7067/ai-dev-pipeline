@@ -4,6 +4,7 @@
 # Properties under test (see docs/specs/run-id-isolation.md "Invariants"):
 #   - retention safety: protected (latest/active) is never deleted, even
 #     if it is the oldest.
+#   - ADR durability: runs containing adrs/*.md are never deleted by retention.
 #   - count: with N synthetic runs and RUN_RETENTION=K, the pruner keeps
 #     min(N, K) directories (plus any protected stragglers).
 #   - foreign tolerance: a directory whose name doesn't parse is never
@@ -52,6 +53,12 @@ printf '%s\n' "$oldest" > .claude/workflow-state/active
 # Foreign directory must survive.
 mkdir -p docs/runs/not-a-run-id
 
+# ADR-bearing run must survive even if it falls outside retention.
+adr_run=${ids[1]}
+mkdir -p "docs/runs/$adr_run/adrs"
+printf '%s\n' "# ADR: Keep me" > "docs/runs/$adr_run/adrs/20260508-keep-me.md"
+touch -t 202605081200.02 "docs/runs/$adr_run"
+
 # Run pruner with RUN_RETENTION=10.
 RUN_RETENTION=10 CI=false bash "$PRUNE" >/tmp/prune-out.$$ 2>&1 || {
   cat /tmp/prune-out.$$ >&2
@@ -59,11 +66,11 @@ RUN_RETENTION=10 CI=false bash "$PRUNE" >/tmp/prune-out.$$ 2>&1 || {
 }
 
 remaining=$(find docs/runs -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
-# Expectations: 10 newest + 1 protected (oldest) + 1 foreign = 12.
-if [ "$remaining" -eq 12 ]; then
-  pass "kept 12 dirs (10 newest + protected oldest + foreign)"
+# Expectations: 10 newest + 1 protected (oldest) + 1 ADR + 1 foreign = 13.
+if [ "$remaining" -eq 13 ]; then
+  pass "kept 13 dirs (10 newest + protected oldest + ADR + foreign)"
 else
-  fail "expected 12 dirs, got $remaining"
+  fail "expected 13 dirs, got $remaining"
 fi
 
 # Protected oldest must still exist.
@@ -80,6 +87,13 @@ else
   fail "foreign directory was deleted"
 fi
 
+# ADR-bearing run survived.
+if [ -d "docs/runs/$adr_run" ]; then
+  pass "ADR-bearing run survived"
+else
+  fail "ADR-bearing run was deleted"
+fi
+
 # Newest 10 survived. ids[5..14] (zero-indexed) are the 10 newest.
 for i in $(seq 5 14); do
   if [ ! -d "docs/runs/${ids[$i]}" ]; then
@@ -88,13 +102,13 @@ for i in $(seq 5 14); do
 done
 pass "10 newest by mtime survived"
 
-# Mid-aged unprotected ids[1..4] should be deleted.
-for i in 1 2 3 4; do
+# Mid-aged unprotected ids[2..4] should be deleted. ids[1] has an ADR.
+for i in 2 3 4; do
   if [ -d "docs/runs/${ids[$i]}" ]; then
     fail "expected deletion missing: ${ids[$i]}"
   fi
 done
-pass "4 unprotected mid-aged dirs were deleted"
+pass "3 unprotected mid-aged dirs were deleted"
 
 # CI=true: no-op.
 mkdir -p docs/runs/throwaway-not-a-run-id

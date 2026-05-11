@@ -98,15 +98,15 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs/specs
+  mkdir -p docs/specs/empty
   write_required_artifacts docs
-  : > docs/specs/empty.md
+  : > docs/specs/empty/spec.yaml
 )
 if run_in_workdir "$work" env WORKFLOW_REQUIRE_ARTIFACTS=1; then
   fail "empty present spec should fail strict mode"
   sed -e 's/^/    | /' /tmp/wa-lean.out >&2 || true
 else
-  if grep -q "empty.md is empty" /tmp/wa-lean.out; then
+  if grep -q "empty/spec.yaml is empty" /tmp/wa-lean.out; then
     pass "present specs are still content-checked"
   else
     fail "empty spec failure message missing"

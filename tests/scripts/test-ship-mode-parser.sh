@@ -19,7 +19,7 @@ else
   fail "/ship auto default not documented"
 fi
 
-for accepted in '/ship strict' '/ship research <topic>'; do
+for accepted in '/ship strict' '/ship queue' '/ship research <topic>'; do
   if grep -q "$accepted" "$SHIP_MD"; then
     pass "$accepted accepted"
   else
@@ -27,7 +27,7 @@ for accepted in '/ship strict' '/ship research <topic>'; do
   fi
 done
 
-if grep -q 'valid modes are: <empty> | "auto" | "strict" | "research <topic>"' "$SHIP_MD"; then
+if grep -q 'valid modes are: <empty> | "auto" | "strict" | "queue" | "research <topic>"' "$SHIP_MD"; then
   pass "closed valid-mode enumeration documented"
 else
   fail "valid-mode enumeration missing or stale"

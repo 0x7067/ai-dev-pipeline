@@ -177,7 +177,7 @@ main() {
       printf '  ✓ %-13s %s (%s lines)\n' "$label" "$link" "$n"
     fi
   done
-  for dir in specs research; do
+  for dir in specs research adrs; do
     abs="${abs_run_dir}/${dir}"
     if [ -d "$abs" ]; then
       n=$(find "$abs" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
