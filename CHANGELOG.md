@@ -7,6 +7,35 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Eliminate top-level `docs/` leaks from skills and the planner agent.**
+  In consumer repos the plugin was writing four artifact classes outside
+  `${AIDP_ARTIFACTS_ROOT}` because skill prose and the planner's
+  persistent spec mirror still referenced cwd-relative `docs/` paths
+  introduced before the `AIDP_ARTIFACTS_ROOT` anchoring landed in 0.17.0:
+  - Skill descriptions and output sections in `code-review`,
+    `static-analysis`, `test-gen`, `refactor`, and
+    `requirement-analysis` now reference `${RUN_DIR}/<report>.md`
+    exclusively. The "falls back to `docs/<report>.md` when invoked
+    outside a /ship-managed run" prose is removed; skills now fail
+    closed if `RUN_DIR` is unset.
+  - `.claude/agents/planner.md` — the `<persistent-spec-mirror>` block
+    and the `write-allowed` constraint now use
+    `${AIDP_ARTIFACTS_ROOT}/specs/<feature>/...` everywhere
+    (`spec.yaml`, `spec.md`, `index.yaml`). The `<inputs>` block
+    declares `AIDP_ARTIFACTS_ROOT` as a required orchestrator-provided
+    var.
+  - `.claude/rules/decision-surfacing.md` — references to
+    `docs/current-plan.md` and `docs/research/<topic>.md` updated to
+    `${RUN_DIR}/...`.
+  - `scripts/specs/render-html.sh` — sources
+    `scripts/lib/project-root.sh`, resolves `AIDP_ARTIFACTS_ROOT` via
+    the boundary parser, and reads/writes
+    `${AIDP_ARTIFACTS_ROOT}/specs/` (and `…/specs/_site/`) instead of
+    the hardcoded `$REPO_ROOT/docs/specs`. Fails closed if the
+    resolver fails.
+
 ## [0.17.0] - 2026-05-11
 
 ### Added

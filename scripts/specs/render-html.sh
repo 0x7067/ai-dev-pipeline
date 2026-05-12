@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Hand-rolled, single-file HTML renderer for docs/specs/.
+# Hand-rolled, single-file HTML renderer for ${AIDP_ARTIFACTS_ROOT}/specs/.
 #
 # Layer: shell. Orchestrates the boundary parser (parse-spec.sh) and the
 # pure core projections (lib/spec-core.sh), then writes static HTML to
-# docs/specs/_site/.
+# ${AIDP_ARTIFACTS_ROOT}/specs/_site/.
 #
 # Determinism (INV-4): output is a pure function of the parsed Spec
 # values. NO timestamps, NO host paths, NO env-derived strings.
@@ -21,9 +21,25 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." >/dev/null 2>&1 && pwd -P)"
 
 # shellcheck source=scripts/specs/lib/spec-core.sh
 source "$SCRIPT_DIR/lib/spec-core.sh"
+# shellcheck source=scripts/lib/project-root.sh
+source "$REPO_ROOT/scripts/lib/project-root.sh"
 
 PARSER="$SCRIPT_DIR/parse-spec.sh"
-SPECS_DIR="$REPO_ROOT/docs/specs"
+
+# Resolve the artifacts root via the boundary parser. Consumer repos:
+# <project>/docs/aidp. Plugin self-checkout: <plugin>/docs.
+# Fail closed if either resolver step fails — no hardcoded fallback.
+AIDP_PROJECT_ROOT="${AIDP_PROJECT_ROOT:-$(aidp_resolve_project_root)}" || {
+  echo "render-html: ERROR: could not resolve AIDP_PROJECT_ROOT" >&2
+  exit 2
+}
+AIDP_ARTIFACTS_ROOT="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$AIDP_PROJECT_ROOT")}" || {
+  echo "render-html: ERROR: could not resolve AIDP_ARTIFACTS_ROOT" >&2
+  exit 2
+}
+export AIDP_PROJECT_ROOT AIDP_ARTIFACTS_ROOT
+
+SPECS_DIR="$AIDP_ARTIFACTS_ROOT/specs"
 SITE_DIR="$SPECS_DIR/_site"
 
 if [[ ! -x "$PARSER" ]]; then
@@ -139,7 +155,7 @@ render_index_html() {
   printf '%s\n' "$STYLE"
   printf '</head><body>\n'
   printf '<header><h1>Specs</h1>\n'
-  printf '<p class="meta">Static index. Source of truth: <code>docs/specs/&lt;id&gt;/spec.yaml</code>.</p>\n'
+  printf '<p class="meta">Static index. Source of truth: <code>specs/&lt;id&gt;/spec.yaml</code> under the project artifacts root.</p>\n'
   printf '</header>\n'
   printf '<ul class="specs">\n'
   while IFS='' read -r records_path; do

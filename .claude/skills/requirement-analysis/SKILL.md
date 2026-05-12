@@ -73,8 +73,8 @@ Produce the deliverables below.
 
 ## Output Artifacts
 
-- `docs/current-plan.md` — implementation plan with steps, layer classification, and verification order.
-- `docs/specs/<feature>.md` — feature spec with sections matching Steps 1-4 above.
+- `${RUN_DIR}/current-plan.md` — implementation plan with steps, layer classification, and verification order. `RUN_DIR` is set by the orchestrator (`/ship`, `/refactor`, `/review`, `/audit`, `/research`) at step 0 and is always absolute under `${AIDP_ARTIFACTS_ROOT}/runs/<id>/`. Fail closed if unset — do NOT fall back to a top-level `docs/` path.
+- `${RUN_DIR}/specs/<feature>.md` — per-run feature spec with sections matching Steps 1-4 above. The persistent machine-readable mirror lives at `${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.yaml` (see `.claude/agents/planner.md` `<persistent-spec-mirror>`).
 
 ### Plan Template
 

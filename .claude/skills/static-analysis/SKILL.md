@@ -1,6 +1,6 @@
 ---
 name: static-analysis
-description: Use when the user asks to verify, ship, release, merge, or finalize code — phrases like "is this ready to ship", "verify this", "ready to merge", "run the gates", "is this done" — and after implementation to produce a go/no-go decision via type checks, lint, security scan, and the canonical gate runner. Produces `docs/verify-report.md`. Requires the implementation phase to be complete; do not invoke standalone for ad-hoc lint or type-check runs.
+description: Use when the user asks to verify, ship, release, merge, or finalize code — phrases like "is this ready to ship", "verify this", "ready to merge", "run the gates", "is this done" — and after implementation to produce a go/no-go decision via type checks, lint, security scan, and the canonical gate runner. Produces `${RUN_DIR}/verify-report.md`. Requires the implementation phase to be complete; do not invoke standalone for ad-hoc lint or type-check runs.
 ---
 
 # Static Analysis
@@ -97,7 +97,7 @@ If a tool is not available, record it as `SKIPPED` (not as a failure).
 
 ## Output Format
 
-Write to `${RUN_DIR}/verify-report.md` (per-run artifact under `docs/runs/<id>/`; orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/verify-report.md` only when invoked outside a /ship-managed run):
+Write to `${RUN_DIR}/verify-report.md` (per-run artifact under `${AIDP_ARTIFACTS_ROOT}/runs/<id>/`; the orchestrator — `/ship`, `/review`, `/refactor` — sets `RUN_DIR` at step 0). Fail closed if `RUN_DIR` is unset; do NOT fall back to a top-level `docs/` path:
 
 ```markdown
 # Verification Report

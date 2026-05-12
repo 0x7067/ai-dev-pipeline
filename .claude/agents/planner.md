@@ -18,49 +18,58 @@ may-follow: /research (when prior research exists)
 required: user prompt that triggered planning
 optional: ${RUN_DIR}/research/<topic>.md (from researcher)
 state: existing repo (read-only — used to classify components + locate boundaries)
-env: RUN_ID, RUN_DIR (set by orchestrator at /ship step 0)
+env: RUN_ID, RUN_DIR, AIDP_ARTIFACTS_ROOT (all set by orchestrator at step 0; fail closed if any is unset)
 </inputs>
 
 <deliverables>
 required: ${RUN_DIR}/current-plan.md
 conditional: ${RUN_DIR}/specs/<feature>.md (when plan introduces new feature surface)
-mirror: docs/specs/<feature>/spec.yaml (persistent machine-readable mirror — see <persistent-spec-mirror>)
+mirror: ${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.yaml (persistent machine-readable mirror — see <persistent-spec-mirror>)
 </deliverables>
 
 <persistent-spec-mirror>
 When (and only when) a feature spec is produced for the run, write the
 persistent machine-readable mirror at
-`docs/specs/<feature>/spec.yaml`. The optional human-readable prose body
-lives at the sibling `docs/specs/<feature>/spec.md` and is referenced
-from `spec.yaml` via the `body_path` field.
+`${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.yaml`. The optional
+human-readable prose body lives at the sibling
+`${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.md` and is referenced from
+`spec.yaml` via the `body_path` field.
 
-This is the persistent home for the spec — there is no longer a
-`docs/artifacts/specs/` mirror. Per-run copies under
-`${RUN_DIR}/specs/<feature>.md` remain as the ephemeral working artifact;
-the canonical persistent shape is `docs/specs/<feature>/spec.yaml`.
+`AIDP_ARTIFACTS_ROOT` is resolved by `scripts/lib/project-root.sh` and
+exported by the orchestrator. In consumer repos it expands to
+`<project>/docs/aidp`; in the plugin self-checkout it expands to
+`<plugin>/docs`. Either way, the canonical persistent home for a spec
+is `${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.yaml`. There is NO
+hardcoded `docs/specs/` path and NO fallback. If
+`AIDP_ARTIFACTS_ROOT` is unset, abort and emit `STATUS: fail` —
+do NOT write to a top-level `docs/` path.
+
+Per-run copies under `${RUN_DIR}/specs/<feature>.md` remain as the
+ephemeral working artifact; the persistent shape is the YAML mirror.
 
 Procedure (atomic, last-writer-wins is acceptable because the per-run
 copy is advisory):
 
 1. Write `${RUN_DIR}/specs/<feature>.md` first (the per-run spec).
-2. Ensure `docs/specs/<feature>/` exists (create if missing).
-3. Emit `docs/specs/<feature>/spec.yaml` in the schema accepted by
-   `${CLAUDE_PLUGIN_ROOT}/scripts/specs/parse-spec.sh`. Required fields: `id`, `title`,
-   `status` (`draft|accepted|superseded`), `risk` (`low|medium|high`),
-   `tags`, `summary`, `motivation`, `scope`, `acceptance_criteria`,
+2. Ensure `${AIDP_ARTIFACTS_ROOT}/specs/<feature>/` exists (create if missing).
+3. Emit `${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.yaml` in the schema
+   accepted by `${CLAUDE_PLUGIN_ROOT}/scripts/specs/parse-spec.sh`.
+   Required fields: `id`, `title`, `status`
+   (`draft|accepted|superseded`), `risk` (`low|medium|high`), `tags`,
+   `summary`, `motivation`, `scope`, `acceptance_criteria`,
    `invariants`, `boundary_map`, `references`. Optional: `body_path`.
 4. If the plan includes long-form prose, write it to
-   `docs/specs/<feature>/spec.md` and set `body_path: spec.md`.
+   `${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.md` and set `body_path: spec.md`.
 5. Use temp+rename for the YAML file to keep the egress atomic per
    `.claude/rules/boundary-parse-dont-validate.md`.
 6. Validate the result with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/specs/parse-spec.sh" --check
-   docs/specs/<feature>/spec.yaml` BEFORE returning. The parser fails
-   closed on schema violations.
-7. Add an entry for the spec to `docs/specs/index.yaml`. Keep entries
-   sorted by `id`.
+   "${AIDP_ARTIFACTS_ROOT}/specs/<feature>/spec.yaml"` BEFORE returning.
+   The parser fails closed on schema violations.
+7. Add an entry for the spec to `${AIDP_ARTIFACTS_ROOT}/specs/index.yaml`.
+   Keep entries sorted by `id`.
 
 If no feature spec is produced (non-feature change), do NOT touch
-`docs/specs/`.
+`${AIDP_ARTIFACTS_ROOT}/specs/`.
 </persistent-spec-mirror>
 
 <template name="current-plan-template.md" required=true>
@@ -76,7 +85,7 @@ placeholders: replace with concrete plan | omit non-applicable sections — no e
 </template>
 
 <constraints>
-write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md + docs/specs/<feature>/{spec.yaml,spec.md} + docs/specs/index.yaml ONLY
+write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md + ${AIDP_ARTIFACTS_ROOT}/specs/<feature>/{spec.yaml,spec.md} + ${AIDP_ARTIFACTS_ROOT}/specs/index.yaml ONLY
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.

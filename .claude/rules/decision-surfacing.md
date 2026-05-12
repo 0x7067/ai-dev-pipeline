@@ -4,7 +4,7 @@
 Stop the `planner` and `researcher` agents from silently picking defaults on
 behalf of the user. Meaningful design choices must be surfaced through the
 `AskUserQuestion` tool DURING planning/research — BEFORE the choice bakes into
-`docs/current-plan.md` or `docs/research/<topic>.md`.
+`${RUN_DIR}/current-plan.md` or `${RUN_DIR}/research/<topic>.md`.
 
 ## Scope
 Applies to:
@@ -65,7 +65,7 @@ When `AskUserQuestion` is invoked:
 
 ## Timing requirement
 Ask DURING planning/research, BEFORE the chosen value is written into
-`docs/current-plan.md` (planner) or `docs/research/<topic>.md` (researcher).
+`${RUN_DIR}/current-plan.md` (planner) or `${RUN_DIR}/research/<topic>.md` (researcher).
 
 A question asked AFTER a default is already in the plan is too late: the
 plan now anchors the user toward the agent's pick. Surface the choice while

@@ -38,7 +38,7 @@ bash scripts/run-verification-gates.sh
 
 **Abort if any gate fails.** A failing baseline means tests or types are already broken. Fix the baseline before refactoring — do not proceed with a dirty starting state.
 
-Record baseline results (pass/fail per gate) in `${RUN_DIR}/refactor-report.md` (the orchestrator sets `RUN_DIR` at /refactor step 0; falls back to `docs/refactor-report.md` only when invoked outside a managed run).
+Record baseline results (pass/fail per gate) in `${RUN_DIR}/refactor-report.md`. The orchestrator (`/refactor`, `/ship`) sets `RUN_DIR` at step 0 to an absolute path under `${AIDP_ARTIFACTS_ROOT}/runs/<id>/`. Fail closed if unset — there is NO fallback to a top-level `docs/` path.
 
 ## 2.5 Coverage Precondition
 

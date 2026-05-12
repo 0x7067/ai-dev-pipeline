@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use when the user asks to review, check, look at, audit, or assess code — phrases like "review this", "is this OK", "does this look right", "check my changes" — and proactively after any non-trivial implementation, before reporting code as done. Severity-first FC/IS, security, and correctness lenses. Produces `docs/review-report.md`. Do not invoke for project-wide audits (use `/audit`) or pre-implementation planning.
+description: Use when the user asks to review, check, look at, audit, or assess code — phrases like "review this", "is this OK", "does this look right", "check my changes" — and proactively after any non-trivial implementation, before reporting code as done. Severity-first FC/IS, security, and correctness lenses. Produces `${RUN_DIR}/review-report.md`. Do not invoke for project-wide audits (use `/audit`) or pre-implementation planning.
 ---
 
 # Code Review
@@ -12,7 +12,7 @@ description: Use when the user asks to review, check, look at, audit, or assess 
 3. Apply each review lens (below) in order.
 4. Record findings by severity: blocking → warning → advisory.
 5. If no findings, state residual risk explicitly — never leave a silent pass.
-6. Write output to `${RUN_DIR}/review-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/review-report.md` only when invoked outside a /ship-managed run).
+6. Write output to `${RUN_DIR}/review-report.md`. `RUN_DIR` is always set by the orchestrator (`/ship`, `/review`, `/refactor`) at step 0 and is absolute under `${AIDP_ARTIFACTS_ROOT}/runs/<id>/`. Fail closed if unset — there is NO fallback to a top-level `docs/` path.
 
 ## Review Lenses
 

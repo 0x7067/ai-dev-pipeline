@@ -1,6 +1,6 @@
 ---
 name: test-gen
-description: Use when the user asks for tests, coverage, invariants, property tests, or contract tests — phrases like "add tests", "write a test for…", "improve coverage", "this needs a test", "test the parser" — and proactively after implementing core or boundary code, before declaring it done. Focuses on property-based invariants and boundary contracts. Auto-detects language (Python, Go, Rust, TypeScript) and emits idiomatic tests. Outputs `docs/test-report.md`. Do not invoke for running existing test suites (use the `static-analysis` skill or `/ship`).
+description: Use when the user asks for tests, coverage, invariants, property tests, or contract tests — phrases like "add tests", "write a test for…", "improve coverage", "this needs a test", "test the parser" — and proactively after implementing core or boundary code, before declaring it done. Focuses on property-based invariants and boundary contracts. Auto-detects language (Python, Go, Rust, TypeScript) and emits idiomatic tests. Outputs `${RUN_DIR}/test-report.md`. Do not invoke for running existing test suites (use the `static-analysis` skill or `/ship`).
 ---
 
 # Test Generation
@@ -20,7 +20,7 @@ description: Use when the user asks for tests, coverage, invariants, property te
 3. Write property-based tests for core invariants.
 4. Write contract tests for boundary parsers.
 5. Add regression tests for known failures.
-6. Run full suite and write output to `${RUN_DIR}/test-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/test-report.md` only when invoked outside a /ship-managed run).
+6. Run full suite and write output to `${RUN_DIR}/test-report.md`. The orchestrator (`/ship`, `/refactor`, `/review`) sets `RUN_DIR` at step 0 to an absolute path under `${AIDP_ARTIFACTS_ROOT}/runs/<id>/`. Fail closed if unset — there is NO fallback to a top-level `docs/` path.
 
 ## Common Invariants to Test
 
