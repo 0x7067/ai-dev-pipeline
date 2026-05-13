@@ -38,9 +38,9 @@ When the user describes a coding intent — fixing a bug, adding a feature, revi
 `AIDP_PROJECT_ROOT` is the canonical anchor for run artifacts; `AIDP_ARTIFACTS_ROOT` is the subdirectory that actually holds them. Both are exported once at the top of `/ship`, derived by the boundary parser at `scripts/lib/project-root.sh`:
 
 - `AIDP_PROJECT_ROOT` ← `CLAUDE_PROJECT_DIR` (fallback `$(pwd)`), canonicalized.
-- `AIDP_ARTIFACTS_ROOT` ← `${AIDP_PROJECT_ROOT}/docs/aidp` for consumer projects, `${AIDP_PROJECT_ROOT}/docs` when the root contains `.claude-plugin/plugin.json` (the plugin's own self-tests stay on the legacy layout).
+- `AIDP_ARTIFACTS_ROOT` ← `${AIDP_PROJECT_ROOT}/docs/aidp` unconditionally, for every caller.
 
-Run artifacts (`runs/<id>/…`, `latest`, `latest.txt`, `latest-green.txt`) live under `AIDP_ARTIFACTS_ROOT`. The workflow-state pointer (`.claude/workflow-state/active`) stays under `AIDP_PROJECT_ROOT` since it is already namespaced. Helper scripts (`mint-run-id.sh`, `prune-runs.sh`, `smoke-bootstrap.sh`) consume the parsed values; `RUN_DIR` must be absolute. This keeps consumer projects' top-level `docs/` clean while preserving the plugin's own development layout.
+Run artifacts (`runs/<id>/…`, `latest`, `latest.txt`, `latest-green.txt`) live under `AIDP_ARTIFACTS_ROOT`. The workflow-state pointer (`.claude/workflow-state/active`) stays under `AIDP_PROJECT_ROOT` since it is already namespaced. Helper scripts (`mint-run-id.sh`, `prune-runs.sh`, `smoke-bootstrap.sh`) consume the parsed values; `RUN_DIR` must be absolute. This keeps the top-level `docs/` clean for checked-in plugin documentation (`docs/templates/`, `docs/specs/`, `docs/schemas/`, `docs/reference/`, `docs/superpowers/`).
 
 ## Rules
 @.claude/rules/code-style.md

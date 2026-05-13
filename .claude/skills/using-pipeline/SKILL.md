@@ -31,7 +31,7 @@ In particular, a `/spdd-*` rename (e.g. `/spdd-plan`, `/spdd-implement`) is
 Structured Prompt-Driven Development (persistent feature specs, INVEST-style
 decomposition for story-shaped topics, link-only Norms/Safeguards in plans)
 WITHOUT pivoting the command surface. Source: research note
-`docs/runs/20260510T150126-666528-5c/research/spdd-pivot.md` and the
+`docs/aidp/runs/20260510T150126-666528-5c/research/spdd-pivot.md` and the
 SPDD-borrows plan that adopted it.
 
 Per-phase logic that previously had its own slash command is reachable via
@@ -75,10 +75,14 @@ The following skills are reference/process material that the pipeline agents inv
 
 Every primary command (`/ship`, `/audit`, `/review`, `/research`,
 `/refactor`) mints a `RUN_ID` at step 0 and exports `RUN_ID` and
-`RUN_DIR` (= `docs/runs/<RUN_ID>`) into the environment of every
+`RUN_DIR` (= `docs/aidp/runs/<RUN_ID>`) into the environment of every
 subagent it dispatches. All per-run artifacts — plans, specs,
 research notes, review/test/verify reports, refactor
 reports, gate logs, retry hints — are written under `${RUN_DIR}/`.
+
+Run artifacts live under `docs/aidp/`; checked-in plugin docs
+(`docs/templates/`, `docs/specs/`, `docs/schemas/`, `docs/reference/`,
+`docs/superpowers/`) stay where they are.
 
 This makes concurrent runs (two `/ship` sessions on the same repo, CI
 + local, two worktrees) safe by construction: each run has its own
@@ -87,14 +91,14 @@ artifact tree.
 Discovery is done through three pointers, all maintained atomically
 by the orchestrator's step 0:
 
-- `docs/latest` — symlink to the active run's directory.
-- `docs/latest.txt` — text fallback containing the active run-id.
+- `docs/aidp/latest` — symlink to the active run's directory.
+- `docs/aidp/latest.txt` — text fallback containing the active run-id.
 - `.claude/workflow-state/active` — text file containing the active
   run-id; consumed by hooks that need to find the per-run
   workflow-state file.
 
 Resolution order at the consumer side: `RUN_ID` env →
-`.claude/workflow-state/active` → `docs/latest` → `docs/latest.txt`.
+`.claude/workflow-state/active` → `docs/aidp/latest` → `docs/aidp/latest.txt`.
 All four go through `scripts/parse-run-id.sh` before any path is
 constructed (parse, don't validate). See
 `docs/specs/run-id-isolation.md` for the full spec.

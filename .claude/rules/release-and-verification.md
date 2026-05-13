@@ -2,7 +2,7 @@
 
 ## Run Artifact Anchoring
 - `RUN_DIR` is always absolute, rooted at `${AIDP_ARTIFACTS_ROOT}/runs/<id>/`.
-- `AIDP_PROJECT_ROOT` and `AIDP_ARTIFACTS_ROOT` are derived once by `scripts/lib/project-root.sh` and exported at the top of `/ship`. The project root comes from `CLAUDE_PROJECT_DIR` (fallback `$(pwd)`). The artifacts root is `${project}/docs/aidp` for consumer projects, `${project}/docs` when `.claude-plugin/plugin.json` is present (plugin self-development keeps the legacy layout).
+- `AIDP_PROJECT_ROOT` and `AIDP_ARTIFACTS_ROOT` are derived once by `scripts/lib/project-root.sh` and exported at the top of `/ship`. The project root comes from `CLAUDE_PROJECT_DIR` (fallback `$(pwd)`). The artifacts root is `${project}/docs/aidp` unconditionally for every caller.
 - Pointer files (`latest`, `latest.txt`, `latest-green.txt`) live under `AIDP_ARTIFACTS_ROOT`; the workflow-state pointer (`.claude/workflow-state/active`) lives under `AIDP_PROJECT_ROOT`. Helper scripts (`mint-run-id.sh`, `prune-runs.sh`, `smoke-bootstrap.sh`) must keep these paths absolute; a relative `RUN_DIR` is rejected by `smoke-bootstrap.sh`.
 - Rationale: `harness_cd_repo_root` anchors plugin self-checks to the plugin checkout; run artifacts must stay inside the consumer project and not pollute its top-level `docs/`.
 
@@ -44,7 +44,7 @@
 ## Canonical Gate Runner
 - Use `bash scripts/run-verification-gates.sh` as the single source of truth for gate execution order.
 - Allow overrides via environment variables for project-specific commands.
-- Bounded retry: `MAX_VERIFY_RETRIES` (default `1`) enables a `verify → fix → verify` envelope. The runner sleeps `VERIFY_RETRY_SLEEP_S` (default `2`) seconds between attempts. On gate failure the runner writes `{gate, exit_code, attempt}` to `VERIFY_RETRY_HINT_FILE` (default `docs/.verify-retry.json`) for the `verify` skill to consume on the next pass. CI may pin `MAX_VERIFY_RETRIES=0` to make gate failure immediate and deterministic.
+- Bounded retry: `MAX_VERIFY_RETRIES` (default `1`) enables a `verify → fix → verify` envelope. The runner sleeps `VERIFY_RETRY_SLEEP_S` (default `2`) seconds between attempts. On gate failure the runner writes `{gate, exit_code, attempt}` to `VERIFY_RETRY_HINT_FILE` (default `${RUN_DIR}/.verify-retry.json`) for the `verify` skill to consume on the next pass. CI may pin `MAX_VERIFY_RETRIES=0` to make gate failure immediate and deterministic.
 
 ## Evidence Quality
 - Every verification or review claim must include evidence.
@@ -53,7 +53,7 @@
 - Numeric impact claims without evidence are invalid and treated as advisory at minimum.
 
 ## Output Artifacts
-Per-run reports are written inside `RUN_DIR` (see "Run Artifact Anchoring" above) — i.e. `${AIDP_ARTIFACTS_ROOT}/runs/<id>/<name>-report.md` (`docs/aidp/runs/<id>/…` in consumer projects, `docs/runs/<id>/…` in the plugin checkout):
+Per-run reports are written inside `RUN_DIR` (see "Run Artifact Anchoring" above) — i.e. `${AIDP_ARTIFACTS_ROOT}/runs/<id>/<name>-report.md` (`docs/aidp/runs/<id>/…`):
 
 - `${RUN_DIR}/test-report.md` — `test-gen` skill
 - `${RUN_DIR}/verify-report.md` — `static-analysis` skill

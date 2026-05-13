@@ -139,7 +139,7 @@ def test_parse_email_rejects_missing_at():
 
 ## Output
 
-- `${RUN_DIR}/test-report.md` (per-run artifact under `docs/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`) with:
+- `${RUN_DIR}/test-report.md` (per-run artifact under `docs/aidp/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`) with:
   - Coverage summary (core invariants, boundary contracts, regression).
   - Pass/fail counts.
   - Failures marked as blocking if invariants/contracts fail.

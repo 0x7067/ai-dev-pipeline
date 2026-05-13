@@ -8,8 +8,8 @@
 # Resolution order:
 #   1. $RUN_ID environment variable, if set and non-empty.
 #   2. .claude/workflow-state/active file content (orchestrator pointer).
-#   3. docs/latest symlink target basename.
-#   4. docs/latest.txt content.
+#   3. docs/aidp/latest symlink target basename.
+#   4. docs/aidp/latest.txt content.
 #
 # Output:
 #   stdout: the validated run-id (one line, no trailing whitespace).
@@ -33,13 +33,13 @@ if [ -z "$_resolve_run_project_root" ]; then
 fi
 _resolve_run_artifacts_root="${AIDP_ARTIFACTS_ROOT:-}"
 if [ -z "$_resolve_run_artifacts_root" ]; then
-  _resolve_run_artifacts_root="$(aidp_resolve_artifacts_root "$_resolve_run_project_root" 2>/dev/null || printf '%s/docs\n' "$_resolve_run_project_root")"
+  _resolve_run_artifacts_root="$(aidp_resolve_artifacts_root "$_resolve_run_project_root" 2>/dev/null || printf '%s/docs/aidp\n' "$_resolve_run_project_root")"
 fi
 
 # resolve_run_id: tries each source; on first non-empty source, parses.
 # A non-empty source that fails parsing is FATAL (exit 2) — we do not
 # silently fall through, because that would let an attacker who can
-# write a poisoned RUN_ID env shadow a clean docs/latest.
+# write a poisoned RUN_ID env shadow a clean docs/aidp/latest.
 resolve_run_id() {
   local candidate=""
 

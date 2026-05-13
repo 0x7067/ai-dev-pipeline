@@ -4,7 +4,7 @@
 # Layer split per .claude/rules/architecture-fcis.md:
 #   CORE  : compose_run_id(timestamp, sha, disambiguator) — pure string fn.
 #   SHELL : reads system clock, git, /dev/urandom; optionally writes
-#           docs/latest, docs/latest.txt, .claude/workflow-state/active.
+#           docs/aidp/latest, docs/aidp/latest.txt, .claude/workflow-state/active.
 #
 # Self-checks the minted id through scripts/parse-run-id.sh before
 # emitting it, so a regression in either side fails closed.
@@ -12,9 +12,9 @@
 # Output (stdout): the canonical run-id, one line, no trailing whitespace.
 #
 # Flags:
-#   --write-pointers   also create/update docs/latest, docs/latest.txt,
+#   --write-pointers   also create/update docs/aidp/latest, docs/aidp/latest.txt,
 #                      and .claude/workflow-state/active atomically.
-#   --run-dir <path>   override docs/runs root (default: docs/runs).
+#   --run-dir <path>   override docs/aidp/runs root (default: docs/aidp/runs).
 #                      Used by tests; production callers should not set it.
 #
 # Env (read-only):
@@ -80,7 +80,7 @@ ci_disambiguator() {
 }
 
 atomic_update_latest() {
-  # update docs/latest -> docs/runs/<id> (symlink) and write docs/latest.txt
+  # update docs/aidp/latest -> docs/aidp/runs/<id> (symlink) and write docs/aidp/latest.txt
   # both updates are atomic via rename (POSIX ln -sfn + mv .tmp).
   # Per-process tmp suffix avoids two concurrent mints racing on a shared
   # tmp filename (one process's mv consuming another's tmp).
@@ -116,10 +116,10 @@ atomic_update_active_workflow_state() {
 
 main() {
   local write_pointers=0
-  # Anchor under the consumer project's artifacts root (docs/aidp for
-  # consumers; docs for the plugin's own self-tests). CLI --run-dir still
-  # overrides. Resolution goes through scripts/lib/project-root.sh — the
-  # single source of truth for project + artifacts root canonicalization.
+  # Anchor under the consumer project's artifacts root (docs/aidp unconditionally).
+  # CLI --run-dir still overrides. Resolution goes through
+  # scripts/lib/project-root.sh — the single source of truth for project +
+  # artifacts root canonicalization.
   # shellcheck source=lib/project-root.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)/lib/project-root.sh"
   local _project_root _artifacts_root

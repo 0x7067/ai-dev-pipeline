@@ -7,13 +7,12 @@
 # path or non-zero exit. Consumers must not re-read the raw env.
 #
 # FC/IS placement: BOUNDARY (this is the parse-at-ingress layer for the
-# untrusted CLAUDE_PROJECT_DIR env var). The two functions perform minimal
-# filesystem reads (`cd … && pwd -P`, an existence test on plugin.json) to
-# canonicalize and classify the input; they have no other side effects and
-# read no ambient state besides the documented env vars. Core never calls
-# these — shell callers (ship orchestrator, mint-run-id, prune-runs,
-# resolve-run, plan-gate) consume the parsed values to anchor artifact
-# paths.
+# untrusted CLAUDE_PROJECT_DIR env var). The functions perform minimal
+# filesystem reads (`cd … && pwd -P`) to canonicalize the input; they have
+# no other side effects and read no ambient state besides the documented env
+# vars. Core never calls these — shell callers (ship orchestrator,
+# mint-run-id, prune-runs, resolve-run, plan-gate) consume the parsed values
+# to anchor artifact paths.
 #
 # Why this exists: harness_cd_repo_root() in scripts/harness-lib.sh is
 # deliberately anchored to the plugin checkout for plugin self-validation.
@@ -57,13 +56,10 @@ aidp_resolve_project_root() {
 # latest.txt, latest-green.txt, and standalone reports) for a given
 # project root.
 #
-# Policy:
-#   - Consumer project (no .claude-plugin/plugin.json at the root) →
-#     `${root}/docs/aidp`. Namespaces plugin output to keep the consumer's
-#     own docs/ tree clean.
-#   - Plugin self-development (`.claude-plugin/plugin.json` present) →
-#     `${root}/docs`. Preserves the legacy layout the in-tree self-tests
-#     and templates already reference.
+# Policy: unconditionally returns `${root}/docs/aidp` for every caller —
+# consumer projects and the plugin's own self-development checkout alike.
+# This is a pure string operation: no filesystem reads after the initial
+# canonicalization of the input path.
 #
 # Inputs: $1 (optional) = project root; defaults to $AIDP_PROJECT_ROOT.
 # Output: absolute artifacts root path; non-zero exit on missing/invalid input.
@@ -74,16 +70,5 @@ aidp_resolve_artifacts_root() {
   fi
   local resolved
   resolved="$(cd "$root" >/dev/null 2>&1 && pwd -P)" || return 1
-  # Plugin self-development is detected by a plugin.json whose "name"
-  # field matches "ai-dev-pipeline" — a presence-only check would
-  # misclassify consumers that happen to be other Claude plugins. grep is
-  # used (not jq) to keep this helper dependency-free; the match is
-  # anchored to the plugin's own manifest shape and is safe against
-  # whitespace variants.
-  local manifest="$resolved/.claude-plugin/plugin.json"
-  if [ -f "$manifest" ] && grep -Eq '"name"[[:space:]]*:[[:space:]]*"ai-dev-pipeline"' "$manifest"; then
-    printf '%s/docs\n' "$resolved"
-  else
-    printf '%s/docs/aidp\n' "$resolved"
-  fi
+  printf '%s/docs/aidp\n' "$resolved"
 }

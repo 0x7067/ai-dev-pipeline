@@ -6,7 +6,7 @@
 # composition to scripts/lib/manifest-core.sh (CORE, pure).
 #
 # Usage:
-#   RUN_ID=<id> RUN_DIR=docs/runs/<id> bash scripts/write-manifest.sh \
+#   RUN_ID=<id> RUN_DIR=docs/aidp/runs/<id> bash scripts/write-manifest.sh \
 #     [--command <name>] [--mode <mode>] [--risk-tier <tier>] [--status <status>]
 #
 # Exit codes:

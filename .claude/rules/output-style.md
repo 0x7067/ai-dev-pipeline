@@ -30,7 +30,7 @@ under `set -euo pipefail`.
 | `✓`     | `[ok]`         | success        | `style::ok`       | `✓ typecheck ok (3s)`           |
 | `✗`     | `[fail]`       | failure        | `style::fail`     | `✗ lint failed rc=2 (1s)`       |
 | `⏵`     | `-->`          | step / progress| `style::step`     | `⏵ running property tests`      |
-| `●`     | `*`            | info           | `style::info`     | `● log: docs/runs/.../verify.log` |
+| `●`     | `*`            | info           | `style::info`     | `● log: docs/aidp/runs/.../verify.log` |
 | `●`     | `[warn]`       | warning        | `style::warn`     | `● skipped: no contract suite`  |
 | `…`     | `...`          | de-emphasized  | `style::dim`      | `… elapsed 12s`                 |
 | `↻`     | `[retry]`      | operation being retried | `style::retry` | `↻ lint retry 1/2`           |

@@ -7,8 +7,8 @@
 #   - path-traversal counterexamples: '../', '/', '\', '..', NUL, whitespace
 #   - property fuzz: 200 random strings — every accepted one round-trips
 #     through the regex, and every rejected one fails closed.
-#   - containment: an accepted id, when joined onto docs/runs/, resolves
-#     to a direct child of docs/runs (no traversal).
+#   - containment: an accepted id, when joined onto docs/aidp/runs/, resolves
+#     to a direct child of docs/aidp/runs (no traversal).
 
 set -uo pipefail
 
@@ -90,22 +90,22 @@ if [ "$fuzz_accepts" -eq 0 ]; then
 fi
 
 # --- containment property ---
-# For every accepted id, "docs/runs/<id>" must be a direct child of
-# "docs/runs" — no '..' segments, no separators in the basename.
+# For every accepted id, "docs/aidp/runs/<id>" must be a direct child of
+# "docs/aidp/runs" — no '..' segments, no separators in the basename.
 for v in "${accept_cases[@]}"; do
-  joined="docs/runs/${v}"
+  joined="docs/aidp/runs/${v}"
   # The basename of the joined path must equal the original id.
   bn=$(basename "$joined")
   if [ "$bn" != "$v" ]; then
     fail "containment: basename($joined) = $bn, expected $v"
   fi
-  # The directory of the joined path must be exactly "docs/runs".
+  # The directory of the joined path must be exactly "docs/aidp/runs".
   dn=$(dirname "$joined")
-  if [ "$dn" != "docs/runs" ]; then
-    fail "containment: dirname($joined) = $dn, expected docs/runs"
+  if [ "$dn" != "docs/aidp/runs" ]; then
+    fail "containment: dirname($joined) = $dn, expected docs/aidp/runs"
   fi
 done
-pass "containment: every accepted id is a direct child of docs/runs"
+pass "containment: every accepted id is a direct child of docs/aidp/runs"
 
 # --- sourceability: parse_run_id function and RUN_ID_REGEX exported ---
 # shellcheck source=scripts/parse-run-id.sh

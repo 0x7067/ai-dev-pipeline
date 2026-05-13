@@ -38,10 +38,10 @@ run_in_workdir() {
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs/runs/run-a
-  write_required_artifacts docs/runs/run-a
+  mkdir -p docs/aidp/runs/run-a
+  write_required_artifacts docs/aidp/runs/run-a
 )
-if run_in_workdir "$work" env RUN_DIR=docs/runs/run-a WORKFLOW_REQUIRE_ARTIFACTS=1; then
+if run_in_workdir "$work" env RUN_DIR=docs/aidp/runs/run-a WORKFLOW_REQUIRE_ARTIFACTS=1; then
   pass "strict mode accepts required artifacts under RUN_DIR"
 else
   fail "strict mode did not resolve artifacts under RUN_DIR"
@@ -52,14 +52,14 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs/runs/run-b
-  write_required_artifacts docs/runs/run-b
-  ln -sfn runs/run-b docs/latest
+  mkdir -p docs/aidp/runs/run-b
+  write_required_artifacts docs/aidp/runs/run-b
+  ln -sfn runs/run-b docs/aidp/latest
 )
 if run_in_workdir "$work" env WORKFLOW_REQUIRE_ARTIFACTS=1; then
-  pass "strict mode falls back to docs/latest"
+  pass "strict mode falls back to docs/aidp/latest"
 else
-  fail "strict mode did not resolve artifacts through docs/latest"
+  fail "strict mode did not resolve artifacts through docs/aidp/latest"
   sed -e 's/^/    | /' /tmp/wa-lean.out >&2 || true
 fi
 rm -rf "$work"
@@ -67,13 +67,13 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs
-  write_required_artifacts docs
+  mkdir -p docs/aidp
+  write_required_artifacts docs/aidp
 )
 if run_in_workdir "$work" env WORKFLOW_REQUIRE_ARTIFACTS=1; then
-  pass "strict mode still supports legacy docs/*.md"
+  pass "strict mode resolves artifacts at AIDP_ARTIFACTS_ROOT when no RUN_DIR/latest"
 else
-  fail "strict mode did not support legacy docs/*.md"
+  fail "strict mode did not resolve artifacts at AIDP_ARTIFACTS_ROOT"
   sed -e 's/^/    | /' /tmp/wa-lean.out >&2 || true
 fi
 rm -rf "$work"
@@ -81,8 +81,8 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs
-  write_required_artifacts docs
+  mkdir -p docs/aidp
+  write_required_artifacts docs/aidp
 )
 if run_in_workdir "$work" env WORKFLOW_REQUIRE_ARTIFACTS=1; then
   if grep -q "missing required artifact: .*specs" /tmp/wa-lean.out; then
@@ -100,9 +100,9 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs/specs/empty
-  write_required_artifacts docs
-  : > docs/specs/empty/spec.yaml
+  mkdir -p docs/aidp/specs/empty
+  write_required_artifacts docs/aidp
+  : > docs/aidp/specs/empty/spec.yaml
 )
 if run_in_workdir "$work" env WORKFLOW_REQUIRE_ARTIFACTS=1; then
   fail "empty present spec should fail strict mode"

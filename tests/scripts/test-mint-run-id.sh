@@ -5,8 +5,8 @@
 #   - uniqueness: 100 sequential mints produce ≥ 99 distinct ids
 #     (one same-second collision is tolerable when the disambiguator
 #     coincides; the property is still high-cardinality, not absolute).
-#   - --write-pointers atomicity: docs/latest is a symlink, latest.txt
-#     contents match basename(docs/latest), workflow-state/active matches.
+#   - --write-pointers atomicity: docs/aidp/latest is a symlink, latest.txt
+#     contents match basename(docs/aidp/latest), workflow-state/active matches.
 #   - .tmp files never observed after a successful run.
 
 set -uo pipefail
@@ -22,10 +22,12 @@ fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 
 [ -f "$MINT" ] || { echo "mint script missing" >&2; exit 2; }
 
-# Sandbox so we don't touch the live docs/.
+# Sandbox so we don't touch the live docs/. The --write-pointers test below
+# uses --run-dir "docs/aidp/runs" to exercise the explicit override path;
+# pointer files land in docs/aidp/.
 sandbox=$(mktemp -d)
 trap 'rm -rf "$sandbox"' EXIT
-mkdir -p "$sandbox/docs/runs" "$sandbox/.claude/workflow-state"
+mkdir -p "$sandbox/docs/aidp/runs" "$sandbox/.claude/workflow-state"
 
 # --- mint → parse round-trip + uniqueness ---
 # Bash 3.2 (macOS) lacks associative arrays; use a temp file + sort -u.
@@ -55,34 +57,34 @@ else
 fi
 
 # --- --write-pointers integration ---
-( cd "$sandbox" && bash "$MINT" --write-pointers --run-dir "docs/runs" >/dev/null )
-if [ -L "$sandbox/docs/latest" ]; then
-  pass "docs/latest is a symlink"
+( cd "$sandbox" && bash "$MINT" --write-pointers --run-dir "docs/aidp/runs" >/dev/null )
+if [ -L "$sandbox/docs/aidp/latest" ]; then
+  pass "docs/aidp/latest is a symlink"
 else
-  fail "docs/latest is not a symlink"
+  fail "docs/aidp/latest is not a symlink"
 fi
-if [ -f "$sandbox/docs/latest.txt" ]; then
-  pass "docs/latest.txt exists"
+if [ -f "$sandbox/docs/aidp/latest.txt" ]; then
+  pass "docs/aidp/latest.txt exists"
 else
-  fail "docs/latest.txt missing"
+  fail "docs/aidp/latest.txt missing"
 fi
-target=$(readlink "$sandbox/docs/latest" 2>/dev/null || echo "")
-text=$(cat "$sandbox/docs/latest.txt" 2>/dev/null || echo "")
+target=$(readlink "$sandbox/docs/aidp/latest" 2>/dev/null || echo "")
+text=$(cat "$sandbox/docs/aidp/latest.txt" 2>/dev/null || echo "")
 target_bn=$(basename "$target")
 if [ "$target_bn" = "$text" ]; then
-  pass "docs/latest target basename matches docs/latest.txt content"
+  pass "docs/aidp/latest target basename matches docs/aidp/latest.txt content"
 else
   fail "mismatch: latest=$target_bn latest.txt=$text"
 fi
 # Tmp filenames now carry a per-process suffix (latest.tmp.$$.<rand>) so
 # concurrent mints don't race on a shared name. Assert no residue under
 # either the legacy or the suffixed pattern.
-leftover=$(find "$sandbox/docs" -maxdepth 1 -name 'latest.tmp*' -o -name 'latest.txt.tmp*' 2>/dev/null | head -1)
+leftover=$(find "$sandbox/docs/aidp" -maxdepth 1 -name 'latest.tmp*' -o -name 'latest.txt.tmp*' 2>/dev/null | head -1)
 active_leftover=$(find "$sandbox/.claude/workflow-state" -maxdepth 1 -name 'active.tmp*' 2>/dev/null | head -1)
 if [ -z "$leftover" ] && [ -z "$active_leftover" ]; then
   pass ".tmp files cleaned after atomic update"
 else
-  fail ".tmp files left behind: docs=$leftover ws=$active_leftover"
+  fail ".tmp files left behind: docs/aidp=$leftover ws=$active_leftover"
 fi
 if [ -f "$sandbox/.claude/workflow-state/active" ]; then
   active=$(cat "$sandbox/.claude/workflow-state/active")
@@ -94,10 +96,10 @@ if [ -f "$sandbox/.claude/workflow-state/active" ]; then
 else
   fail "workflow-state/active missing"
 fi
-if [ -d "$sandbox/docs/runs/$text" ]; then
-  pass "docs/runs/<id> directory created"
+if [ -d "$sandbox/docs/aidp/runs/$text" ]; then
+  pass "docs/aidp/runs/<id> directory created"
 else
-  fail "docs/runs/<id> not created"
+  fail "docs/aidp/runs/<id> not created"
 fi
 
 if [ "$failures" -gt 0 ]; then

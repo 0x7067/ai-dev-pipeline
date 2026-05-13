@@ -385,7 +385,7 @@ check_one() {
 #   2. Otherwise, if RUN_DIR is set, default to ${RUN_DIR}/<report>.md.
 #   3. Otherwise, anchor to ${AIDP_ARTIFACTS_ROOT}/latest/<report>.md so
 #      this script remains usable in repos that haven't minted a run yet.
-#      The cwd-relative `docs/latest` / `docs/<report>.md` fallbacks are
+#      The cwd-relative `docs/aidp/latest` / `docs/<report>.md` fallbacks are
 #      gone — they would resolve under the plugin after harness_cd_repo_root.
 default_report_path() {
   local name="$1"

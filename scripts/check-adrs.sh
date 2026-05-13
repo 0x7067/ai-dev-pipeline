@@ -31,7 +31,7 @@ default_adrs_glob() {
     printf '%s/adrs/*.md\n' "$RUN_DIR"
   else
     # No-RUN_DIR fallback: walk every run under the artifacts root. The
-    # cwd-relative `docs/latest` and `docs/runs/*/...` patterns are gone —
+    # cwd-relative `docs/aidp/latest` and `docs/aidp/runs/*/...` patterns are gone —
     # they would resolve under the plugin after harness_cd_repo_root.
     printf '%s/runs/*/adrs/*.md\n' "$AIDP_ARTIFACTS_ROOT"
   fi

@@ -193,13 +193,13 @@ _check_norms_block() {
   ' "$file"
 }
 
-# Files to scan: the plan template + every current-plan.md under docs/runs.
+# Files to scan: the plan template + every current-plan.md under docs/aidp/runs.
 _norms_targets=()
 [ -f docs/templates/current-plan-template.md ] && _norms_targets+=(docs/templates/current-plan-template.md)
-if [ -d docs/runs ]; then
+if [ -d docs/aidp/runs ]; then
   while IFS= read -r f; do
     [ -n "$f" ] && _norms_targets+=("$f")
-  done < <(find docs/runs -type f -name 'current-plan.md' 2>/dev/null)
+  done < <(find docs/aidp/runs -type f -name 'current-plan.md' 2>/dev/null)
 fi
 
 for f in "${_norms_targets[@]:-}"; do

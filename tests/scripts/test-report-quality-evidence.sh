@@ -25,7 +25,7 @@ make_workdir() {
 setup_workdir() {
   # $1 = workdir
   local work="$1"
-  mkdir -p "$work/docs" "$work/scripts/lib" "$work/.claude-plugin"
+  mkdir -p "$work/docs/aidp" "$work/scripts/lib" "$work/.claude-plugin"
   ln -s "${REPO_ROOT}/scripts/harness-lib.sh" "$work/scripts/harness-lib.sh"
   ln -s "${REPO_ROOT}/scripts/lib/project-root.sh" "$work/scripts/lib/project-root.sh"
   ln -s "$SCRIPT" "$work/scripts/check-report-quality.sh"
@@ -139,7 +139,7 @@ case2() {
   local sources='- Official sources:
   - https://example.com/official
   - .claude/rules/release-and-verification.md'
-  write_review_report "$work/docs/review-report.md" "low" "$sources" ""
+  write_review_report "$work/docs/aidp/review-report.md" "low" "$sources" ""
   ( cd "$work" && bash scripts/check-report-quality.sh ) >/tmp/cq-evidence.out 2>&1
   local rc=$?
   if [ "$rc" -eq 0 ]; then
@@ -158,7 +158,7 @@ case3() {
   local sources='- Official sources:
   - .claude/rules/release-and-verification.md
   - docs/templates/review-report-template.md'
-  write_review_report "$work/docs/review-report.md" "low" "$sources" ""
+  write_review_report "$work/docs/aidp/review-report.md" "low" "$sources" ""
   ( cd "$work" && bash scripts/check-report-quality.sh ) >/tmp/cq-evidence.out 2>&1
   local rc=$?
   if [ "$rc" -eq 0 ]; then
@@ -176,7 +176,7 @@ case4() {
   setup_workdir "$work"
   local sources='- Official sources:
   - .claude/rules/release-and-verification.md'
-  write_review_report "$work/docs/review-report.md" "medium" "$sources" ""
+  write_review_report "$work/docs/aidp/review-report.md" "medium" "$sources" ""
   ( cd "$work" && bash scripts/check-report-quality.sh ) >/tmp/cq-evidence.out 2>&1
   local rc=$?
   if [ "$rc" -ne 0 ]; then
@@ -193,7 +193,7 @@ case5() {
   local work; work="$(make_workdir)"
   setup_workdir "$work"
   local sources='- Official sources:'
-  write_review_report "$work/docs/review-report.md" "low" "$sources" "  - https://example.com/x"
+  write_review_report "$work/docs/aidp/review-report.md" "low" "$sources" "  - https://example.com/x"
   ( cd "$work" && bash scripts/check-report-quality.sh ) >/tmp/cq-evidence.out 2>&1
   local rc=$?
   if [ "$rc" -ne 0 ]; then

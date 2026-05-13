@@ -9,7 +9,7 @@ Advisory pass over a diff using behavior-changing tips from *The Pragmatic Progr
 
 > **Note (2026-05):** the reviewer agent and `/review` command no longer invoke this skill as a second pass. The same checklist content now runs **inline** as lens 6 of the `code-review` skill on `medium`/`high`-risk changes, so each diff is reviewed in a single pass. This file remains for explicit standalone use (e.g. user asks for a "pragmatic-only review" outside a /ship run).
 
-This skill produces an **advisory** section appended to `${RUN_DIR}/review-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; falls back to `docs/review-report.md` only when invoked outside a /ship-managed run). Per `release-and-verification.md`, model self-critique never blocks. The blocking decision belongs to the gate runner.
+This skill produces an **advisory** section appended to `${RUN_DIR}/review-report.md` (the orchestrator sets `RUN_DIR` at /ship step 0; fail closed if `RUN_DIR` is unset — no top-level `docs/` fallback). Per `release-and-verification.md`, model self-critique never blocks. The blocking decision belongs to the gate runner.
 
 ## When to invoke
 - Manually invoked when the user asks for a "pragmatic review" or "deep-dive checklist pass" outside the standard pipeline.
@@ -63,7 +63,7 @@ For each changed file, walk the checklist below in order. Group findings by sect
 
 ## Output format
 
-Append to `${RUN_DIR}/review-report.md` (per-run artifact under `docs/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`) under a new section:
+Append to `${RUN_DIR}/review-report.md` (per-run artifact under `docs/aidp/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`) under a new section:
 
 ```
 ## Pragmatic Review Checklist (advisory)

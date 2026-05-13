@@ -73,7 +73,7 @@ run_check "validate_claude_config" bash scripts/validate-claude-config.sh
 # would silently resolve under the plugin checkout (harness_cd_repo_root
 # chdir'd us here), scanning the wrong tree. Fail closed instead.
 # Distinguish set-but-empty (caller bug) from unset (legitimate fallback to
-# docs/latest in downstream scripts).
+# docs/aidp/latest in downstream scripts).
 if [ "${RUN_DIR+set}" = "set" ]; then
   case "${RUN_DIR}" in
     /*) ;;

@@ -22,16 +22,12 @@ failures=0
 pass() { echo "  ok: $1"; }
 fail() { echo "  FAIL: $1" >&2; failures=$((failures + 1)); }
 
-# Sandbox. The plugin-self manifest keeps the sandbox on the legacy docs/
-# layout; aidp_resolve_artifacts_root would otherwise classify a bare
-# sandbox as a consumer project and look under docs/aidp/. This file
-# tests prune semantics, not the consumer-vs-plugin classifier.
+# Sandbox. aidp_resolve_artifacts_root unconditionally returns docs/aidp/,
+# so we build the sandbox under docs/aidp/. No plugin.json injection needed.
 sandbox=$(mktemp -d)
 trap 'rm -rf "$sandbox"' EXIT
 cd "$sandbox" || exit 2
-mkdir -p docs/runs .claude/workflow-state .claude-plugin
-printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
-  > .claude-plugin/plugin.json
+mkdir -p docs/aidp/runs .claude/workflow-state
 
 # Fabricate 15 parseable run-ids with strictly increasing mtimes.
 # Use 'touch -t' for portable mtime control.
@@ -41,28 +37,28 @@ ids=()
 for n in $(seq 1 15); do
   id=$(make_id "$n")
   ids+=("$id")
-  mkdir -p "docs/runs/$id"
+  mkdir -p "docs/aidp/runs/$id"
   # mtime: 2026-05-08 12:00:0n
   # Portable touch: -t format is [[CC]YY]MMDDhhmm[.SS] = 12 digits + .SS
   ts=$(printf '202605081200.%02d' "$n")
-  touch -t "$ts" "docs/runs/$id"
+  touch -t "$ts" "docs/aidp/runs/$id"
 done
 
 # Newest is ids[14], oldest is ids[0]. Pin "latest" to the OLDEST so we
 # can test the protect-against-oldest property.
 oldest=${ids[0]}
-( cd docs && ln -sfn "runs/$oldest" "latest.tmp" && mv "latest.tmp" "latest" )
-printf '%s\n' "$oldest" > docs/latest.txt
+( cd docs/aidp && ln -sfn "runs/$oldest" "latest.tmp" && mv "latest.tmp" "latest" )
+printf '%s\n' "$oldest" > docs/aidp/latest.txt
 printf '%s\n' "$oldest" > .claude/workflow-state/active
 
 # Foreign directory must survive.
-mkdir -p docs/runs/not-a-run-id
+mkdir -p docs/aidp/runs/not-a-run-id
 
 # ADR-bearing run must survive even if it falls outside retention.
 adr_run=${ids[1]}
-mkdir -p "docs/runs/$adr_run/adrs"
-printf '%s\n' "# ADR: Keep me" > "docs/runs/$adr_run/adrs/20260508-keep-me.md"
-touch -t 202605081200.02 "docs/runs/$adr_run"
+mkdir -p "docs/aidp/runs/$adr_run/adrs"
+printf '%s\n' "# ADR: Keep me" > "docs/aidp/runs/$adr_run/adrs/20260508-keep-me.md"
+touch -t 202605081200.02 "docs/aidp/runs/$adr_run"
 
 # Run pruner with RUN_RETENTION=10.
 RUN_RETENTION=10 CI=false bash "$PRUNE" >/tmp/prune-out.$$ 2>&1 || {
@@ -70,7 +66,7 @@ RUN_RETENTION=10 CI=false bash "$PRUNE" >/tmp/prune-out.$$ 2>&1 || {
   fail "pruner exited nonzero"
 }
 
-remaining=$(find docs/runs -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+remaining=$(find docs/aidp/runs -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 # Expectations: 10 newest + 1 protected (oldest) + 1 ADR + 1 foreign = 13.
 if [ "$remaining" -eq 13 ]; then
   pass "kept 13 dirs (10 newest + protected oldest + ADR + foreign)"
@@ -79,21 +75,21 @@ else
 fi
 
 # Protected oldest must still exist.
-if [ -d "docs/runs/$oldest" ]; then
+if [ -d "docs/aidp/runs/$oldest" ]; then
   pass "protected oldest survived"
 else
   fail "protected oldest was deleted"
 fi
 
 # Foreign survived.
-if [ -d "docs/runs/not-a-run-id" ]; then
+if [ -d "docs/aidp/runs/not-a-run-id" ]; then
   pass "foreign directory survived"
 else
   fail "foreign directory was deleted"
 fi
 
 # ADR-bearing run survived.
-if [ -d "docs/runs/$adr_run" ]; then
+if [ -d "docs/aidp/runs/$adr_run" ]; then
   pass "ADR-bearing run survived"
 else
   fail "ADR-bearing run was deleted"
@@ -101,7 +97,7 @@ fi
 
 # Newest 10 survived. ids[5..14] (zero-indexed) are the 10 newest.
 for i in $(seq 5 14); do
-  if [ ! -d "docs/runs/${ids[$i]}" ]; then
+  if [ ! -d "docs/aidp/runs/${ids[$i]}" ]; then
     fail "expected newest survivor missing: ${ids[$i]}"
   fi
 done
@@ -109,17 +105,17 @@ pass "10 newest by mtime survived"
 
 # Mid-aged unprotected ids[2..4] should be deleted. ids[1] has an ADR.
 for i in 2 3 4; do
-  if [ -d "docs/runs/${ids[$i]}" ]; then
+  if [ -d "docs/aidp/runs/${ids[$i]}" ]; then
     fail "expected deletion missing: ${ids[$i]}"
   fi
 done
 pass "3 unprotected mid-aged dirs were deleted"
 
 # CI=true: no-op.
-mkdir -p docs/runs/throwaway-not-a-run-id
-before=$(find docs/runs -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+mkdir -p docs/aidp/runs/throwaway-not-a-run-id
+before=$(find docs/aidp/runs -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
 RUN_RETENTION=1 CI=true bash "$PRUNE" >/dev/null 2>&1
-after=$(find docs/runs -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+after=$(find docs/aidp/runs -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
 if [ "$before" = "$after" ]; then
   pass "CI=true: no-op (count $before unchanged)"
 else

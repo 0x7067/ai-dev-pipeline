@@ -72,20 +72,22 @@ else
   fail "consumer root: rc=$rc out='$out' (want '$expected')"
 fi
 
-# Test 6a: artifacts root for a plugin checkout with matching name →
-# <root>/docs (legacy).
+# Test 6a: plugin checkout with matching name STILL resolves to docs/aidp.
+# The legacy plugin-self-dev exception was removed — every caller, including
+# the plugin's own checkout, now uses the single docs/aidp layout. The
+# presence of .claude-plugin/plugin.json is no longer read by the resolver.
 mkdir -p "$tmpdir/.claude-plugin"
 printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' > "$tmpdir/.claude-plugin/plugin.json"
 out="$(bash -c "source '$LIB' && aidp_resolve_artifacts_root '$tmpdir'" 2>/dev/null)"
 rc=$?
-expected="$(cd "$tmpdir" && pwd -P)/docs"
+expected="$(cd "$tmpdir" && pwd -P)/docs/aidp"
 if [ "$rc" = 0 ] && [ "$out" = "$expected" ]; then
-  pass "plugin checkout (name=ai-dev-pipeline) → docs (legacy)"
+  pass "plugin checkout (name=ai-dev-pipeline) → docs/aidp (no legacy exception)"
 else
   fail "plugin checkout: rc=$rc out='$out' (want '$expected')"
 fi
 
-# Test 6b: another plugin (different name) is treated as a consumer.
+# Test 6b: another plugin (different name) — same result; plugin.json is irrelevant.
 printf '{"name":"some-other-plugin","version":"1.0.0"}\n' > "$tmpdir/.claude-plugin/plugin.json"
 out="$(bash -c "source '$LIB' && aidp_resolve_artifacts_root '$tmpdir'" 2>/dev/null)"
 rc=$?

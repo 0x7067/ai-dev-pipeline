@@ -66,7 +66,7 @@ done
 i=0
 while [ "$i" -lt 50 ]; do
   hex=$(printf '%04x' $((RANDOM % 65536)))
-  rep="docs/runs/${hex}/r.md"
+  rep="docs/aidp/runs/${hex}/r.md"
   line="STATUS: ok | risk=low | s$i | report=$rep"
   out="$(bash "$PARSER" "$line" 2>/dev/null)" || { fail "fuzz reject: $line"; i=$((i+1)); continue; }
   parsed_rep="$(echo "$out" | sed -n 's/^report=//p')"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# prune-runs.sh — retention policy for docs/runs/<id>/ directories.
+# prune-runs.sh — retention policy for docs/aidp/runs/<id>/ directories.
 #
 # Layer: SHELL (filesystem mutation). The "which ids to delete" decision
 # is computable as a pure function of (entries, mtimes, N, protected_set);
@@ -9,7 +9,7 @@
 # Policy:
 #   - Keep the RUN_RETENTION (default 10) newest entries by mtime.
 #   - Never delete a directory whose name appears in the protected set:
-#       basename(readlink docs/latest), cat docs/latest.txt,
+#       basename(readlink docs/aidp/latest), cat docs/aidp/latest.txt,
 #       cat .claude/workflow-state/active.
 #   - Never delete a run containing ADR artifacts under adrs/*.md.
 #   - In CI (CI=true), no-op: CI artifact retention is the CI provider's

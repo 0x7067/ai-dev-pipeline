@@ -154,7 +154,7 @@ Append surfaced findings to the `## Advisory Findings (Model)` section of the re
 
 ## Output
 
-- `${RUN_DIR}/review-report.md` (per-run artifact under `docs/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`).
+- `${RUN_DIR}/review-report.md` (per-run artifact under `docs/aidp/runs/<id>/`; resolved via `RUN_DIR` env or `scripts/resolve-run.sh`).
 - Findings ordered by severity, grouped by lens.
 - Evidence summary with file:line references.
 - Residual risk statement at the end.

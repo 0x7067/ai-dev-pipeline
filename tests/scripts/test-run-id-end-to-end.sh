@@ -4,7 +4,7 @@
 # Property A — concurrent runs do not collide:
 #   Two simulated /ship step-0 invocations writing to the same docs/
 #   sandbox each end up with distinct ${RUN_DIR} trees. Last-writer-wins
-#   on docs/latest is fine; the per-run artifact trees must not stomp
+#   on docs/aidp/latest is fine; the per-run artifact trees must not stomp
 #   each other.
 #
 # Property B — parallel read-only gates are deterministic:
@@ -36,17 +36,13 @@ sandbox_a=$(mktemp -d)
 trap 'rm -rf "$sandbox_a" "$sandbox_b" "$sandbox_g"' EXIT
 
 # Each "session" gets its own working directory but they share nothing
-# except the shared docs/runs/ tree if we point them there. Simulate
+# except the shared docs/aidp/runs/ tree if we point them there. Simulate
 # that by giving each its own sandbox; the property we care about is
 # "two distinct mints produce two distinct RUN_DIR trees". We sleep
 # briefly between mints so timestamps differ and the property is sharp.
-mkdir -p "$sandbox_a/docs/runs" "$sandbox_a/.claude/workflow-state" "$sandbox_a/.claude-plugin"
-printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
-  > "$sandbox_a/.claude-plugin/plugin.json"
+mkdir -p "$sandbox_a/docs/aidp/runs" "$sandbox_a/.claude/workflow-state"
 sandbox_b=$(mktemp -d)
-mkdir -p "$sandbox_b/docs/runs" "$sandbox_b/.claude/workflow-state" "$sandbox_b/.claude-plugin"
-printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
-  > "$sandbox_b/.claude-plugin/plugin.json"
+mkdir -p "$sandbox_b/docs/aidp/runs" "$sandbox_b/.claude/workflow-state"
 
 id_a=$(cd "$sandbox_a" && bash "$MINT" --write-pointers)
 sleep 1
@@ -59,26 +55,24 @@ else
 fi
 
 # Each sandbox has its own run dir.
-if [ -d "$sandbox_a/docs/runs/$id_a" ] && [ -d "$sandbox_b/docs/runs/$id_b" ]; then
-  pass "each session owns docs/runs/<its-id>"
+if [ -d "$sandbox_a/docs/aidp/runs/$id_a" ] && [ -d "$sandbox_b/docs/aidp/runs/$id_b" ]; then
+  pass "each session owns docs/aidp/runs/<its-id>"
 else
   fail "one or both run dirs missing"
 fi
 
-# Each docs/latest points only at its session's id (no cross-talk).
-target_a=$(readlink "$sandbox_a/docs/latest")
-target_b=$(readlink "$sandbox_b/docs/latest")
+# Each docs/aidp/latest points only at its session's id (no cross-talk).
+target_a=$(readlink "$sandbox_a/docs/aidp/latest")
+target_b=$(readlink "$sandbox_b/docs/aidp/latest")
 if [ "$(basename "$target_a")" = "$id_a" ] && [ "$(basename "$target_b")" = "$id_b" ]; then
-  pass "each session's docs/latest points at its own run"
+  pass "each session's docs/aidp/latest points at its own run"
 else
-  fail "docs/latest cross-talk: a=$target_a b=$target_b"
+  fail "docs/aidp/latest cross-talk: a=$target_a b=$target_b"
 fi
 
 # ---------- B) parallel gate determinism ----------
 sandbox_g=$(mktemp -d)
-mkdir -p "$sandbox_g/docs/runs" "$sandbox_g/scripts/lib" "$sandbox_g/.claude/hooks" "$sandbox_g/.claude-plugin"
-printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
-  > "$sandbox_g/.claude-plugin/plugin.json"
+mkdir -p "$sandbox_g/docs/aidp/runs" "$sandbox_g/scripts/lib" "$sandbox_g/.claude/hooks"
 # The gate runner cd's to repo root if a vendored copy exists locally OR
 # if PWD == its repo root (see top of run-verification-gates.sh). We give
 # the sandbox a vendored copy at scripts/run-verification-gates.sh so the
@@ -92,9 +86,9 @@ cp "$REPO_ROOT/scripts/lib/project-root.sh"       "$sandbox_g/scripts/lib/"
 chmod +x "$sandbox_g/scripts/"*.sh
 
 # Mint a run-id inside the sandbox so RUN_DIR resolves into the sandbox's
-# docs/runs/<id> tree (where the gate logs and hint file should land).
+# docs/aidp/runs/<id> tree (where the gate logs and hint file should land).
 ssh_id=$(cd "$sandbox_g" && bash scripts/mint-run-id.sh --write-pointers)
-ssh_run_dir="docs/runs/${ssh_id}"
+ssh_run_dir="docs/aidp/runs/${ssh_id}"
 
 # Stubs: typecheck sleeps 2s and FAILS; lint sleeps 1s and passes;
 # security passes immediately. With sequential execution the wall clock

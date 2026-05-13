@@ -63,9 +63,9 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  write_valid_adr docs/runs/20260510T120000-a1b2c3/adrs/20260510-run-artifact-adrs.md
+  write_valid_adr docs/aidp/runs/20260510T120000-a1b2c3/adrs/20260510-run-artifact-adrs.md
 )
-if run_in_workdir "$work" env RUN_DIR=docs/runs/20260510T120000-a1b2c3; then
+if run_in_workdir "$work" env RUN_DIR=docs/aidp/runs/20260510T120000-a1b2c3; then
   pass "valid ADR under RUN_DIR accepted"
 else
   fail "valid ADR under RUN_DIR rejected"
@@ -76,8 +76,8 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs/runs/20260510T120000-a1b2c3/adrs
-  cat > docs/runs/20260510T120000-a1b2c3/adrs/bad.md <<'EOF'
+  mkdir -p docs/aidp/runs/20260510T120000-a1b2c3/adrs
+  cat > docs/aidp/runs/20260510T120000-a1b2c3/adrs/bad.md <<'EOF'
 # ADR: Bad
 
 Status: accepted
@@ -89,7 +89,7 @@ Run: 20260510T120000-a1b2c3
 ## Consequences
 EOF
 )
-if run_in_workdir "$work" env RUN_DIR=docs/runs/20260510T120000-a1b2c3; then
+if run_in_workdir "$work" env RUN_DIR=docs/aidp/runs/20260510T120000-a1b2c3; then
   fail "invalid filename should fail"
   sed -e 's/^/    | /' /tmp/adrs-test.out >&2 || true
 else
@@ -105,8 +105,8 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs/runs/20260510T120000-a1b2c3/adrs
-  cat > docs/runs/20260510T120000-a1b2c3/adrs/20260510-empty-context.md <<'EOF'
+  mkdir -p docs/aidp/runs/20260510T120000-a1b2c3/adrs
+  cat > docs/aidp/runs/20260510T120000-a1b2c3/adrs/20260510-empty-context.md <<'EOF'
 # ADR: Missing why
 
 Status: accepted
@@ -124,7 +124,7 @@ Store ADRs in the run directory.
 Run summaries can show them.
 EOF
 )
-if run_in_workdir "$work" env RUN_DIR=docs/runs/20260510T120000-a1b2c3; then
+if run_in_workdir "$work" env RUN_DIR=docs/aidp/runs/20260510T120000-a1b2c3; then
   fail "empty context should fail"
   sed -e 's/^/    | /' /tmp/adrs-test.out >&2 || true
 else
@@ -140,8 +140,8 @@ rm -rf "$work"
 work="$(make_workdir)"
 (
   cd "$work" || exit 1
-  mkdir -p docs/runs/20260510T120000-a1b2c3/adrs
-  cat > docs/runs/20260510T120000-a1b2c3/adrs/20260510-placeholder.md <<'EOF'
+  mkdir -p docs/aidp/runs/20260510T120000-a1b2c3/adrs
+  cat > docs/aidp/runs/20260510T120000-a1b2c3/adrs/20260510-placeholder.md <<'EOF'
 # ADR: <short decision title>
 
 Status: proposed
@@ -153,7 +153,7 @@ Run: 20260510T120000-a1b2c3
 ## Consequences
 EOF
 )
-if run_in_workdir "$work" env RUN_DIR=docs/runs/20260510T120000-a1b2c3; then
+if run_in_workdir "$work" env RUN_DIR=docs/aidp/runs/20260510T120000-a1b2c3; then
   fail "placeholder ADR should fail"
   sed -e 's/^/    | /' /tmp/adrs-test.out >&2 || true
 else

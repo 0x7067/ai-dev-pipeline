@@ -74,15 +74,15 @@ write_valid_verify_report() {
 1. Plan approved: N/A — low-risk auto run
    - Approver: orchestrator
    - Date: 2026-05-09
-   - Evidence link: docs/runs/x/current-plan.md
+   - Evidence link: docs/aidp/runs/x/current-plan.md
 2. Elevated-risk implementation approved (required for `medium` and `high` risk): N/A
    - Approver: orchestrator
    - Date: 2026-05-09
-   - Evidence link: docs/runs/x/current-plan.md
+   - Evidence link: docs/aidp/runs/x/current-plan.md
 3. Release approved: N/A — low-risk auto run
    - Approver: orchestrator
    - Date: 2026-05-09
-   - Evidence link: docs/runs/x/current-plan.md
+   - Evidence link: docs/aidp/runs/x/current-plan.md
 
 ## Residual Risk and Follow-ups
 none.
@@ -111,7 +111,7 @@ EOF
 case1() {
   local work
   work=$(mktemp -d -t crq-case1-XXXXXX)
-  local rd="$work/docs/runs/20260509T152345-0dd552-c6"
+  local rd="$work/docs/aidp/runs/20260509T152345-0dd552-c6"
   mkdir -p "$rd"
   write_valid_review_report "$rd/review-report.md"
   write_valid_verify_report "$rd/verify-report.md"
@@ -138,7 +138,7 @@ case1() {
 case2() {
   local work
   work=$(mktemp -d -t crq-case2-XXXXXX)
-  local rd="$work/docs/runs/20260509T152345-0dd552-c6"
+  local rd="$work/docs/aidp/runs/20260509T152345-0dd552-c6"
   mkdir -p "$rd"
   write_valid_review_report "$rd/review-report.md"
   write_valid_verify_report "$rd/verify-report.md"
@@ -166,7 +166,7 @@ case2() {
 case3() {
   local work
   work=$(mktemp -d -t crq-case3-XXXXXX)
-  local rd="$work/docs/runs/20260509T152345-0dd552-c6"
+  local rd="$work/docs/aidp/runs/20260509T152345-0dd552-c6"
   mkdir -p "$rd"
   write_valid_review_report "$rd/review-report.md"
   write_valid_verify_report "$rd/verify-report.md"
@@ -194,7 +194,7 @@ case3() {
 case4() {
   local work
   work=$(mktemp -d -t crq-case4-XXXXXX)
-  local rd="$work/docs/runs/20260509T152345-0dd552-c6"
+  local rd="$work/docs/aidp/runs/20260509T152345-0dd552-c6"
   mkdir -p "$rd"
   write_valid_review_report "$rd/review-report.md"
   write_valid_verify_report "$rd/verify-report.md"

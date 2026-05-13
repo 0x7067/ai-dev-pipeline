@@ -18,7 +18,7 @@
 #   style::ok     "typecheck passed"
 #   style::warn   "skipped: no contract suite configured"
 #   style::fail   "lint failed (rc=2)"
-#   style::info   "log written to docs/runs/.../verify.log"
+#   style::info   "log written to docs/aidp/runs/.../verify.log"
 #   style::dim    "elapsed 3s"
 #   style::retry  "lint retry 1/2"
 #   style::join   "read-only gates joined (rc=0,0,0)"

@@ -59,17 +59,10 @@ fi
 make_sandbox() {
   local sb
   sb=$(mktemp -d)
-  # TEST-ONLY: drop a plugin.json with `name=ai-dev-pipeline` so the
-  # project-root resolver classifies the sandbox as a plugin-self
-  # checkout (legacy docs/ layout). Real consumer projects MUST NOT
-  # have this file — it's the plugin's own self-identification marker.
-  # See scripts/lib/project-root.sh::aidp_resolve_artifacts_root.
-  mkdir -p "$sb/docs/runs/$GREEN_ID" "$sb/.claude/workflow-state" "$sb/.claude-plugin"
-  printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
-    > "$sb/.claude-plugin/plugin.json"
+  mkdir -p "$sb/docs/aidp/runs/$GREEN_ID" "$sb/.claude/workflow-state"
   # Existing latest triplet — must be left untouched.
-  ( cd "$sb/docs" && ln -sfn "runs/$GREEN_ID" latest )
-  printf '%s\n' "$GREEN_ID" > "$sb/docs/latest.txt"
+  ( cd "$sb/docs/aidp" && ln -sfn "runs/$GREEN_ID" latest )
+  printf '%s\n' "$GREEN_ID" > "$sb/docs/aidp/latest.txt"
   printf '%s\n' "$GREEN_ID" > "$sb/.claude/workflow-state/active"
   printf '%s' "$sb"
 }
@@ -78,8 +71,8 @@ snapshot_existing_latest() {
   # Returns "<symlink-target>|<latest.txt>|<active>" of pre-existing pointers.
   local sb="$1"
   printf '%s|%s|%s' \
-    "$(readlink "$sb/docs/latest" 2>/dev/null || true)" \
-    "$(cat "$sb/docs/latest.txt" 2>/dev/null || true)" \
+    "$(readlink "$sb/docs/aidp/latest" 2>/dev/null || true)" \
+    "$(cat "$sb/docs/aidp/latest.txt" 2>/dev/null || true)" \
     "$(cat "$sb/.claude/workflow-state/active" 2>/dev/null || true)"
 }
 
@@ -101,20 +94,20 @@ if run_promote "$sb" "go" "0" >/dev/null 2>&1; then
 else
   fail "happy: rc!=0 on green"
 fi
-if [ -L "$sb/docs/latest-green" ]; then
-  t=$(readlink "$sb/docs/latest-green")
+if [ -L "$sb/docs/aidp/latest-green" ]; then
+  t=$(readlink "$sb/docs/aidp/latest-green")
   if [ "$t" = "runs/$GREEN_ID" ]; then
-    pass "happy: docs/latest-green symlink points at relative runs/<id>"
+    pass "happy: docs/aidp/latest-green symlink points at relative runs/<id>"
   else
     fail "happy: bad symlink target: $t"
   fi
 else
-  fail "happy: docs/latest-green not a symlink"
+  fail "happy: docs/aidp/latest-green not a symlink"
 fi
-if [ "$(cat "$sb/docs/latest-green.txt" 2>/dev/null)" = "$GREEN_ID" ]; then
-  pass "happy: docs/latest-green.txt content matches"
+if [ "$(cat "$sb/docs/aidp/latest-green.txt" 2>/dev/null)" = "$GREEN_ID" ]; then
+  pass "happy: docs/aidp/latest-green.txt content matches"
 else
-  fail "happy: docs/latest-green.txt content mismatch"
+  fail "happy: docs/aidp/latest-green.txt content mismatch"
 fi
 if [ "$(cat "$sb/.claude/workflow-state/active-green" 2>/dev/null)" = "$GREEN_ID" ]; then
   pass "happy: active-green content matches"
@@ -137,8 +130,8 @@ else
 fi
 # Idempotency: a second invocation produces the same final state.
 run_promote "$sb" "go" "0" >/dev/null 2>&1
-if [ "$(readlink "$sb/docs/latest-green")" = "runs/$GREEN_ID" ] \
-   && [ "$(cat "$sb/docs/latest-green.txt")" = "$GREEN_ID" ] \
+if [ "$(readlink "$sb/docs/aidp/latest-green")" = "runs/$GREEN_ID" ] \
+   && [ "$(cat "$sb/docs/aidp/latest-green.txt")" = "$GREEN_ID" ] \
    && [ "$(cat "$sb/.claude/workflow-state/active-green")" = "$GREEN_ID" ]; then
   pass "idempotency: second promote matches first"
 else
@@ -156,7 +149,7 @@ for combo in "no-go 0" "fail 0" "go 1" "go 7"; do
   else
     fail "skip: non-zero rc on verify=$v blocking=$b"
   fi
-  if [ -e "$sb/docs/latest-green" ] || [ -e "$sb/docs/latest-green.txt" ] \
+  if [ -e "$sb/docs/aidp/latest-green" ] || [ -e "$sb/docs/aidp/latest-green.txt" ] \
        || [ -e "$sb/.claude/workflow-state/active-green" ]; then
     fail "skip: green pointer leaked on verify=$v blocking=$b"
   else
@@ -181,9 +174,9 @@ rc=$?; if [ "$rc" = "2" ]; then pass "boundary: missing --run-id → rc=2"; else
 rc=$?; if [ "$rc" = "2" ]; then pass "boundary: unknown flag → rc=2"; else fail "boundary: unknown flag wrong rc"; fi
 rm -rf "$sb"
 
-# --- dangling target: docs/runs/<id> missing → rc=3 --------------------------
+# --- dangling target: docs/aidp/runs/<id> missing → rc=3 --------------------------
 sb=$(mktemp -d)
-mkdir -p "$sb/docs/runs" "$sb/.claude/workflow-state"   # NOTE: no docs/runs/<id>
+mkdir -p "$sb/docs/aidp/runs" "$sb/.claude/workflow-state"   # NOTE: no docs/aidp/runs/<id>
 ( cd "$sb" && bash "$PROMOTE" --run-id "$GREEN_ID" --verify-status "go" --review-blocking 0 ) >/dev/null 2>&1
 rc=$?
 if [ "$rc" = "3" ]; then
@@ -191,7 +184,7 @@ if [ "$rc" = "3" ]; then
 else
   fail "dangling: expected rc=3 got rc=$rc"
 fi
-if [ ! -e "$sb/docs/latest-green" ] && [ ! -e "$sb/docs/latest-green.txt" ]; then
+if [ ! -e "$sb/docs/aidp/latest-green" ] && [ ! -e "$sb/docs/aidp/latest-green.txt" ]; then
   pass "dangling: no green pointer created"
 else
   fail "dangling: green pointer created at missing target"
@@ -206,7 +199,7 @@ rm -rf "$sb"
 #       a regular file (which is what a half-completed write would look like).
 sb=$(make_sandbox)
 run_promote "$sb" "go" "0" >/dev/null 2>&1
-if [ -L "$sb/docs/latest-green" ] && [ ! -f "$sb/docs/latest-green" ] || [ -L "$sb/docs/latest-green" ]; then
+if [ -L "$sb/docs/aidp/latest-green" ] && [ ! -f "$sb/docs/aidp/latest-green" ] || [ -L "$sb/docs/aidp/latest-green" ]; then
   # -f follows symlinks; the second clause is the meaningful one: it's a symlink.
   pass "atomicity: canonical path is a symlink (never a tmp regular file)"
 else
@@ -224,38 +217,36 @@ rm -rf "$sb"
 sb=$(mktemp -d)
 trap 'rm -rf "$sb"' EXIT
 cd "$sb" || exit 2
-mkdir -p docs/runs .claude/workflow-state .claude-plugin
-printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
-  > .claude-plugin/plugin.json
+mkdir -p docs/aidp/runs .claude/workflow-state
 make_id() { printf '20260508T%06d-a1b2c3-%02x' "$1" "$(( $1 % 256 ))"; }
 ids=()
 for n in $(seq 1 15); do
   id=$(make_id "$n"); ids+=("$id")
-  mkdir -p "docs/runs/$id"
+  mkdir -p "docs/aidp/runs/$id"
   ts=$(printf '202605081200.%02d' "$n")
-  touch -t "$ts" "docs/runs/$id"
+  touch -t "$ts" "docs/aidp/runs/$id"
 done
 oldest=${ids[0]}
 # Pin standard latest pointers to the SECOND oldest so we test green on its own.
 second=${ids[1]}
-( cd docs && ln -sfn "runs/$second" latest.tmp && mv latest.tmp latest )
-printf '%s\n' "$second" > docs/latest.txt
+( cd docs/aidp && ln -sfn "runs/$second" latest.tmp && mv latest.tmp latest )
+printf '%s\n' "$second" > docs/aidp/latest.txt
 printf '%s\n' "$second" > .claude/workflow-state/active
 # Pin GREEN to the OLDEST (would otherwise be deleted at retention=10).
 printf '%s\n' "$oldest" > .claude/workflow-state/active-green
-( cd docs && ln -sfn "runs/$oldest" latest-green.tmp && mv latest-green.tmp latest-green )
-printf '%s\n' "$oldest" > docs/latest-green.txt
+( cd docs/aidp && ln -sfn "runs/$oldest" latest-green.tmp && mv latest-green.tmp latest-green )
+printf '%s\n' "$oldest" > docs/aidp/latest-green.txt
 
 RUN_RETENTION=10 CI=false bash "$PRUNE" >/tmp/prune-out.$$ 2>&1 || {
   cat /tmp/prune-out.$$ >&2
   fail "prune: exited nonzero"
 }
-if [ -d "docs/runs/$oldest" ]; then
+if [ -d "docs/aidp/runs/$oldest" ]; then
   pass "prune: green-pointer target survived retention"
 else
   fail "prune: green-pointer target was deleted"
 fi
-if [ -d "docs/runs/$second" ]; then
+if [ -d "docs/aidp/runs/$second" ]; then
   pass "prune: latest target survived retention"
 else
   fail "prune: latest target was deleted"

@@ -7,6 +7,39 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **Unify on `docs/aidp/` for every caller — no plugin self-dev exception,
+  no top-level `docs/` fallback.** `scripts/lib/project-root.sh::aidp_resolve_artifacts_root`
+  now unconditionally returns `${root}/docs/aidp` for consumer projects
+  AND for the plugin's own checkout. The `.claude-plugin/plugin.json`
+  presence heuristic is gone; the resolver is now a pure string operation
+  with no filesystem reads beyond canonicalization. `CLAUDE.md` and
+  `.claude/rules/release-and-verification.md` state the single rule.
+
+### Removed
+
+- **`pragmatic-review-checklist` fallback to top-level `docs/review-report.md`.**
+  The skill now fails closed when `RUN_DIR` is unset, matching the
+  pattern in `code-review`, `refactor`, `requirement-analysis`, and
+  `test-gen`.
+- **Legacy plugin-self-dev branch in `aidp_resolve_artifacts_root`.** Tests
+  that injected `.claude-plugin/plugin.json` to force the legacy path
+  no longer need the injection (removed in `test-promote-latest-green.sh`
+  and `test-run-id-end-to-end.sh`).
+
+### Fixed
+
+- **`scripts/validate-claude-config.sh`** now scans `docs/aidp/runs/` for
+  current-plan.md files instead of the legacy `docs/runs/`.
+- **`scripts/tests/test-project-root.sh`** updated: the "plugin checkout"
+  case now asserts `docs/aidp` (no legacy exception) instead of the old
+  `docs` return value.
+- 12 affected test files migrated to `docs/aidp/runs/`, `docs/aidp/latest`,
+  `docs/aidp/latest.txt` sandbox paths and assertions.
+- Stale `docs/latest.txt` and `docs/.verify-retry.json` moved from the
+  plugin checkout's top-level `docs/` to `docs/aidp/`.
+
 ## [0.17.1] - 2026-05-12
 
 ### Fixed

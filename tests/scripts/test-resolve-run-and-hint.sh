@@ -40,7 +40,7 @@ POISON_EMPTY_GARBAGE="not a valid id"
 make_sandbox() {
   local sb
   sb=$(mktemp -d)
-  mkdir -p "$sb/.claude/workflow-state" "$sb/docs" "$sb/.claude-plugin"
+  mkdir -p "$sb/.claude/workflow-state" "$sb/docs/aidp" "$sb/.claude-plugin"
   printf '{"name":"ai-dev-pipeline","version":"0.0.0"}\n' \
     > "$sb/.claude-plugin/plugin.json"
   printf '%s\n' "$sb"
@@ -83,31 +83,31 @@ else
 fi
 rm -rf "$sb"
 
-# A4: workflow-state/active malformed → exit 2 (no fall-through to docs/latest).
-# A clean docs/latest.txt is present; if the resolver fell through we'd
+# A4: workflow-state/active malformed → exit 2 (no fall-through to docs/aidp/latest).
+# A clean docs/aidp/latest.txt is present; if the resolver fell through we'd
 # get $VALID_ID2. Fail-closed semantics require exit 2 instead.
 VALID_ID2="20260509T091500Z-deadbe-01"
 sb=$(make_sandbox)
 printf '%s\n' "$POISON_EMPTY_GARBAGE" > "$sb/.claude/workflow-state/active"
-printf '%s\n' "$VALID_ID2" > "$sb/docs/latest.txt"
+printf '%s\n' "$VALID_ID2" > "$sb/docs/aidp/latest.txt"
 got=$( cd "$sb" && unset RUN_ID && bash "$RESOLVE" id 2>/dev/null )
 rc=$?
 if [ "$rc" -eq 2 ] && [ -z "$got" ]; then
-  pass "malformed active pointer → exit 2 (no fall-through to docs/latest)"
+  pass "malformed active pointer → exit 2 (no fall-through to docs/aidp/latest)"
 else
-  fail "fall-through to clean docs/latest happened despite poisoned active (rc=$rc got=$got)"
+  fail "fall-through to clean docs/aidp/latest happened despite poisoned active (rc=$rc got=$got)"
 fi
 rm -rf "$sb"
 
-# A5: docs/latest.txt malformed → exit 2.
+# A5: docs/aidp/latest.txt malformed → exit 2.
 sb=$(make_sandbox)
-printf '%s\n' "$POISON_TRAVERSAL" > "$sb/docs/latest.txt"
+printf '%s\n' "$POISON_TRAVERSAL" > "$sb/docs/aidp/latest.txt"
 got=$( cd "$sb" && unset RUN_ID && bash "$RESOLVE" id 2>/dev/null )
 rc=$?
 if [ "$rc" -eq 2 ] && [ -z "$got" ]; then
-  pass "malformed docs/latest.txt → exit 2, nothing echoed"
+  pass "malformed docs/aidp/latest.txt → exit 2, nothing echoed"
 else
-  fail "docs/latest.txt poison echoed (rc=$rc got=$got)"
+  fail "docs/aidp/latest.txt poison echoed (rc=$rc got=$got)"
 fi
 rm -rf "$sb"
 
@@ -129,10 +129,10 @@ sb=$(make_sandbox)
 sb_canonical=$( cd "$sb" >/dev/null 2>&1 && pwd -P )
 got=$( cd "$sb" && RUN_ID="$VALID_ID" bash "$RESOLVE" dir 2>/dev/null )
 rc=$?
-if [ "$rc" -eq 0 ] && [ "$got" = "${sb_canonical}/docs/runs/${VALID_ID}" ]; then
+if [ "$rc" -eq 0 ] && [ "$got" = "${sb_canonical}/docs/aidp/runs/${VALID_ID}" ]; then
   pass "'dir' subcommand returns <artifacts-root>/runs/<id>"
 else
-  fail "'dir' subcommand wrong (rc=$rc got=$got want=${sb_canonical}/docs/runs/${VALID_ID})"
+  fail "'dir' subcommand wrong (rc=$rc got=$got want=${sb_canonical}/docs/aidp/runs/${VALID_ID})"
 fi
 rm -rf "$sb"
 
@@ -169,7 +169,7 @@ cp "$REPO_ROOT/scripts/lib/project-root.sh"       "$sb_g/scripts/lib/"
 chmod +x "$sb_g/scripts/"*.sh
 
 run_id=$( cd "$sb_g" && bash scripts/mint-run-id.sh --write-pointers )
-run_dir="docs/runs/${run_id}"
+run_dir="docs/aidp/runs/${run_id}"
 hint_path="${sb_g}/${run_dir}/.verify-retry.json"
 
 # B1: three concurrent failures. Output captured but not asserted on

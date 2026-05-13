@@ -6,13 +6,13 @@
 #   CORE      : should_promote (sourced from scripts/lib/promote-core.sh).
 #   BOUNDARY  : parse_args — allowlists --verify-status, regex-checks
 #               --review-blocking, routes --run-id through parse-run-id.sh.
-#   SHELL     : confirms docs/runs/<id> exists and atomically updates the
+#   SHELL     : confirms docs/aidp/runs/<id> exists and atomically updates the
 #               three pointer files (mirrors atomic_update_latest in
 #               mint-run-id.sh — `ln -sfn` + `mv` with per-process tmp).
 #
 # Strict additivity: this script never reads or writes the existing
-# `latest`, `latest.txt`, or `active` pointers. Failure is non-blocking by
-# convention; the orchestrator catches non-zero exit codes.
+# `docs/aidp/latest`, `docs/aidp/latest.txt`, or `active` pointers. Failure is
+# non-blocking by convention; the orchestrator catches non-zero exit codes.
 #
 # Usage:
 #   scripts/promote-latest-green.sh --run-id <id> \
@@ -21,7 +21,7 @@
 # Exit codes:
 #   0  promotion done OR no-op skip (non-green inputs).
 #   2  bad arguments (boundary parser rejection).
-#   3  --run-id valid but docs/runs/<id> directory does not exist.
+#   3  --run-id valid but docs/aidp/runs/<id> directory does not exist.
 #   >0 filesystem write failure (propagated from `mv`/`ln`).
 
 set -uo pipefail
@@ -38,7 +38,7 @@ source "${SCRIPT_DIR}/lib/project-root.sh"
 
 usage() {
   cat <<'EOF'
-promote-latest-green.sh — advance docs/latest-green pointer set on green runs.
+promote-latest-green.sh — advance docs/aidp/latest-green pointer set on green runs.
 
 Usage:
   promote-latest-green.sh --run-id <id> \
@@ -50,7 +50,7 @@ Behavior:
   - No-op (rc=0) unless verify-status=go AND review-blocking=0.
   - Refuses to advance a pointer at a missing target (rc=3).
   - Writes are atomic (tmp + mv with per-process suffix).
-  - Never touches docs/latest, docs/latest.txt, or .claude/workflow-state/active.
+  - Never touches docs/aidp/latest, docs/aidp/latest.txt, or .claude/workflow-state/active.
 EOF
 }
 
@@ -81,7 +81,7 @@ parse_review_blocking() {
 # ---- shell -------------------------------------------------------------------
 
 # atomic_update_green_symlink <id> <docs_root>
-#   Writes docs/latest-green -> runs/<id> (relative target) atomically.
+#   Writes docs/aidp/latest-green -> runs/<id> (relative target) atomically.
 atomic_update_green_symlink() {
   local id="$1" docs_root="$2"
   local suffix="$$.${RANDOM:-0}"
