@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-05-13
+
 ### Fixed
 
 - **Route hook block/error messages to stderr so Claude Code surfaces them.**
