@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-05-13
+
 ### Changed
 
 - **Unify on `docs/aidp/` for every caller — no plugin self-dev exception,
