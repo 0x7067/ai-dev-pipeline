@@ -7,6 +7,22 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Route hook block/error messages to stderr so Claude Code surfaces them.**
+  PreToolUse hooks that exit non-zero must emit their diagnostic on stderr
+  for the harness to display it to the agent; previously several hooks
+  echoed the reason to stdout, producing the unhelpful generic
+  `PreToolUse:Agent hook error … No stderr output` message and hiding the
+  actual cause. `.claude/hooks/workflow-gate.sh` (4 block sites:
+  implementer/reviewer/tester/verifier), `.claude/hooks/protect-files.sh`
+  (protected-file block), `.claude/hooks/format-on-stop.sh`,
+  `.claude/hooks/lint-on-edit.sh`, and `.claude/hooks/type-check.sh`
+  (advisory `ERROR` lines preceding `exit 1`) now redirect their messages
+  to stderr. Behavior of `plan-gate.sh` and `_hook_lib.sh::run_advisory`
+  was already correct and is unchanged. Informational `skipped (...)`
+  messages paired with `exit 0` are intentionally left on stdout.
+
 ## [0.18.0] - 2026-05-13
 
 ### Changed

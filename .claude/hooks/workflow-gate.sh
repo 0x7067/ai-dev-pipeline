@@ -62,29 +62,29 @@ phase_completed() {
 case "$agent_type" in
   implementer)
     if ! phase_completed "plan"; then
-      echo "workflow-gate: BLOCKED — 'implement' requires 'plan' phase to be completed first."
-      echo "Run /plan before /implement, or set WORKFLOW_GATES_SKIP=1 to bypass."
+      echo "workflow-gate: BLOCKED — 'implement' requires 'plan' phase to be completed first." >&2
+      echo "Run /plan before /implement, or set WORKFLOW_GATES_SKIP=1 to bypass." >&2
       exit 2
     fi
     ;;
   reviewer)
     if ! phase_completed "implement"; then
-      echo "workflow-gate: BLOCKED — 'review' requires 'implement' phase to be completed first."
-      echo "Run /implement before /review, or set WORKFLOW_GATES_SKIP=1 to bypass."
+      echo "workflow-gate: BLOCKED — 'review' requires 'implement' phase to be completed first." >&2
+      echo "Run /implement before /review, or set WORKFLOW_GATES_SKIP=1 to bypass." >&2
       exit 2
     fi
     ;;
   tester)
     if ! phase_completed "plan"; then
-      echo "workflow-gate: BLOCKED — 'test' requires 'plan' phase to be completed first."
-      echo "Run /plan before /test, or set WORKFLOW_GATES_SKIP=1 to bypass."
+      echo "workflow-gate: BLOCKED — 'test' requires 'plan' phase to be completed first." >&2
+      echo "Run /plan before /test, or set WORKFLOW_GATES_SKIP=1 to bypass." >&2
       exit 2
     fi
     ;;
   verifier)
     if ! phase_completed "review"; then
-      echo "workflow-gate: BLOCKED — 'verify' requires 'review' phase to be completed first."
-      echo "Run /review before /verify, or set WORKFLOW_GATES_SKIP=1 to bypass."
+      echo "workflow-gate: BLOCKED — 'verify' requires 'review' phase to be completed first." >&2
+      echo "Run /review before /verify, or set WORKFLOW_GATES_SKIP=1 to bypass." >&2
       exit 2
     fi
     ;;

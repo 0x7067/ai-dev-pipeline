@@ -16,7 +16,7 @@ is_protected_path() {
 check_and_block() {
   local path="$1"
   if is_protected_path "$path"; then
-    echo "protect-files: blocked edit/write on protected file: $path"
+    echo "protect-files: blocked edit/write on protected file: $path" >&2
     exit 2
   fi
 }

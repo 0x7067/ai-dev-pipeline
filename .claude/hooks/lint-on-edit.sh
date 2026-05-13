@@ -20,7 +20,7 @@ if has_package_script "lint"; then
     run_advisory "$_pm" run --silent lint
   fi
 
-  echo "lint-on-edit: ERROR: package.json has lint script but no supported package manager found"
+  echo "lint-on-edit: ERROR: package.json has lint script but no supported package manager found" >&2
   exit 1
 fi
 

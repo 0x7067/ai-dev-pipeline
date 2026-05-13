@@ -9,7 +9,7 @@ source "$(dirname "$0")/_hook_lib.sh"
 if has_package_script "format"; then
   pkg_manager="$(detect_pkg_manager)"
   if [ -z "$pkg_manager" ]; then
-    echo "format-on-stop: ERROR: package.json has format script but no supported package manager found"
+    echo "format-on-stop: ERROR: package.json has format script but no supported package manager found" >&2
     exit 1
   fi
 

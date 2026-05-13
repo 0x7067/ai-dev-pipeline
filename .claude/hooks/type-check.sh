@@ -20,7 +20,7 @@ if has_package_script "typecheck"; then
     run_advisory "$_pm" run --silent typecheck
   fi
 
-  echo "type-check: ERROR: package.json has typecheck script but no supported package manager found"
+  echo "type-check: ERROR: package.json has typecheck script but no supported package manager found" >&2
   exit 1
 fi
 
