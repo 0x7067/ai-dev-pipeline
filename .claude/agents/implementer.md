@@ -150,3 +150,79 @@ examples:
   - `STATUS: ok | files=7 | parser + core + shell wired; 1 deferral noted | report=${RUN_DIR}/current-plan.md`
   - `STATUS: blocked | files=0 | ${RUN_DIR}/current-plan.md not found; run /plan first | report=none`
 </status>
+
+## Fixer-Queue Mode
+
+### Activation
+
+This mode activates when the caller prepends a `<fixer-queue>` XML envelope to the implementer prompt:
+
+```
+<fixer-queue class="safe_auto|gated_auto|manual">
+[{"finding_num":1,"file":"src/foo.sh","line":42,"title":"Use quoted variable","suggested_fix":"Quote $VAR as \"$VAR\"","evidence":["UNQUOTED_VAR"],"verify_cmd":"bash -n src/foo.sh"},...]
+</fixer-queue>
+```
+
+When no `<fixer-queue>` tag is present, the implementer behaves exactly as it does today (backward-compatible, no behavioral change).
+
+### Finding Object Schema
+
+Each finding object in the JSON array MUST contain:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `finding_num` | integer ≥ 1 | yes | 1-based index from the review queue |
+| `file` | string | yes | Relative or absolute path to the target file |
+| `line` | integer ≥ 1 | yes | Line number of the finding |
+| `title` | string | yes | Short description of the finding |
+| `suggested_fix` | string | yes | Prose or patch describing the desired change |
+| `evidence` | string[] | yes | Distinctive tokens expected near file:line |
+| `verify_cmd` | string | no | Shell command to run after applying the fix |
+
+### Per-Finding Protocol
+
+For each finding in the queue, in order:
+
+1. **Read window.** Read ±5 lines around `file:line` to obtain the evidence window. If the file does not exist or the line is out of range, route the finding to `failed` with `reason="stale: file not found or line out of range"`.
+
+2. **Evidence precheck.** For each token in `evidence[]`, check that it appears as a verbatim substring within the window text (using `fixer_precheck_finding` from `scripts/lib/fixer-core.sh`). If any token is absent, route the finding to `failed` with `reason="stale: evidence token not found: <token>"`. Do NOT attempt the fix.
+
+3. **Apply fix.** Apply the `suggested_fix` to the file at the indicated location.
+
+4. **Run verify_cmd (if present).** Execute `verify_cmd`. If the command exits non-zero, route the finding to `failed` with `reason="verify_cmd exited <N>: <cmd>"`. The failure is isolated to this finding only — do NOT abort the remaining findings in the same pass.
+
+5. **Record result.** Append an entry to the in-memory `applied` or `failed` list as appropriate.
+
+### Sidecar Write
+
+At the end of each pass, write the sidecar atomically:
+
+1. Write to `${RUN_DIR}/.fixer-pass-<class>.json.tmp` (never the final path directly).
+2. Rename to `${RUN_DIR}/fixer-pass-<class>.json`.
+
+The sidecar MUST conform to `docs/schemas/fixer-pass-v1.schema.json`. Every finding from the input queue MUST appear in either `applied` or `failed` — no finding may be silently dropped. `advisory` entries are for findings intentionally not attempted (e.g., class-level skip).
+
+**Sidecar structure:**
+```json
+{
+  "class": "<class>",
+  "applied": [{"finding_num":1,"file_line":"src/foo.sh:42","title":"Use quoted variable"}],
+  "failed":  [{"finding_num":2,"file_line":"src/bar.sh:10","title":"Remove unused import","reason":"verify_cmd exited 1: bash -n src/bar.sh"}],
+  "advisory": []
+}
+```
+
+### Invariants
+
+- Every finding in the input appears in exactly one of `applied` or `failed` in the output sidecar.
+- A `verify_cmd` failure routes only the affected finding to `failed`; the pass continues.
+- A precheck failure routes the finding to `failed` without attempting the fix.
+- The sidecar is never partially written: tmp+rename guarantees atomicity.
+- If the implementer exits before completing the sidecar write, the `.tmp` file is abandoned and the parser returns exit 2 (sidecar absent), not a parse error.
+
+### References
+
+- Sidecar schema: `docs/schemas/fixer-pass-v1.schema.json`
+- Core helpers: `scripts/lib/fixer-core.sh`
+- Boundary parser: `scripts/parse-fixer-pass.sh`
+- 3-pass orchestration: `.claude/skills/ce-code-review-local/SKILL.md`

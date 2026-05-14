@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ai-dev-pipeline/docs/schemas/fixer-pass-v1.schema.json",
+  "title": "FixerPassV1",
+  "description": "Sidecar produced by the implementer agent at the end of each fixer queue pass. Written atomically via tmp+rename to ${RUN_DIR}/fixer-pass-<class>.json.",
+  "type": "object",
+  "required": ["class", "applied", "failed"],
+  "additionalProperties": false,
+  "properties": {
+    "class": {
+      "description": "Which autofix class this pass handled.",
+      "type": "string",
+      "enum": ["safe_auto", "gated_auto", "manual"]
+    },
+    "applied": {
+      "description": "Findings that were successfully applied in this pass.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/FixerEntry" }
+    },
+    "failed": {
+      "description": "Findings that could not be applied (stale evidence, verify_cmd failure, or other error). Each entry MUST include a 'reason' field.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/FailedFixerEntry" }
+    },
+    "advisory": {
+      "description": "Findings noted for human review only; not attempted by the implementer.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/FixerEntry" }
+    }
+  },
+  "$defs": {
+    "FixerEntry": {
+      "description": "A single finding entry in the sidecar (applied or advisory).",
+      "type": "object",
+      "required": ["finding_num", "file_line", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "finding_num": {
+          "description": "1-based index of the finding in the original review queue.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "file_line": {
+          "description": "File path and line number in the form 'path/to/file:NN'.",
+          "type": "string",
+          "pattern": "^.+:[0-9]+$"
+        },
+        "title": {
+          "description": "Short human-readable title of the finding.",
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "description": "Optional explanatory note (e.g. what the fix did, why it was skipped). Required in failed entries; optional in applied/advisory.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "FailedFixerEntry": {
+      "description": "A single finding entry in the sidecar that failed to apply. 'reason' is required.",
+      "type": "object",
+      "required": ["finding_num", "file_line", "title", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "finding_num": {
+          "description": "1-based index of the finding in the original review queue.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "file_line": {
+          "description": "File path and line number in the form 'path/to/file:NN'.",
+          "type": "string",
+          "pattern": "^.+:[0-9]+$"
+        },
+        "title": {
+          "description": "Short human-readable title of the finding.",
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "description": "Explanation of why this finding failed (e.g. 'stale evidence', 'verify_cmd exited 1').",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
