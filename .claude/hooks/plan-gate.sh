@@ -65,11 +65,23 @@ fi
 
 # Allow edits to pipeline meta-files unconditionally; otherwise the repo
 # cannot evolve its own rules/templates/skills without a full plan cycle.
-case "$target" in
-  *.claude/*|*/docs/*|*/scripts/*|*/examples/*|*/templates/*|*/README*|*/CLAUDE.md|*/AGENTS.md|*/CHANGELOG*)
+# Match project-relative paths (strip leading repo root and slash) so that
+# src/docs/foo does NOT bypass while .claude/rules/foo.md or docs/aidp/…
+# DO bypass. Fall back to glob match when repo_root cannot be determined.
+_pg_target_rel=""
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  _pg_target_rel="${target#${CLAUDE_PLUGIN_ROOT}/}"
+fi
+if [ -z "$_pg_target_rel" ] || [ "$_pg_target_rel" = "$target" ]; then
+  # Strip CWD prefix as best-effort repo-relative path.
+  _pg_target_rel="${target#${PWD}/}"
+fi
+case "$_pg_target_rel" in
+  .claude/*|docs/*|scripts/*|examples/*|templates/*|README*|CLAUDE.md|AGENTS.md|CHANGELOG*)
     exit 0
     ;;
 esac
+unset _pg_target_rel
 
 # Trivial-shape bypass — a plan is not required for edits whose shape
 # precludes meaningful design choice. Each branch is conservative; the
@@ -150,8 +162,8 @@ _pg_artifacts_root="${AIDP_ARTIFACTS_ROOT:-$(aidp_resolve_artifacts_root "$_pg_p
 resolved_run_dir=""
 if [ -n "${RUN_DIR:-}" ]; then
   resolved_run_dir="$RUN_DIR"
-elif [ -n "${RUN_ID:-}" ] && [ -f scripts/parse-run-id.sh ] \
-  && bash scripts/parse-run-id.sh "$RUN_ID" >/dev/null 2>&1; then
+elif [ -n "${RUN_ID:-}" ] \
+  && bash "${CLAUDE_PLUGIN_ROOT:-$(dirname "${BASH_SOURCE[0]}")/../../}/scripts/parse-run-id.sh" "$RUN_ID" >/dev/null 2>&1; then
   resolved_run_dir="${_pg_artifacts_root}/runs/${RUN_ID}"
 else
   # Derive run-id from the resolved state-file path, if it points into
@@ -159,7 +171,7 @@ else
   case "$state_file" in
     *.claude/workflow-state/*.json)
       _id="${state_file##*/}"; _id="${_id%.json}"
-      if [ -n "$_id" ] && bash scripts/parse-run-id.sh "$_id" >/dev/null 2>&1; then
+      if [ -n "$_id" ] && bash "${CLAUDE_PLUGIN_ROOT:-$(dirname "${BASH_SOURCE[0]}")/../../}/scripts/parse-run-id.sh" "$_id" >/dev/null 2>&1; then
         resolved_run_dir="${_pg_artifacts_root}/runs/${_id}"
       fi
       unset _id

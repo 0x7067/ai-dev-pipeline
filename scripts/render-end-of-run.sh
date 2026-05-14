@@ -97,7 +97,7 @@ main() {
   local abs_run_dir
   abs_run_dir="$(cd "$run_dir" 2>/dev/null && pwd -P)" || abs_run_dir="$run_dir"
 
-  printf '─ Run summary ─────────────────────────────────────────\n'
+  style::rule
   printf 'RUN_ID: %s\n' "${run_id:-(unset)}"
   printf 'RUN_DIR: %s\n' "$abs_run_dir"
 
@@ -174,7 +174,7 @@ main() {
     if [ -s "$abs" ]; then
       n=$(wc -l < "$abs" | tr -d ' ')
       link="$(style::hyperlink "file://$abs" "$abs")"
-      printf '  ✓ %-13s %s (%s lines)\n' "$label" "$link" "$n"
+      style::ok "$(printf '%-13s %s (%s lines)' "$label" "$link" "$n")"
     fi
   done
   for dir in specs research adrs; do
@@ -183,11 +183,11 @@ main() {
       n=$(find "$abs" -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')
       if [ "$n" -gt 0 ]; then
         link="$(style::hyperlink "file://$abs" "$abs/")"
-        printf '  ✓ %-13s %s (%s file(s))\n' "$dir" "$link" "$n"
+        style::ok "$(printf '%-13s %s (%s file(s))' "$dir" "$link" "$n")"
       fi
     fi
   done
-  printf '───────────────────────────────────────────────────────\n'
+  style::rule
   return 0
 }
 

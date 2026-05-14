@@ -38,6 +38,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 # shellcheck source=scripts/lib/project-root.sh
 source "${SCRIPT_DIR}/lib/project-root.sh"
+# shellcheck source=scripts/lib/style.sh
+source "${SCRIPT_DIR}/lib/style.sh"
 
 THRESHOLD="${COVERAGE_THRESHOLD:-80}"
 TARGET="${1:-}"
@@ -91,7 +93,8 @@ prompt_rationale_and_log() {
   local rationale="${COVERAGE_RATIONALE:-}"
   if [ -z "$rationale" ]; then
     if [ -t 0 ]; then
-      printf '▶ coverage precondition: %s — rationale required: ' "$reason" >&2
+      style::step "coverage precondition: $reason" >&2
+      printf 'rationale required: ' >&2
       IFS= read -r rationale || rationale=""
     else
       # non-interactive, read one line if available

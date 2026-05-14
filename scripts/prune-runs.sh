@@ -61,10 +61,14 @@ fi
 
 case "$RETENTION" in
   ''|*[!0-9]*)
-    echo "prune-runs: ERROR: RUN_RETENTION must be a non-negative integer (got '$RETENTION')" >&2
+    echo "prune-runs: ERROR: RUN_RETENTION must be a positive integer (got '$RETENTION')" >&2
     exit 2
     ;;
 esac
+if [ "$RETENTION" -eq 0 ]; then
+  echo "prune-runs: ERROR: RUN_RETENTION=0 would delete all runs; set to 1 or higher" >&2
+  exit 2
+fi
 
 # Build protected set.
 protected=()

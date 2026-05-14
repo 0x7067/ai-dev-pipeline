@@ -51,13 +51,14 @@ if [ -z "$agent_type" ]; then
 fi
 
 # Boundary parse: in-band bypass token.
-# Honored only when it appears within the first 200 chars of the agent prompt
-# (anchored, so it cannot hide inside pasted content) and carries a non-empty
-# reason. On any parse failure, fall through to the normal gate (fail closed).
+# Honored only when it appears at the very start (after optional whitespace)
+# of the first 200 chars of the agent prompt. The leading ^ anchor prevents
+# the token from hiding in pasted content later in the prompt.
+# On any parse failure, fall through to the normal gate (fail closed).
 bypass_reason=""
 if [ -n "$agent_prompt" ]; then
   prompt_head="${agent_prompt:0:200}"
-  if [[ "$prompt_head" =~ \[gate-bypass:[[:space:]]*([^]]+)\] ]]; then
+  if [[ "$prompt_head" =~ ^[[:space:]]*\[gate-bypass:[[:space:]]*([^]]+)\] ]]; then
     candidate="${BASH_REMATCH[1]}"
     # Trim leading/trailing whitespace.
     candidate="${candidate#"${candidate%%[![:space:]]*}"}"
@@ -79,9 +80,12 @@ if [ -n "$bypass_reason" ]; then
       '{timestamp:$ts, agent_type:$agent, reason:$reason, run_id:$run_id}' \
       >> "$log_dir/gate-bypass.log" 2>/dev/null || true
   else
+    # No jq: escape backslash and double-quote, then replace newlines with \n.
+    _jstr() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ' | sed 's/[[:cntrl:]]//g'; }
     printf '{"timestamp":"%s","agent_type":"%s","reason":"%s","run_id":"%s"}\n' \
-      "$ts" "$agent_type" "$bypass_reason" "${RUN_ID:-}" \
+      "$ts" "$(_jstr "$agent_type")" "$(_jstr "$bypass_reason")" "$(_jstr "${RUN_ID:-}")" \
       >> "$log_dir/gate-bypass.log" 2>/dev/null || true
+    unset -f _jstr
   fi
   echo "workflow-gate: bypass honored for '$agent_type' (reason: $bypass_reason)" >&2
   exit 0
@@ -129,8 +133,11 @@ case "$agent_type" in
     fi
     ;;
   verifier)
-    if ! phase_completed "review"; then
-      emit_blocked "verify" "review"
+    # Verifier runs after Test (which itself requires Plan + Implement + Review).
+    # Allow either "test" or "review" completion to maintain backward compat with
+    # runs minted before the Test phase was wired in.
+    if ! phase_completed "test" && ! phase_completed "review"; then
+      emit_blocked "verify" "test"
       exit 2
     fi
     ;;

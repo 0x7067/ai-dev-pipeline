@@ -78,13 +78,18 @@ when in doubt: append to the deliverable file, not to the chat reply.
 </final-message>
 
 <status format="MUST be final line, no prose after">
-shape: `STATUS: <ok|fail|blocked> | blocking=<n> advisory=<n> | <summary, ≤60 chars> | report=<path or "none">`
+shape: `STATUS: <ok|fail|blocked> | blocking=<n> | advisory=<n> | <summary, ≤60 chars> | report=<path or "none">`
 ok: review complete
   blocking=0 → change passes review
   blocking>0 → orchestrator sends back to implementer
 fail: internal error | missing template
 blocked: missing diff | missing `## Implementation` section in current-plan.md | other input gap
+NOTE: blocking and advisory MUST be their own pipe-fields. The legacy
+shape `blocking=0 advisory=3` in one field made the parser hand
+`policy_apply` a non-integer value (`"0 advisory=3"`), silently
+disabling auto-approve on every clean review. Separate fields keep
+parse-status-line.sh and policy_apply happy.
 examples:
-  - `STATUS: ok | blocking=0 advisory=3 | clean diff; advisory items in pragmatic pass | report=${RUN_DIR}/review-report.md`
-  - `STATUS: ok | blocking=2 advisory=4 | unparsed ingress in shell/handler.ts | report=${RUN_DIR}/review-report.md`
+  - `STATUS: ok | blocking=0 | advisory=3 | clean diff; advisory items in pragmatic pass | report=${RUN_DIR}/review-report.md`
+  - `STATUS: ok | blocking=2 | advisory=4 | unparsed ingress in shell/handler.ts | report=${RUN_DIR}/review-report.md`
 </status>

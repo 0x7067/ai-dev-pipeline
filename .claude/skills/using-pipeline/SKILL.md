@@ -51,9 +51,9 @@ The primary user-facing surface is exactly five slash commands:
 | "audit", "health check", "overall state of…", project-wide review with no code change | `/audit` |
 | "research", "brainstorm", "investigate", "I'm stuck", "explore options before planning", library/API scoping | `/research` |
 
-> **Zero-setup default**: as of v0.4.0, the pipeline works directly from the marketplace install with no scaffolding step. The `setup` skill is opt-in and primarily exists to satisfy CI gate authority (CI does not load Claude Code plugins). Do not suggest `setup` as a precondition for interactive commands.
+> **Zero-setup default**: the pipeline works directly from the marketplace install with no scaffolding step. Vendoring assets into a consumer repo for CI (which does not load Claude Code plugins) is a manual one-off — copy `scripts/`, `.claude/rules/`, and `docs/templates/` into the consumer repo and pin the plugin version.
 
-> **Skills (no slash)**: per-phase logic that previously had its own slash command is now reachable only via skills. Invoke by skill name through the `Skill` tool: `setup` (vendor artifacts for CI), `reset` (clear `.claude/workflow-state.json`), `requirement-analysis` (planning specs, used by `planner`), `code-review` (used by `reviewer`), `test-gen` (used by `tester`), `static-analysis` (used by `verifier`), `research` (used by `researcher`), `release` (cut a release: SemVer bump + CHANGELOG rewrite + manifest sync + annotated tag, triggers: "cut a release", "bump tag", "tag v…", "ship a release", "release this"), `fcis-architecture`, `pragmatic-review-checklist`. The corresponding agents (`planner`, `implementer`, `tester`, `verifier`, `researcher`) are dispatched by `/ship` by name; you do not need to invoke them directly.
+> **Skills (no slash)**: per-phase logic that previously had its own slash command is now reachable only via skills. Invoke by skill name through the `Skill` tool: `reset` (clear `.claude/workflow-state/active`), `requirement-analysis` (planning specs, used by `planner`), `code-review` (used by `reviewer`), `test-gen` (used by `tester`), `static-analysis` (used by `verifier`), `research` (used by `researcher`), `release` (cut a release: SemVer bump + CHANGELOG rewrite + manifest sync + annotated tag, triggers: "cut a release", "bump tag", "tag v…", "ship a release", "release this"), `fcis-architecture`, `pragmatic-review-checklist`. The corresponding agents (`planner`, `implementer`, `tester`, `verifier`, `researcher`) are dispatched by `/ship` by name; you do not need to invoke them directly.
 
 When in doubt between two: process skills (requirement-analysis, research) come **before** implementation skills, but for any user-visible action prefer the command surface above.
 
@@ -147,7 +147,7 @@ These are the thoughts that mean **STOP — you are skipping the pipeline**. Eve
 ## How to invoke
 
 - **User typed a slash command** (`/ship`, `/review`, `/refactor`, `/audit`, `/research`): the harness already dispatches it. Do not narrate or attempt to re-invoke via the `Skill` tool — just let it run.
-- **User expressed an intent without a slash command**: invoke the matching skill via the `Skill` tool (e.g. `code-review`, `requirement-analysis`, `setup`, `reset`). For the five primary slash commands, the skill listing exposes them under the same name (`audit`, `refactor`, `research`, …) — invoke that skill name directly.
+- **User expressed an intent without a slash command**: invoke the matching skill via the `Skill` tool (e.g. `code-review`, `requirement-analysis`, `reset`). For the five primary slash commands, the skill listing exposes them under the same name (`audit`, `refactor`, `research`, …) — invoke that skill name directly.
 
 Never use `Read` to load `SKILL.md` files manually.
 

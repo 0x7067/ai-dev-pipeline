@@ -230,7 +230,7 @@ _full_suite_cache_hit() {
   current_hash="$(_compute_suite_hash 2>/dev/null)" || return 1
   [ "$current_hash" = "$cached_hash" ] || return 1
 
-  echo "▶ full_suite (cached from tester; suite_hash=${cached_hash:0:12}…)"
+  style::step "full_suite (cached from tester; suite_hash=${cached_hash:0:12}…)"
   return 0
 }
 
@@ -372,7 +372,22 @@ cleanup_gate_log_dir() {
     rm -rf "$GATE_LOG_DIR"
   fi
 }
-trap cleanup_gate_log_dir EXIT
+
+# _cleanup_background_gates: kills any still-running parallel gate jobs on
+# EXIT/INT/TERM so they don't outlive the parent. The PID variables are
+# declared after the fan-out; this function reads them at call time (not
+# capture time), so it correctly sees the values set by the background block.
+_cleanup_background_gates() {
+  # Kill background gate PIDs if they were started.
+  for _bg_pid_var in pid_typecheck pid_lint pid_security; do
+    eval "_bg_pid=\${${_bg_pid_var}:-}"
+    if [ -n "$_bg_pid" ] && kill -0 "$_bg_pid" 2>/dev/null; then
+      kill "$_bg_pid" 2>/dev/null || true
+    fi
+  done
+  cleanup_gate_log_dir
+}
+trap _cleanup_background_gates EXIT INT TERM
 
 # emit_failure_diagnostics <label>
 #   On gate failure, surface the resolved command, the captured log path
@@ -398,6 +413,16 @@ emit_failure_diagnostics() {
 
 # Bash's $SECONDS builtin gives us 1-second granularity portably (macOS + Linux).
 # That's good enough for gate-level timing — gates take seconds to minutes.
+#
+# TRUSTED-INPUT CONTRACT: VERIFY_*_CMD values (VERIFY_TYPECHECK_CMD,
+# VERIFY_LINT_CMD, VERIFY_SECURITY_CMD, VERIFY_PROPERTY_CMD,
+# VERIFY_CONTRACT_CMD, VERIFY_FULL_CMD) are evaluated via `bash -c` in
+# run_override. These values are set by the developer (project config,
+# CI environment, or shell export) and are therefore developer-trusted
+# input. They MUST NOT be sourced from untrusted external data (HTTP
+# responses, user-supplied arguments, webhook payloads, etc.). Any
+# project-level gate customization must be done at deploy/config time,
+# not at runtime from dynamic input.
 run_gate() {
   local label="$1"
   local fn="$2"
@@ -556,7 +581,23 @@ style::join "read-only gates joined (${parallel_elapsed_s}s wall; rc typecheck=$
 # Aggregate. First non-zero rc, in fixed order, is what we exit with.
 # This preserves "any read-only gate failure stops the test gates"
 # semantics from the sequential form.
-for pair in "typecheck:$rc_typecheck" "lint:$rc_lint" "security:$rc_security"; do
+#
+# Security gate is ADVISORY by default (matches `release-and-verification.md`
+# Gate Policy: "Advisory: warnings tracked but non-blocking in v1"). cargo
+# audit, pip-audit, and govulncheck have no native severity threshold, so
+# they would block on any vulnerability at any severity — over-blocking
+# against documented intent. Set SECURITY_SCAN_REQUIRED=1 to restore
+# blocking behavior for projects that want it.
+if [ "$rc_security" != "0" ]; then
+  emit_failure_diagnostics security
+  if [ "${SECURITY_SCAN_REQUIRED:-0}" = "1" ]; then
+    style::fail "security gate failed (SECURITY_SCAN_REQUIRED=1)"
+    exit "$rc_security"
+  else
+    style::warn "security gate findings (advisory; set SECURITY_SCAN_REQUIRED=1 to block)"
+  fi
+fi
+for pair in "typecheck:$rc_typecheck" "lint:$rc_lint"; do
   _label="${pair%%:*}"; _rc="${pair#*:}"
   if [ "$_rc" != "0" ]; then
     emit_failure_diagnostics "$_label"

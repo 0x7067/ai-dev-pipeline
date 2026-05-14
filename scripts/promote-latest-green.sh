@@ -33,6 +33,8 @@ source "${SCRIPT_DIR}/parse-run-id.sh"
 source "${SCRIPT_DIR}/lib/promote-core.sh"
 # shellcheck source=scripts/lib/project-root.sh
 source "${SCRIPT_DIR}/lib/project-root.sh"
+# shellcheck source=scripts/lib/style.sh
+source "${SCRIPT_DIR}/lib/style.sh"
 
 # ---- boundary ----------------------------------------------------------------
 
@@ -169,8 +171,7 @@ main() {
 
   # Core decision.
   if ! should_promote "$verify_status" "$review_blocking"; then
-    printf '↷ promote-latest-green skipped (verify=%s blocking=%s)\n' \
-      "$verify_status" "$review_blocking" >&2
+    style::warn "promote-latest-green skipped (verify=${verify_status} blocking=${review_blocking})" >&2
     return 0
   fi
 
@@ -185,7 +186,7 @@ main() {
   atomic_update_green_text   "$run_id" "$docs_root" || return $?
   atomic_update_active_green "$run_id" "$ws_root"   || return $?
 
-  printf '⏵ latest-green promoted to %s\n' "$run_id"
+  style::step "latest-green promoted to ${run_id}"
   return 0
 }
 
