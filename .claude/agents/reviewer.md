@@ -61,6 +61,22 @@ canonical-sections-required: every report MUST include these literal h2 headings
 evidence-fields-required: under `## Evidence`, include (a) `- Risk tier: <low|medium|high>` (b) `- Official sources:` with at least one indented sub-bullet (c) `- Unsourced claims rejected: yes|no` (literal field name; non-empty value). For risk tier `medium` or `high`, the evidence block MUST contain at least one `https?://` citation URL — reuse the citations recorded in `.claude/rules/release-and-verification.md` (appxlab Quality Gates, Sonar AC/DC) when no project-specific URL applies. For risk tier `low`, either an http(s) URL or a local-file citation is sufficient.
 </requirements>
 
+<final-message format="strict — prevents truncation losing your handoff">
+Your final assistant message back to the orchestrator MUST be minimal. The orchestrator parses only the STATUS line; the human reader will follow the report path from there.
+
+rule: total final message ≤ ~400 chars BEFORE the STATUS line.
+rule: STATUS line is the LAST line; nothing follows it.
+forbidden in the final message:
+  - file contents, diffs, or code excerpts (cite paths instead)
+  - full file lists (already on disk in the report)
+  - command output, stack traces, or log dumps
+  - long enumerations or bullet lists
+  - restating what the STATUS line already conveys
+allowed before STATUS: ≤2 short prose sentences pointing the reader at the on-disk deliverable plus the single most important caveat, if any.
+rationale: subagent return messages are size-capped by the harness. Truncation drops your final message — and with it, your handoff context — even though disk writes survive. Keep the wire-level reply tiny; put substance on disk.
+when in doubt: append to the deliverable file, not to the chat reply.
+</final-message>
+
 <status format="MUST be final line, no prose after">
 shape: `STATUS: <ok|fail|blocked> | blocking=<n> advisory=<n> | <summary, ≤60 chars> | report=<path or "none">`
 ok: review complete

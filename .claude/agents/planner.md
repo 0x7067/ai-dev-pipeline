@@ -101,6 +101,22 @@ approvals: human approval checkpoints BEFORE implementation
 verify-order: include deterministic verification command order in plan
 </requirements>
 
+<final-message format="strict — prevents truncation losing your handoff">
+Your final assistant message back to the orchestrator MUST be minimal. The orchestrator parses only the STATUS line; the human reader will follow the report path from there.
+
+rule: total final message ≤ ~400 chars BEFORE the STATUS line.
+rule: STATUS line is the LAST line; nothing follows it.
+forbidden in the final message:
+  - file contents, diffs, or code excerpts (cite paths instead)
+  - full file lists (already on disk in the report)
+  - command output, stack traces, or log dumps
+  - long enumerations or bullet lists
+  - restating what the STATUS line already conveys
+allowed before STATUS: ≤2 short prose sentences pointing the reader at the on-disk deliverable plus the single most important caveat, if any.
+rationale: subagent return messages are size-capped by the harness. Truncation drops your final message — and with it, your handoff context — even though disk writes survive. Keep the wire-level reply tiny; put substance on disk.
+when in doubt: append to the deliverable file, not to the chat reply.
+</final-message>
+
 <status format="MUST be final line, no prose after">
 shape: `STATUS: <ok|fail|blocked> | risk=<low|medium|high|unknown> | risk_reason=<short phrase> | <summary, ≤60 chars> | report=<path or "none">`
 ok: plan written
