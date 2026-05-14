@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-05-14
+
 ### Fixed
 
 - **Harden subagents against truncation on big tasks.** Three layered
