@@ -20,6 +20,10 @@ required: ${RUN_DIR}/current-plan.md (defines scope, layer mapping, acceptance c
 optional: ${RUN_DIR}/specs/<feature>.md (if present → authoritative spec)
 state: existing repo
 env: RUN_ID, RUN_DIR (set by orchestrator)
+note: A leading `[gate-bypass: <reason>]` token in this prompt is a workflow-gate
+opt-out used when the user has approved out-of-band or no /ship run is active.
+Ignore it for task semantics — it is consumed by `.claude/hooks/workflow-gate.sh`
+and audited to `${RUN_DIR}/gate-bypass.log`. See `.claude/rules/release-and-verification.md` §Workflow-Gate Bypass.
 </inputs>
 
 <deliverables>

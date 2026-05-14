@@ -7,6 +7,31 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **In-band workflow-gate bypass token.** `.claude/hooks/workflow-gate.sh`
+  now honors a literal `[gate-bypass: <reason>]` token in the first 200
+  characters of an `Agent` tool prompt, allowing per-call opt-out when the
+  user has approved out-of-band or no `/ship` run is active. Before this
+  change, a stale `.claude/workflow-state/active` from an abandoned run
+  blocked every `implementer`/`reviewer`/`tester`/`verifier` invocation,
+  silently driving fallback to `general-purpose` and dropping the FC/IS
+  specialization. Token parsing is anchored, requires a non-empty reason,
+  and fails closed on any malformed input. Every honored bypass appends
+  one JSON record (`{timestamp, agent_type, reason, run_id}`) to
+  `${RUN_DIR:-/tmp}/gate-bypass.log` for audit. `WORKFLOW_GATES_SKIP=1`
+  (session-wide) and `/reset` (stale-state clear) remain alternatives.
+  The blocked-failure message now names all three bypass paths so the
+  mechanism is discoverable at the point of failure instead of buried in
+  rules docs. Documented in
+  `.claude/rules/release-and-verification.md` §Workflow-Gate Bypass; the
+  `implementer` agent gained a one-line note so it ignores the token for
+  task semantics. Tests:
+  `tests/scripts/test-workflow-gate-bypass.sh` covers valid token,
+  missing token (with discoverable failure message), malformed token
+  (empty reason → fail closed), and token past the 200-char anchor →
+  ignored. The existing `test-workflow-gate-lean-order.sh` still passes.
+
 ## [0.18.2] - 2026-05-14
 
 ### Fixed

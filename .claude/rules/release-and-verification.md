@@ -15,6 +15,39 @@
 - A change is "verified" only when `scripts/run-verification-gates.sh` has exited 0 in CI on the merge commit.
 - Source: appxlab, "Quality Gates for AI-Generated Code: CI/CD Pipeline Guide" (2026-04-06).
 
+## Workflow-Gate Bypass (in-band token)
+The `PreToolUse` hook `.claude/hooks/workflow-gate.sh` blocks `Agent`
+invocations of `implementer`, `reviewer`, `tester`, and `verifier` when the
+prerequisite phase in `.claude/workflow-state/active` is not marked
+`completed: true`. Outside a live `/ship` run — for example when an abandoned
+state file lingers from a prior session, or for non-coding edits that still
+benefit from the FC/IS-specialized agent — the gate would otherwise force a
+fallback to `general-purpose`, silently dropping the agent's specialization.
+
+To opt out per-call, prefix the agent prompt with a literal token:
+
+```
+[gate-bypass: <non-empty reason>]
+```
+
+Rules:
+
+- The token must appear within the first 200 characters of `tool_input.prompt`
+  (anchored, so it cannot hide inside pasted content).
+- The reason must be non-empty after whitespace trim.
+- On any parse failure, the gate falls through to normal phase enforcement
+  (fail closed).
+- Each honored bypass appends one JSON record
+  (`{timestamp, agent_type, reason, run_id}`) to
+  `${RUN_DIR:-/tmp}/gate-bypass.log` for audit.
+- `WORKFLOW_GATES_SKIP=1` and `/reset` remain alternative bypasses
+  (session-wide and stale-state-clearing, respectively).
+
+Appropriate uses: out-of-band human approval, ad-hoc work on a stale
+workflow-state, non-coding edits routed through `implementer`. Inappropriate
+uses: skipping a real `/ship` plan-approval gate that is in progress — that
+is what the `strict` mode is for.
+
 ## Verification Signals
 - Blocking signals must be tool-derived: compile/typecheck, lint, test, SAST.
 - Model self-critique is advisory and never blocking. The `review` skill produces advisory findings; the `verify` skill produces the go/no-go decision from tool exit codes.
