@@ -7,6 +7,27 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Harden subagents against truncation on big tasks.** Three layered
+  constraints address truncated final messages and mid-run context
+  exhaustion observed on multi-file implementer dispatches. (1) New
+  `<final-message>` block on all 7 agents (`auditor`, `implementer`,
+  `planner`, `researcher`, `reviewer`, `tester`, `verifier`) caps the
+  final assistant reply to ≤400 chars before the STATUS line and forbids
+  diffs, file dumps, log spew, and long enumerations in chat — substance
+  routes to the on-disk deliverable. (2) New `<progressive-writes>`
+  block on `implementer` instructs it to write the `## Implementation`
+  section incrementally (stub at start, edit-append per landed unit,
+  finalize Summary last) so partial progress survives mid-run
+  truncation; `GATE-no-touch` reworded to permit incremental updates
+  to the implementer's own trailing section while keeping
+  planner-authored sections byte-protected. (3) New
+  `<context-discipline>` block on `implementer` enforces Grep-before-Read
+  with `offset`/`limit`, no in-session re-reads, Edit over Write, and
+  TodoWrite-driven progress instead of in-chat self-summaries; bumps
+  `maxTurns` 40 → 60 (the bump only helps with the discipline).
+
 ## [0.18.1] - 2026-05-13
 
 ### Fixed
