@@ -7,6 +7,112 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **`.claude/skills/reset/SKILL.md`** — functional protocol for clearing
+  stale workflow state (`.claude/workflow-state/active` + per-run state
+  file). Run artifacts under `docs/aidp/runs/` are preserved. Resolves
+  the long-standing reference-without-implementation gap surfaced by the
+  agent-native review.
+- **Test phase in `/ship`.** `tester` agent is now dispatched as phase 5
+  between Review and Verify, populating
+  `${RUN_DIR}/test-results.json` so the verifier's `full_suite` cache
+  has a producing source. Skip clause for docs-only runs.
+  `workflow-gate.sh` verifier profile accepts either `test` or
+  `review` completion for backward compatibility.
+- **Queue-mode resume protocol in `/ship`.** After parsing
+  `.pending-approval.json`, the orchestrator validates `plan_hash`,
+  checks the time-box deadline, re-emits the gate's `AskUserQuestion`,
+  branches on the verb, and single-uses the marker. Replaces the
+  previous "parse and fall through" silence.
+- **Plan-Gate Bypass docs in
+  `.claude/rules/release-and-verification.md`.** `PLAN_GATE_BYPASS=1`
+  and `PLAN_GATE_MODE=warn|off|block` are now documented next to the
+  existing Workflow-Gate Bypass section, alongside the automatic
+  pass-conditions.
+
+### Fixed
+
+- **`workflow-gate.sh` `[gate-bypass:…]` regex is anchored.** Comment
+  claimed "cannot hide inside pasted content" but the `=~` match was
+  unanchored, so any pasted code containing the token in the first 200
+  characters silently bypassed the gate and forged the audit log. The
+  regex now requires the token at the start of the prompt; new test
+  case (`tests/scripts/test-workflow-gate-bypass.sh`) enforces
+  mid-prompt rejection.
+- **`scripts/check-boundary-violations.sh` actually detects
+  violations.** `rg --glob` was being passed dir-prefixed patterns
+  (`src/**/core/**`) that rg never matched because `--glob` operates
+  on paths relative to the search root. Boundary check was a no-op
+  whenever `rg` was available; now uses bare suffix patterns
+  (`**/core/**`).
+- **`workflow-gate.sh` audit-log JSON injection in the no-jq fallback.**
+  The plain-printf fallback embedded `bypass_reason` and `agent_type`
+  unescaped, allowing a crafted reason to forge audit records. Added a
+  minimal `_jstr` escape (backslash, quote, newline, control chars)
+  matching the `decisions-core.sh` pattern.
+- **`plan-gate.sh` path resolution and glob anchoring.**
+  `bash scripts/parse-run-id.sh` was CWD-relative and silently fell
+  back to the artifacts root when cwd ≠ repo root; now resolved via
+  `${BASH_SOURCE[0]}`. The case-pattern globs `*/docs/*` and
+  `*/scripts/*` matched application code in those subdirectories
+  (e.g. `src/scripts/db-migration.py` bypassed the plan gate); now
+  match repo-relative paths so only top-level `docs/`, `scripts/`,
+  `.claude/`, etc. bypass.
+- **`session-start.sh` JSON escaping and missing-skill behavior.**
+  Replaced the hand-rolled `escape_for_json` with `jq -Rs`; the bash
+  fallback now covers the full C0 control range. Missing
+  `SKILL_PATH` now exits non-zero with a stderr error instead of
+  injecting the literal string `"Error reading using-pipeline skill"`
+  as valid JSON context.
+- **`run-verification-gates.sh` orphans background gate jobs on CI
+  SIGTERM.** Added `_cleanup_background_gates` trap on
+  `EXIT INT TERM` that kills `pid_typecheck`/`pid_lint`/`pid_security`.
+- **`mint-run-id.sh` `ci_disambiguator` collided across GitHub Actions
+  matrix jobs.** Every job in a matrix shares `$GITHUB_RUN_ID`, so
+  `% 256` produced identical disambiguators → identical run IDs →
+  `workflow-state-update.sh` (no flock) lost writes between jobs. Now
+  hashes `GITHUB_RUN_ID:GITHUB_JOB:MATRIX_INDEX:GITHUB_RUN_ATTEMPT`
+  through `shasum` (with `sha256sum`/`cksum` fallback).
+- **Reviewer canonical STATUS shape silently disabled auto-approve.**
+  The combined `blocking=0 advisory=3` pipe-field made
+  `parse-status-line.sh` hand `policy_apply` a non-integer value
+  (`"0 advisory=3"`), so the regex check `^[0-9]+$` failed and the
+  release gate fell back to `prompt` on every clean review. The
+  reviewer agent now emits `blocking=N` and `advisory=M` as separate
+  pipe-fields; `parse-status-line.sh` recognizes `advisory=` as a
+  known informational key.
+- **Security gate is now advisory by default.** `cargo audit`,
+  `pip-audit`, and `govulncheck` have no native severity threshold,
+  so the previous blocking behavior over-blocked against the v1 Gate
+  Policy that "warnings are tracked but non-blocking". Set
+  `SECURITY_SCAN_REQUIRED=1` to restore blocking behavior.
+- **`parse-approvals-policy.sh` time_box positivity.** Regex
+  `^[0-9]+$` accepted `0` despite invariant I6 declaring positive
+  integers. Now uses `^[1-9][0-9]*$`.
+- **`prune-runs.sh` `RUN_RETENTION=0` no longer deletes all
+  unreferenced runs.** Explicit reject branch with clear error
+  message.
+- **`scripts/coverage-precondition.sh`, `promote-latest-green.sh`,
+  `validate-claude-config.sh`, `render-end-of-run.sh`, and one missed
+  call site in `run-verification-gates.sh`** now source
+  `scripts/lib/style.sh` and use the documented emitters
+  (`style::step`, `style::ok`, `style::fail`, `style::rule`) instead
+  of raw printf with hardcoded glyphs. Aligns with the output-style
+  rule's "scripts MUST source it rather than re-implement banners".
+- **`scripts/parse-run-id.sh` inline comment.** Stale
+  `max 24 (with both Z and -hh disambiguator)` corrected to `max 26`
+  (length guard was already correct).
+
+### Removed
+
+- **`setup` skill reference in
+  `.claude/skills/using-pipeline/SKILL.md`.** Referenced as a callable
+  skill but never had a `SKILL.md` file. Replaced with a one-line note
+  that vendoring assets into a consumer repo for CI is a manual
+  one-off (copy `scripts/`, `.claude/rules/`, `docs/templates/`), not
+  a skill invocation.
+
 ## [0.19.1] - 2026-05-14
 
 ### Fixed
