@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-05-14
+
 ### Fixed
 
 - **`PostToolUse:Edit` hook no longer fails on monorepos with a TUI-mode
