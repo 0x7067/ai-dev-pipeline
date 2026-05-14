@@ -69,14 +69,22 @@ random_hex2() {
 }
 
 ci_disambiguator() {
-  # Wrap a CI numeric id into 2 hex chars (mod 256). Stable enough for
-  # disambiguation across same-second concurrent CI starts.
-  local v="${GITHUB_RUN_ID-}"
-  [ -z "$v" ] && return 0
-  case "$v" in
-    *[!0-9]*) return 0 ;;  # non-numeric — skip rather than corrupt the id
-  esac
-  printf '%02x' "$(( v % 256 ))"
+  # Hash CI identity into 2 hex chars. Disambiguates same-second concurrent
+  # CI starts, AND matrix jobs within a single workflow run — every job in a
+  # matrix shares $GITHUB_RUN_ID, so a naive `GITHUB_RUN_ID % 256` collides
+  # across matrix entries and trampoline-stomps the run directory. Mixing
+  # in $GITHUB_JOB and the matrix index makes each matrix job distinct.
+  local raw="${GITHUB_RUN_ID-}:${GITHUB_JOB-}:${MATRIX_INDEX-}:${GITHUB_RUN_ATTEMPT-}"
+  [ "$raw" = ":::" ] && return 0  # no CI identity present
+  # Prefer shasum (BSD/Linux), fall back to sha256sum (Linux), then cksum.
+  if command -v shasum >/dev/null 2>&1; then
+    printf '%s' "$raw" | shasum -a 256 | cut -c1-2
+  elif command -v sha256sum >/dev/null 2>&1; then
+    printf '%s' "$raw" | sha256sum | cut -c1-2
+  else
+    # Last-resort fallback: cksum's CRC, masked to 8 bits, hex-encoded.
+    printf '%02x' "$(( $(printf '%s' "$raw" | cksum | awk '{print $1}') % 256 ))"
+  fi
 }
 
 atomic_update_latest() {

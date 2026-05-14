@@ -113,6 +113,7 @@ parse_status_line() {
           risk)         risk="$value" ;;
           risk_reason)  risk_reason="$value" ;;
           blocking)     blocking="$value" ;;
+          advisory)     : ;;  # advisory count is informational; not used by policy_apply
           report)       report="$value" ;;
           *)            summary_parts+=("$trimmed") ;;
         esac

@@ -581,7 +581,23 @@ style::join "read-only gates joined (${parallel_elapsed_s}s wall; rc typecheck=$
 # Aggregate. First non-zero rc, in fixed order, is what we exit with.
 # This preserves "any read-only gate failure stops the test gates"
 # semantics from the sequential form.
-for pair in "typecheck:$rc_typecheck" "lint:$rc_lint" "security:$rc_security"; do
+#
+# Security gate is ADVISORY by default (matches `release-and-verification.md`
+# Gate Policy: "Advisory: warnings tracked but non-blocking in v1"). cargo
+# audit, pip-audit, and govulncheck have no native severity threshold, so
+# they would block on any vulnerability at any severity — over-blocking
+# against documented intent. Set SECURITY_SCAN_REQUIRED=1 to restore
+# blocking behavior for projects that want it.
+if [ "$rc_security" != "0" ]; then
+  emit_failure_diagnostics security
+  if [ "${SECURITY_SCAN_REQUIRED:-0}" = "1" ]; then
+    style::fail "security gate failed (SECURITY_SCAN_REQUIRED=1)"
+    exit "$rc_security"
+  else
+    style::warn "security gate findings (advisory; set SECURITY_SCAN_REQUIRED=1 to block)"
+  fi
+fi
+for pair in "typecheck:$rc_typecheck" "lint:$rc_lint"; do
   _label="${pair%%:*}"; _rc="${pair#*:}"
   if [ "$_rc" != "0" ]; then
     emit_failure_diagnostics "$_label"

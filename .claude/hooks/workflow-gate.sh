@@ -133,8 +133,11 @@ case "$agent_type" in
     fi
     ;;
   verifier)
-    if ! phase_completed "review"; then
-      emit_blocked "verify" "review"
+    # Verifier runs after Test (which itself requires Plan + Implement + Review).
+    # Allow either "test" or "review" completion to maintain backward compat with
+    # runs minted before the Test phase was wired in.
+    if ! phase_completed "test" && ! phase_completed "review"; then
+      emit_blocked "verify" "test"
       exit 2
     fi
     ;;

@@ -173,16 +173,20 @@ For each subagent phase:
    - After the reviewer status, preview up to three findings:
      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" --anchor review --top 3 --heading "## Blocking findings" "${RUN_DIR}/review-report.md"`.
 
-5. **Verify.** Run `verifier`. It runs `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-verification-gates.sh"` and writes `${RUN_DIR}/verify-report.md`.
+5. **Test.** Run `tester`. It generates property-based + contract tests where invariants warrant them, runs the suite, and writes `${RUN_DIR}/test-report.md` plus the `${RUN_DIR}/test-results.json` cache the verifier consumes.
+   - Skip with `↷ test skipped (no testable change)` only when Implement reports zero source-tree edits (e.g., docs-only runs); otherwise tester always runs.
+   - If tester returns `STATUS: fail`, return to Implement once. If failures remain after one fix pass, halt with `✗ test blocked - unresolved test failures`.
+
+6. **Verify.** Run `verifier`. It runs `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-verification-gates.sh"` and writes `${RUN_DIR}/verify-report.md`. The `full_suite` gate reads `${RUN_DIR}/test-results.json` from the Test phase and skips re-running when its hash matches the current working tree.
    - If verifier returns anything other than `STATUS: go`, preview failed gates with:
      `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" --anchor verify --top 3 --heading "## Gate Results" "${RUN_DIR}/verify-report.md"`.
    - Stop on `no-go` or `fail`.
 
-6. **Smoke.** Run:
+7. **Smoke.** Run:
    `REPORT_QUALITY_REQUIRE_CONTENT=1 WORKFLOW_REQUIRE_ARTIFACTS=1 bash "${CLAUDE_PLUGIN_ROOT}/scripts/smoke-bootstrap.sh"`
    Print `✓ smoke gate ok` or `✗ smoke gate failed (rc=<code>)`.
 
-7. **Release.**
+8. **Release.**
    - Compute the release decision via the pure core function `policy_apply` in `${CLAUDE_PLUGIN_ROOT}/scripts/lib/hitl-core.sh`. Capture BOTH stdout (the verdict) AND stderr (the audit-clarity signal) — `policy_apply` emits `reject-reason=<verifier-crashed|gates-failed|smoke-failed>` on stderr whenever the verdict is `reject`, and is silent on stderr for `auto-approve`/`prompt`:
 
      ```sh
@@ -280,8 +284,64 @@ if [ -f "$RUN_DIR/.pending-approval.json" ]; then
   PENDING_KV="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/parse-pending-approval.sh" "$RUN_DIR/.pending-approval.json")" \
     || { printf '✗ pending-approval marker invalid; refusing to resume\n' >&2; exit 2; }
   # PENDING_KV contains run_id, gate, deadline_iso, plan_hash, created_at — typed.
+  eval "$PENDING_KV"   # exports PENDING_gate, PENDING_plan_hash, PENDING_deadline_iso, …
 fi
 ```
+
+After PENDING_KV is parsed, the orchestrator MUST execute the resume
+protocol — do not silently fall through:
+
+1. **Validate plan hash.** Compute the current plan hash and compare
+   against `PENDING_plan_hash`. If they differ, the plan was edited
+   while queued; refuse to resume:
+   ```sh
+   cur_hash="$(sha256sum "$RUN_DIR/current-plan.md" | awk '{print $1}')"
+   if [ "$cur_hash" != "$PENDING_plan_hash" ]; then
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/append-decision.sh" \
+       --gate "$PENDING_gate" --verb reject --actor auto \
+       --rationale "plan changed since queue"
+     printf '✗ plan changed since queue; refusing resume\n' >&2
+     exit 2
+   fi
+   ```
+
+2. **Check time-box deadline.** Evaluate `time_box_resolve` against the
+   stored deadline. On `expired=true`, auto-reject with
+   `rationale=elapsed`:
+   ```sh
+   if [ -n "$PENDING_deadline_iso" ]; then
+     verdict=$(bash -c 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/hitl-core.sh"; \
+       time_box_resolve "$(date -u +%FT%TZ)" "$PENDING_deadline_iso"')
+     if printf '%s' "$verdict" | grep -q 'expired=true'; then
+       bash "${CLAUDE_PLUGIN_ROOT}/scripts/append-decision.sh" \
+         --gate "$PENDING_gate" --verb reject --actor time-box \
+         --rationale "elapsed"
+       rm -f "$RUN_DIR/.pending-approval.json"
+       exit 0
+     fi
+   fi
+   ```
+
+3. **Re-emit the gate's `AskUserQuestion`.** Branch on `PENDING_gate`:
+   - `plan` → re-emit the plan-approval `AskUserQuestion` block from
+     phase 2 (Plan), using the plan summary already in
+     `${RUN_DIR}/current-plan.md`.
+   - `release` → re-emit the release-approval `AskUserQuestion` block
+     from phase 8 (Release).
+   - `refactor-plan` → re-emit the `/refactor` plan-approval block.
+
+4. **On approve.** Record `verb=approve, actor=user`, remove the marker,
+   and continue execution at the phase **after** the queued gate
+   (post-Plan → Implement; post-Release → orchestration finalize). Do
+   not re-run completed phases.
+
+5. **On reject.** Record `verb=reject, actor=user, rationale=<comment>`,
+   remove the marker, exit 0.
+
+The pending-approval marker is single-use: every terminal verb (approve,
+reject, time-box) MUST `rm -f "$RUN_DIR/.pending-approval.json"` before
+exit so the next `/ship` invocation on this `RUN_ID` starts a fresh
+phase rather than re-entering the queued gate.
 
 ## Time-Box Modifier
 
