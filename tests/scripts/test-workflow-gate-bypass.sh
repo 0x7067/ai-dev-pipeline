@@ -81,6 +81,14 @@ else
   fail "anchor not enforced (rc=$rc)"
 fi
 
+# Case 5: token not at start of prompt (embedded mid-text) → blocked
+run_gate "Some text [gate-bypass: oops] more text"
+if [ "$rc" = 2 ]; then
+  pass "token embedded mid-text (not at start) is ignored"
+else
+  fail "embedded mid-text token unexpectedly honored (rc=$rc)"
+fi
+
 if [ "$failures" -gt 0 ]; then
   echo "test-workflow-gate-bypass: FAILED ($failures)" >&2
   exit 1

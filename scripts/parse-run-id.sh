@@ -27,7 +27,7 @@
 
 # Canonical regex. Kept as a single constant so consumers source-and-reuse.
 # Length is bounded by the regex itself: min 22 (no Z, no disambiguator),
-# max 24 (with both Z and -hh disambiguator).
+# max 26 (with both Z and -hh disambiguator).
 RUN_ID_REGEX='^[0-9]{8}T[0-9]{6}Z?-[a-f0-9]{6}(-[a-f0-9]{2})?$'
 
 # parse_run_id <candidate>

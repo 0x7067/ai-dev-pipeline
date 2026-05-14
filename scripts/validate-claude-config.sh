@@ -4,6 +4,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd -P)"
 # shellcheck source=scripts/harness-lib.sh
 source "${SCRIPT_DIR}/harness-lib.sh"
+# shellcheck source=scripts/lib/style.sh
+source "${SCRIPT_DIR}/lib/style.sh"
 harness_cd_repo_root
 
 if ! command -v jq >/dev/null 2>&1; then
@@ -88,7 +90,9 @@ fi
 #       file (relaxed proximity check).
 _decision_pairing_violations=0
 _emit_pair_err() {
-  echo "validate: ✗ $1" >&2
+  # bash emitter uses style::fail; awk printf calls in _check_norms_block
+  # remain plain (awk runs in a subshell without access to bash functions).
+  style::fail "validate: $1" >&2
   _decision_pairing_violations=$((_decision_pairing_violations + 1))
 }
 

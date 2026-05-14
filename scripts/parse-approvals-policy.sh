@@ -250,8 +250,9 @@ parse_approvals_policy() {
     _pp_die 0 "refactor_scope_threshold.loc must be a non-negative integer"
   fi
   if [ -n "$tb_min" ] && [ -n "$tb_max" ]; then
-    if ! [[ "$tb_min" =~ ^[0-9]+$ ]] || ! [[ "$tb_max" =~ ^[0-9]+$ ]]; then
-      _pp_die 0 "time_box seconds must be non-negative integers"
+    # Enforce positivity (invariant I6): zero-second time boxes are meaningless.
+    if ! [[ "$tb_min" =~ ^[1-9][0-9]*$ ]] || ! [[ "$tb_max" =~ ^[1-9][0-9]*$ ]]; then
+      _pp_die 0 "time_box seconds must be positive integers (got min=${tb_min} max=${tb_max})"
     fi
     if [ "$tb_min" -gt "$tb_max" ]; then
       _pp_die 0 "time_box.min_seconds > max_seconds"

@@ -48,6 +48,28 @@ workflow-state, non-coding edits routed through `implementer`. Inappropriate
 uses: skipping a real `/ship` plan-approval gate that is in progress — that
 is what the `strict` mode is for.
 
+## Plan-Gate Bypass
+
+The `PreToolUse` hook `.claude/hooks/plan-gate.sh` blocks `Edit`/`Write` tool calls
+when no plan artifact exists for the current run. Two environment variables control
+its behaviour (see the comment block at the top of `plan-gate.sh`):
+
+- `PLAN_GATE_BYPASS=1` — skip the gate for the current invocation (no audit record written).
+- `PLAN_GATE_MODE=warn|off|block` (default `block`) — change the enforcement level:
+  - `block`: exit 2 to reject the tool call.
+  - `warn`: print to stderr but allow the call through.
+  - `off`: disable the gate entirely for this session.
+
+Pass conditions that bypass the gate automatically (no env var needed):
+- The project has not opted in (no `.claude/policy/approvals.yaml` found).
+- The target path is a pipeline meta-file (`.claude/`, `docs/`, `scripts/`, etc.).
+- The edit is trivially shaped (test/spec file, lockfile, single-line diff, comment-only diff).
+- `workflow-state` reports `phases.plan.completed == true`.
+- `${RUN_DIR}/current-plan.md` exists and is non-empty.
+
+Appropriate uses of `PLAN_GATE_BYPASS=1`: one-off fixes to pipeline plumbing, rapid iteration
+on non-product code that does not benefit from the full `/ship` cycle.
+
 ## Verification Signals
 - Blocking signals must be tool-derived: compile/typecheck, lint, test, SAST.
 - Model self-critique is advisory and never blocking. The `review` skill produces advisory findings; the `verify` skill produces the go/no-go decision from tool exit codes.

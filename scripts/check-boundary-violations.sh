@@ -112,8 +112,10 @@ check_pattern() {
 }
 
 for dir in "${valid_dirs[@]}"; do
-  check_pattern "${dir}/${core_glob}" "$ingress_regex" "raw ingress usage in core"
-  check_pattern "${dir}/${domain_glob}" "$ingress_regex" "raw ingress usage in domain"
+  # rg --glob matches relative to the search root ($dir), so pass only the
+  # glob suffix (e.g. **/core/**) without the dir prefix.
+  check_pattern "${core_glob}" "$ingress_regex" "raw ingress usage in core"
+  check_pattern "${domain_glob}" "$ingress_regex" "raw ingress usage in domain"
 done
 
 if [ "$errors" -gt 0 ]; then
