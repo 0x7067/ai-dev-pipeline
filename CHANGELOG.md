@@ -7,6 +7,23 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **`PostToolUse:Edit` hook no longer fails on monorepos with a TUI-mode
+  task runner.** `.claude/hooks/_hook_lib.sh` now exports a small block
+  of widely-respected non-interactive conventions (`CI=1`, `NO_COLOR=1`,
+  `NPM_CONFIG_FUND=false`, `NPM_CONFIG_AUDIT=false`) plus
+  `TURBO_UI=false` as a belt-and-suspenders override. Each variable is
+  only set when the caller has not pinned one (`${VAR:-…}`). Before this
+  change, editing a TypeScript file in a turbo monorepo whose
+  `turbo.json` hard-codes `"ui": "tui"` produced two spurious
+  `PostToolUse:Edit hook error — Failed with non-blocking status code: •
+  turbo 2.9.12` lines on every edit, because turbo printed only its
+  banner before exiting non-zero in the absence of a TTY. The fix is
+  tool-agnostic: any child process that honors `CI` (turbo, pnpm, npm,
+  jest, vitest, husky, lint-staged, …) now picks stream output without
+  the hook naming the tool.
+
 ## [0.19.0] - 2026-05-14
 
 ### Added

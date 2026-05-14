@@ -80,6 +80,27 @@ filter_changed_files() {
   fi
 }
 
+# Hooks run without a TTY and with no human at the prompt. Signal that
+# to any child process via the conventions tooling commonly respects, so
+# they pick stream output, skip prompts, and don't try to enter a TUI.
+# Each var is only set if the caller hasn't already pinned a value.
+#
+# - CI=1            : near-universal "non-interactive" switch (turbo,
+#                     pnpm, npm, jest, vitest, husky, lint-staged, …).
+# - NO_COLOR=1      : project convention (.claude/rules/output-style.md);
+#                     also prevents ANSI bleed into captured stderr.
+# - NPM_CONFIG_*    : silences fund/audit chatter on `npm`/`pnpm` runs.
+# - TURBO_UI=false  : belt-and-suspenders for turbo.json with a hard-
+#                     coded `"ui": "tui"`, which has historically ignored
+#                     CI detection and emitted only the banner before
+#                     exiting non-zero — surfaced as a spurious
+#                     "PostToolUse hook error" on every Edit.
+export CI="${CI:-1}"
+export NO_COLOR="${NO_COLOR:-1}"
+export NPM_CONFIG_FUND="${NPM_CONFIG_FUND:-false}"
+export NPM_CONFIG_AUDIT="${NPM_CONFIG_AUDIT:-false}"
+export TURBO_UI="${TURBO_UI:-false}"
+
 fast_mode="${HOOKS_FAST:-1}"
 changed_files_list=""
 
