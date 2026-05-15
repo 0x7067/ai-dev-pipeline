@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-05-15
+
 ### Added
 
 - **`compact_tool_output` in `.claude/hooks/_hook_lib.sh`** — pure awk-based
