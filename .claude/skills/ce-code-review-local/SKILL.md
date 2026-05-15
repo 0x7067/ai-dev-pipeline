@@ -133,7 +133,7 @@ Stale (precheck):    N findings routed to failed before dispatch
 - Core helpers: `scripts/lib/fixer-core.sh`
 - Boundary parser: `scripts/parse-fixer-pass.sh`
 - Sidecar schema: `docs/schemas/fixer-pass-v1.schema.json`
-- Implementer fixer-queue mode: `.claude/agents/implementer.md` §Fixer-Queue Mode
+- Implementer fixer-queue mode: `docs/reference/implementer-fixer-queue.md` (loaded on demand by `.claude/agents/implementer.md`)
 - FC/IS rules: `.claude/rules/architecture-fcis.md`
 - Boundary parsing rules: `.claude/rules/boundary-parse-dont-validate.md`
 

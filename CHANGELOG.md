@@ -7,6 +7,20 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **`.claude/agents/implementer.md`** trimmed from 228 → 120 lines (~51%
+  smaller) by tightening verbose XML-style prose and removing the hard
+  `maxTurns: 60` cap. All rules — FC/IS, progressive-writes, byte-protected
+  earlier sections, context-discipline, STATUS shape — are preserved.
+  Reduces system-prompt overhead on every implementer dispatch and gives
+  large multi-file features more headroom before context exhaustion.
+- **Fixer-Queue Mode protocol extracted** from `implementer.md` to
+  `docs/reference/implementer-fixer-queue.md`. The implementer now loads
+  it on demand only when a `<fixer-queue>` envelope is present in the
+  prompt; default `/ship` runs no longer pay the ~5 KB cost. Reference in
+  `.claude/skills/ce-code-review-local/SKILL.md` updated accordingly.
+
 ## [0.21.0] - 2026-05-15
 
 ### Added
