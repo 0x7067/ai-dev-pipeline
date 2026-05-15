@@ -7,6 +7,31 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **`compact_tool_output` in `.claude/hooks/_hook_lib.sh`** — pure awk-based
+  stream transform that groups verbose lint/typecheck stderr (ESLint
+  stylish, tsc, ruff, golangci) into `rule × N: file — lines a,b,c`
+  summaries when output exceeds `HOOK_OUTPUT_MAX_LINES` (default 30).
+  Wired into `run_advisory`, so every `PostToolUse` advisory hook
+  (`lint-on-edit`, `type-check`) benefits without changes at the call
+  sites. Set `HOOK_OUTPUT_COMPACT=0` to disable. Cuts the system-reminder
+  injection that follows a failed Edit on a contradictory-rule cascade
+  (e.g. eight `@typescript-eslint/unbound-method` errors collapses from
+  ~40 stderr lines to one). Companion test:
+  `tests/scripts/test-compact-tool-output.sh` (9 assertions covering all
+  three formats, disable switch, and unrecognised-pattern passthrough).
+- **`<progressive-writes>` and `<context-discipline>` blocks in
+  `.claude/agents/tester.md`** — ported from `implementer.md` and adapted
+  for tester's deliverables. `test-report.md` is now stubbed early with
+  section headings and Edit-appended as each test lands; `test-results.json`
+  stays end-of-run atomic (its `suite_hash` must reflect the final tree
+  state). Adds a 3-strike `hook-loop-rules` clause to short-circuit
+  mock-typing rule cascades. Closes the structural gap between tester and
+  implementer surfaced by recent multi-dispatch bail analysis (tester
+  shares implementer's tool grant and TDD multiplier but had none of
+  implementer's protective scaffolding).
+
 ## [0.20.0] - 2026-05-14
 
 ### Added

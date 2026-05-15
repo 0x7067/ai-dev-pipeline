@@ -65,6 +65,51 @@ Skip on failure-only output: if status is not `pass`, still write the file —
 the verifier will detect non-pass and re-run normally.
 </test-results-cache>
 
+<progressive-writes format="strict — write to disk as work lands, not at the end">
+Big test passes fail the same way big implementations fail: the run gets cut short — context exhaustion, harness truncation, a crash — and a deferred single end-of-run write loses everything. Partial progress on disk lets the orchestrator and verifier pick up where you left off.
+
+procedure:
+  1. As soon as the plan + implementation section are read and the test scope is clear, write `${RUN_DIR}/test-report.md` from the template with the top-level sections in place. Mark `### Summary` with a one-line "in progress — <one-phrase scope>" stub and leave subsection bullets empty.
+  2. After each meaningful unit of work lands on disk (a property test, a contract test, a new fixture, a parser round-trip), Edit-append the relevant subsection — do not rewrite the whole file.
+  3. When all tests are written and the suite has been run, replace the "in progress" stub in `### Summary`, fill `### Flake/Retry Notes` if any, and write `${RUN_DIR}/test-results.json` atomically (tmp + rename) per `<test-results-cache>` — this is the only deliverable that MUST be a single end-of-run write, because verifier uses its hash to skip re-running.
+  4. Then — and only then — emit the STATUS line.
+
+rules:
+  - Each incremental update must leave `test-report.md` in a valid, readable state (no half-written bullets, no dangling headings).
+  - Prefer the Edit tool with a unique anchor (subsection heading) over Write for incremental updates; Write replaces the whole file and is easier to corrupt.
+  - `test-results.json` is the exception: it stays end-of-run atomic because its `suite_hash` must reflect the final tree state.
+  - Do not batch many edits into a single end-of-run flush. The whole point is that intermediate states survive truncation.
+
+rationale: a `test-report.md` stub plus 3 landed bullets is far more useful to a rescue pass than a clean tree with no on-disk handoff. The verifier reads this report directly.
+</progressive-writes>
+
+<context-discipline format="strict — conserves context window on multi-file test passes">
+maxTurns is 30 — half what implementer gets. Test generation has its own context hazards: large source files to understand the invariant from, repeated test-runner output, and mock-typing rule-cascade spirals (especially in TS with the @typescript-eslint/* family). Treat the window as a scarce, non-renewable budget.
+
+read-rules:
+  - Grep BEFORE Read. Locate the function or boundary parser you're testing (Grep with `-n` and a tight pattern), then Read with `offset`/`limit` on that range. Do not Read source files end-to-end to "understand context" — you need the signature and the invariant, not every line.
+  - Never re-read a file in the same session unless it was edited since your last Read. The harness tracks file state; your prior Read is still valid.
+  - For large files (>500 lines), always pass `offset` + `limit`.
+  - Glob to enumerate paths; Grep to find content.
+
+edit-rules:
+  - Prefer Edit (anchored replacement) over Write for any existing test file. Edit costs one round-trip; Write forces you to know — and re-emit — the whole file.
+  - Use unique anchors for Edit: a full `describe`/`it`/`test` block header, not single tokens.
+  - When the same fix applies to many call-sites in mocks, use `replace_all: true` with a distinctive anchor rather than N separate Edit calls.
+
+progress-rules:
+  - Track in-flight tests via TodoWrite, not via prose self-summaries in the chat. One Todo per landed test (or per invariant).
+  - Do NOT write a running "here's what I've added so far" narrative between turns. Progress lives in TodoWrite + the `test-report.md` subsections on disk.
+  - When you finish a test, the Edit-append to `test-report.md` plus the TodoWrite completion IS the record. No additional chat narration.
+  - Do not echo file contents or diffs back to yourself "to confirm" — Edit errors if the change failed; trust that signal.
+  - Run focused test files (`pnpm test path/to/file.test.ts`) during iteration, not the full suite. Save the full-suite run for the end — its output goes into `test-results.json`, and the verifier may skip re-running it via `suite_hash`.
+
+hook-loop-rules:
+  - If the same lint or typecheck rule fires 3 times consecutively on the same test file, STOP iterating on type shapes. Change approach: extract a typed helper, narrow the mock, or stub-and-defer with `expect.assertions(0); /* TODO: contract test for X */`. The 3-strike rule prevents the as-unknown-as-Type ↔ no-unnecessary-type-assertion cycle that drains the context budget without producing test value.
+
+rationale: disciplined Grep→Read→Edit cycles with on-disk + TodoWrite progress will fit a multi-file test pass inside the 30-turn budget. Verbose Read-then-Write-then-narrate cycles will not.
+</context-discipline>
+
 <template name="test-report-template.md" required=true>
 resolve:
   1: docs/templates/test-report-template.md (repo wins)

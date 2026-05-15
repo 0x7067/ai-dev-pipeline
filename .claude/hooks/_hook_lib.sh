@@ -31,14 +31,104 @@ run() {
   "$@"
 }
 
-# Run a tool advisorily: capture combined output; on failure emit to stderr
-# and exit 1 (non-blocking). Never exit 2 (which Claude treats as blocking).
+# Compaction policy for advisory stderr injection. The harness re-injects
+# stderr as a system-reminder; verbose lint/typecheck output (ESLint stylish,
+# tsc, ruff, golangci) burns the agent's context budget on near-duplicate
+# lines. Set HOOK_OUTPUT_COMPACT=0 to disable; HOOK_OUTPUT_MAX_LINES tunes
+# the passthrough threshold.
+HOOK_OUTPUT_COMPACT="${HOOK_OUTPUT_COMPACT:-1}"
+HOOK_OUTPUT_MAX_LINES="${HOOK_OUTPUT_MAX_LINES:-30}"
+
+# compact_tool_output: pure stream transform. Reads stdin, writes either the
+# original text (when input is short or no recognised pattern matches) or a
+# compacted summary grouping findings by (file, rule) → line list. Never
+# fails; always exits 0.
+#
+# Recognised input formats:
+#   - ESLint stylish: a bare path line, then "  L:C  level  msg  rule"
+#   - tsc:            "path(L,C): error TSxxxx: msg"
+#   - ruff/golangci:  "path:L:C: CODE msg"
+#
+# Awk dialect: portable (no gawk-only 3-arg match). SUBSEP is used to build
+# composite keys; substr+sub do the field extraction. The function is
+# FC-style: deterministic over its input, no side effects beyond stdout.
+compact_tool_output() {
+  if [ "${HOOK_OUTPUT_COMPACT}" = "0" ]; then
+    cat
+    return 0
+  fi
+  awk -v max_lines="${HOOK_OUTPUT_MAX_LINES}" '
+    { all[NR] = $0 }
+    NF == 1 && /^[^[:space:]]+\.[a-zA-Z]+$/ { current_file = $0; next }
+    /^[[:space:]]+[0-9]+:[0-9]+[[:space:]]+(error|warning)[[:space:]]/ {
+      s = $0; sub(/^[[:space:]]+/, "", s)
+      ln = s; sub(/:.*/, "", ln)
+      rule = $NF
+      key = current_file SUBSEP rule
+      counts[key]++
+      linenums[key] = (linenums[key] == "" ? ln : linenums[key] "," ln)
+      matched = 1
+      next
+    }
+    match($0, /^.+\([0-9]+,[0-9]+\):[[:space:]]+error[[:space:]]+TS[0-9]+:/) {
+      s = substr($0, RSTART, RLENGTH)
+      f = s; sub(/\(.*/, "", f)
+      ln = s; sub(/^[^(]+\(/, "", ln); sub(/,.*/, "", ln)
+      rule = s; sub(/^.*error[[:space:]]+/, "", rule); sub(/:.*/, "", rule)
+      key = f SUBSEP rule
+      counts[key]++
+      linenums[key] = (linenums[key] == "" ? ln : linenums[key] "," ln)
+      matched = 1
+      next
+    }
+    match($0, /^[^:[:space:]]+:[0-9]+:[0-9]+:[[:space:]]+[A-Z][A-Z0-9]+[[:space:]]/) {
+      s = substr($0, RSTART, RLENGTH)
+      n = split(s, parts, ":")
+      f = parts[1]; ln = parts[2]
+      rest = parts[4]; sub(/^[[:space:]]+/, "", rest)
+      rule = rest; sub(/[[:space:]].*/, "", rule)
+      key = f SUBSEP rule
+      counts[key]++
+      linenums[key] = (linenums[key] == "" ? ln : linenums[key] "," ln)
+      matched = 1
+      next
+    }
+    { context[++ctx_n] = $0 }
+    END {
+      total_in = NR
+      if (total_in <= max_lines || !matched) {
+        for (i = 1; i <= total_in; i++) print all[i]
+        exit 0
+      }
+      printf "compacted from %d output lines:\n", total_in
+      grouped = 0
+      for (k in counts) {
+        split(k, parts, SUBSEP)
+        f = (parts[1] != "" ? parts[1] : "<unknown file>")
+        rule = parts[2]
+        printf "  %s × %d: %s — lines %s\n", rule, counts[k], f, linenums[k]
+        grouped += counts[k]
+      }
+      if (ctx_n > 0) {
+        keep = (ctx_n < 8 ? ctx_n : 8)
+        print "context:"
+        for (i = 1; i <= keep; i++) print "  " context[i]
+        if (ctx_n > keep) printf "  … +%d more context lines\n", ctx_n - keep
+      }
+      printf "(%d findings grouped; set HOOK_OUTPUT_COMPACT=0 to see full output)\n", grouped
+    }
+  '
+}
+
+# Run a tool advisorily: capture combined output; on failure pipe through
+# compact_tool_output to stderr and exit 1 (non-blocking). Never exit 2
+# (which Claude treats as blocking).
 run_advisory() {
   echo "${HOOK_NAME}: $*"
   local _out _rc
   _out="$("$@" 2>&1)" && _rc=0 || _rc=$?
   if [ "$_rc" -ne 0 ]; then
-    printf '%s\n' "$_out" >&2
+    printf '%s\n' "$_out" | compact_tool_output >&2
     echo "${HOOK_NAME}: command failed (exit $_rc) — reported as advisory" >&2
     exit 1
   fi
