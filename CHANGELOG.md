@@ -7,6 +7,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Documentation
+
+- **`.claude/skills/ce-code-review-local/SKILL.md`** — clarified that the
+  skill is a local *companion* (not an automatic override) of the
+  marketplace `compound-engineering:ce-code-review` skill, and added an
+  explicit "Entry point" section explaining that Claude Code does not
+  auto-route from the marketplace review here; the user (or Claude on the
+  user's behalf) must invoke `/ce-code-review-local` explicitly. Updated
+  description string to match.
+
 ## [0.22.0] - 2026-05-15
 
 ### Changed

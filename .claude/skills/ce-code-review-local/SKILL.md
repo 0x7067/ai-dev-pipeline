@@ -1,25 +1,38 @@
 ---
 name: ce-code-review-local
-description: Local override for the marketplace `ce-code-review` skill's best-judgment fixer path. Replaces the single-implementer heterogeneous queue with batched 3-pass dispatch (safe_auto → gated_auto → manual-with-fix), eager per-finding evidence precheck, and an enforced `${RUN_DIR}/fixer-pass-<class>.json` sidecar. Invoke when the user picks "Auto-resolve with best judgment" in this repo. Triggers on the same hand-offs as the marketplace skill's option B route.
+description: Local companion to the `compound-engineering:ce-code-review` marketplace skill. Replaces its best-judgment fixer path with a batched 3-pass dispatch (safe_auto → gated_auto → manual-with-fix), eager per-finding evidence precheck, and an enforced `${RUN_DIR}/fixer-pass-<class>.json` sidecar. Invoke explicitly (`/ce-code-review-local`, or "run the local 3-pass fixer") after the marketplace review surfaces findings — Claude Code does NOT auto-route the marketplace skill here.
 ---
 
 # ce-code-review-local
 
 ## Purpose
 
-Local override skill for the `ce-code-review` marketplace skill's auto-fix path.
-Extends the marketplace skill's "Auto-resolve with best judgment" option with
-batched 3-pass dispatch, eager per-finding evidence precheck, and enforced
-structured sidecar output.
+Local 3-pass fixer companion to the `compound-engineering:ce-code-review`
+marketplace skill. Batched dispatch (safe_auto → gated_auto → manual-with-fix),
+eager per-finding evidence precheck, and enforced structured sidecar output.
 
-This skill is invoked **instead of** the marketplace fixer when the user picks
-"Auto-resolve with best judgment" in this repository. The marketplace skill's
-read-only cache is not modified.
+Consumer of this skill is the `implementer` agent's Fixer-Queue Mode
+(see `docs/reference/implementer-fixer-queue.md`).
+
+## Entry point (important)
+
+This skill is NOT auto-invoked by the marketplace `ce-code-review` skill —
+Claude Code resolves skills by name, and the marketplace skill has no
+knowledge of this local companion. To use it, after running the marketplace
+review and getting findings, the user (or Claude on the user's behalf) must
+explicitly invoke this skill — e.g. by typing `/ce-code-review-local`,
+saying "run the local 3-pass fixer", or hand-routing from the marketplace
+review's "Auto-resolve with best judgment" option.
+
+If the marketplace review is invoked and the user accepts findings WITHOUT
+routing into this skill, the marketplace skill's own (single-implementer,
+heterogeneous-queue) fixer runs instead.
 
 ## When to Use
 
-- User has run `ce-code-review` (marketplace) and accepted findings.
-- User selects the "Auto-resolve with best judgment" action.
+- User has run `compound-engineering:ce-code-review` and accepted findings.
+- User wants the local 3-pass batched-dispatch fixer instead of the
+  marketplace single-implementer path.
 - This repo is the consumer — do not apply this skill to other repositories
   without verifying that `scripts/lib/fixer-core.sh` and
   `scripts/parse-fixer-pass.sh` are present.
