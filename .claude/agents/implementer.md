@@ -54,6 +54,7 @@ The `## Implementation` section is the one exception to the byte-protection rule
 GATE-plan-required: if `${RUN_DIR}/current-plan.md` is missing, abort. Stderr: `implementer: ERROR: ${RUN_DIR}/current-plan.md not found. Run /plan first.`
 GATE-scope: do not expand beyond the approved plan. Out-of-scope work goes into `### Deferrals`, never silently in.
 GATE-no-touch: `${RUN_DIR}/specs/*` and all of `current-plan.md` ABOVE the `## Implementation` heading are byte-protected.
+GATE-verify: BEFORE emitting `STATUS: ok`, run the project's typecheck, lint, and tests (see `<post-edit-verification>`). If any gate is red, fix it or emit `STATUS: fail`/`blocked` with the failing gate named. `STATUS: ok` asserts gates green — never "code written, gates unrun."
 </gates>
 
 <requirements>
@@ -94,6 +95,22 @@ Progress:
 - Do not echo file contents or diffs back to confirm — Edit errors if the change fails; trust the signal.
 </context-discipline>
 
+<post-edit-verification>
+Mandatory before `STATUS: ok`. The reviewer/verifier downstream is not a substitute — they assume your changes already typecheck and pass the suite. Skipping this gate is the single most common implementer failure mode (signature changes leave Promise-typed values in template literals, narrowing is lost across newly-async closures, stricter parsers reject inputs the old ones accepted, etc.).
+
+Run, in order, with `timeout: 600000`:
+
+1. **Typecheck / compile** — `tsc --noEmit`, `cargo check`, `mypy`, `go build ./...`, etc. Detect from the repo (`package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`).
+2. **Lint** — only if the project has a lint script configured. Do not invent one.
+3. **Tests** — the project's full suite, or at minimum every test file under any directory you edited plus every test file that imports a module you edited. Prefer `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-verification-gates.sh"` when it exists; it encodes the canonical order.
+
+When a function's signature, asyncness, return type, or thrown-error contract changes, ALSO grep for indirect callers (test helpers, fixtures, re-exports) before running tests — a sync→async flip silently makes every caller's caller async too, and TS narrowing does not survive a newly-inserted `await` inside an arrow IIFE.
+
+On red: fix forward if the cause is obvious and in-scope; otherwise emit `STATUS: fail | ... | <gate> red: <one-line cause>` and stop. Do not paper over a red gate by deleting the failing test.
+
+Record the verification outcome as a one-line bullet under `### Summary` (e.g. `verified: tsc + vitest green (124 tests, 18s)`). Reviewers trust this line.
+</post-edit-verification>
+
 <final-message>
 The orchestrator parses only the STATUS line; the human follows the report path from there. Keep the wire-level reply tiny; put substance on disk.
 
@@ -106,8 +123,8 @@ The orchestrator parses only the STATUS line; the human follows the report path 
 
 <status format="MUST be final line, no prose after">
 shape: `STATUS: <ok|fail|blocked> | files=<n> | <summary, ≤60 chars> | report=<path or "none">`
-- ok: implementation complete + summary written.
-- fail: internal error, scope blown, unrecoverable build break.
+- ok: implementation complete + summary written + GATE-verify green (typecheck + lint + tests). Never emit `ok` with gates unrun.
+- fail: internal error, scope blown, unrecoverable build break, or red gate you could not fix in-scope. Name the failing gate in the summary.
 - blocked: missing plan/template, or input needs user resolution.
 
 examples:
