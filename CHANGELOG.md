@@ -7,7 +7,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-### Documentation
+### Changed
+
+- **`.claude/agents/implementer.md`** — added `GATE-verify` and a
+  `<post-edit-verification>` section that make typecheck + lint + tests
+  mandatory before the implementer can emit `STATUS: ok`. The prior spec
+  only *allowed* gate execution in `<bash-usage>`; downstream reviewer
+  and verifier assumed the diff already typechecked, but agents
+  legitimately emitted `ok` with gates unrun, producing
+  sync→async-leakage failure modes (Promise-typed template literals,
+  lost TS narrowing across newly-async closures, stricter parsers
+  rejecting inputs the old ones accepted). New section names the
+  failure mode explicitly, requires a callers-grep when a function's
+  signature or asyncness changes, mandates fix-forward-or-fail-loud on
+  red gates, and records the outcome under `### Summary`. STATUS
+  contract updated so `ok` asserts gates green and `fail` must name the
+  red gate.
+
+### Docs
 
 - **`.claude/skills/ce-code-review-local/SKILL.md`** — clarified that the
   skill is a local *companion* (not an automatic override) of the
