@@ -47,3 +47,10 @@ docs/specs/_site/
 .claude/worktrees
 .dev/
 .claude/scheduled_tasks.lock
+
+# Python
+__pycache__/
+*.pyc
+
+# entire (local checkpoint/transcript tool data)
+.entire/
