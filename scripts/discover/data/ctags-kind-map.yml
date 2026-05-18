@@ -1,0 +1,54 @@
+# ctags-kind-map.yml
+# Maps raw ctags `kind` strings to canonical vocabulary.
+# Canonical values: function | method | class | module | variable | other
+#
+# Used by boundary.py to normalize Symbol.kind before core sees it.
+
+# --- Functions ---
+function:    function
+func:        function
+subroutine:  function
+procedure:   function
+macro:       function
+closure:     function
+lambda:      function
+
+# --- Methods ---
+method:      method
+member:      method
+
+# --- Classes / types ---
+class:       class
+struct:      class
+interface:   class
+trait:       class
+type:        class
+enum:        class
+union:       class
+record:      class
+
+# --- Modules / namespaces ---
+module:      module
+namespace:   module
+package:     module
+
+# --- Variables ---
+variable:    variable
+var:         variable
+field:       variable
+property:    variable
+constant:    variable
+const:       variable
+local:       variable
+parameter:   variable
+param:       variable
+
+# --- Everything else ---
+label:       other
+tag:         other
+anchor:      other
+alias:       other
+header:      other
+section:     other
+chapter:     other
+define:      other

@@ -1,8 +1,19 @@
 ---
-description: Holistic project audit — structure, conventions, critical issues, quick wins, and design philosophy.
+description: Holistic project audit — structure, conventions, critical issues, quick wins, and design philosophy. Pass `standards` (or `standards --bucket <name>`) to run pattern discovery.
 ---
 
 You are the orchestrator for `/audit`. Do NOT audit yourself — delegate to the `auditor` subagent and narrate progress so the user sees real-time updates instead of a silent "Initializing…".
+
+## Subcommand routing
+
+If the user's input starts with `standards` (e.g. `/audit standards` or `/audit standards --bucket tests`):
+- Parse any flags: `--bucket <name>`, `--threshold <n>`, `--min-bucket <n>`, `--langs <list>`.
+- Run the `audit-standards` skill via `Skill("audit-standards")`, passing the parsed flags.
+- Skip the `auditor` subagent steps below.
+- The `audit-standards` skill handles its own RUN_ID minting and artifact writing.
+- Return after the skill completes.
+
+Otherwise (no subcommand, or unknown subcommand) → continue with the full auditor pipeline below.
 
 Steps:
 

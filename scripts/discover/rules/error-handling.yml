@@ -1,0 +1,54 @@
+# error-handling.yml — ast-grep rules for error-handling pattern detection
+# Detects explicit error-typed returns vs exceptions vs ignored errors.
+
+rules:
+  - id: error-typed-return
+    language: go
+    rule:
+      kind: function_declaration
+      has:
+        field: result
+        has:
+          kind: type_identifier
+          regex: "^error$"
+    message: "error-typed return detected"
+
+  - id: error-typed-return
+    language: rust
+    rule:
+      kind: function_item
+      has:
+        field: return_type
+        has:
+          kind: generic_type
+          has:
+            kind: type_identifier
+            regex: "^(Result|Option)$"
+    message: "error-typed return detected"
+
+  - id: error-typed-return
+    language: typescript
+    rule:
+      kind: function_declaration
+      has:
+        field: return_type
+        regex: "(Error|Result|Either|Failure)"
+    message: "error-typed return detected"
+
+  - id: throw-exception
+    language: typescript
+    rule:
+      kind: throw_statement
+    message: "exception throw detected"
+
+  - id: throw-exception
+    language: javascript
+    rule:
+      kind: throw_statement
+    message: "exception throw detected"
+
+  - id: throw-exception
+    language: python
+    rule:
+      kind: raise_statement
+    message: "exception raise detected"

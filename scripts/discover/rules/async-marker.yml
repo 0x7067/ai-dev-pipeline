@@ -1,0 +1,68 @@
+# async-marker.yml — ast-grep rules for async/await pattern detection
+
+rules:
+  - id: async-function
+    language: typescript
+    rule:
+      kind: function_declaration
+      has:
+        field: async
+    message: "async function detected"
+
+  - id: async-function
+    language: javascript
+    rule:
+      kind: function_declaration
+      has:
+        field: async
+    message: "async function detected"
+
+  - id: async-arrow
+    language: typescript
+    rule:
+      kind: arrow_function
+      has:
+        field: async
+    message: "async arrow function detected"
+
+  - id: async-arrow
+    language: javascript
+    rule:
+      kind: arrow_function
+      has:
+        field: async
+    message: "async arrow function detected"
+
+  - id: async-method
+    language: typescript
+    rule:
+      kind: method_definition
+      has:
+        field: async
+    message: "async method detected"
+
+  - id: async-method
+    language: javascript
+    rule:
+      kind: method_definition
+      has:
+        field: async
+    message: "async method detected"
+
+  - id: async-def
+    language: python
+    rule:
+      kind: decorated_definition
+      has:
+        kind: function_definition
+        has:
+          field: async
+    message: "async def detected"
+
+  - id: async-def
+    language: python
+    rule:
+      kind: function_definition
+      has:
+        field: async
+    message: "async def detected"

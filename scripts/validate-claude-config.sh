@@ -219,6 +219,18 @@ if [ "$_norms_violations" -gt 0 ]; then
   exit 1
 fi
 
+# Advisory: warn if .claude/discovered-patterns/ exists but is not gitignored.
+# (Pattern files are ephemeral scan output — not intended for commit.)
+if [ -d ".claude/discovered-patterns" ]; then
+  _gi_check=0
+  # git check-ignore exits 0 if the path is ignored, 1 if not, 128 on error
+  git check-ignore -q ".claude/discovered-patterns" 2>/dev/null && _gi_check=1
+  if [ "$_gi_check" -eq 0 ]; then
+    style::warn "validate: advisory: .claude/discovered-patterns/ exists but is not gitignored"
+    style::warn "  add '.claude/discovered-patterns/' to .gitignore to keep ephemeral scan output out of version control"
+  fi
+fi
+
 rc=0
 bash scripts/check-crossrefs.sh             || rc=1
 bash scripts/check-boundary-violations.sh   || rc=1

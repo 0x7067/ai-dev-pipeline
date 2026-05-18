@@ -17,7 +17,7 @@ The slash-command picker exposes exactly five primary entries:
 - `/ship` — orchestrates the per-change pipeline (optional research → plan → implement → review → verify → smoke → release). Low-risk green runs auto-finish; pass `/ship strict` for explicit approvals.
 - `/review` — review existing code, a diff, or a PR (standalone severity-first review).
 - `/refactor` — behavior-preserving structural change with pre/post verification gates.
-- `/audit` — holistic project audit (structure, conventions, critical issues, quick wins).
+- `/audit` — holistic project audit (structure, conventions, critical issues, quick wins); pass `standards` (e.g. `/audit standards`) to run pattern discovery and surface implicit conventions for promotion to `.claude/rules/`.
 - `/research` — brainstorm, investigate, or get unstuck before any plan exists.
 
 > Other phase logic (planning, implementation, testing, verification, setup, reset) remains reachable via skills and agents (e.g. `requirement-analysis`, `test-gen`, `static-analysis`, `setup`, `reset`). See `.claude/skills/using-pipeline/SKILL.md` for the intent → entry-point mapping.

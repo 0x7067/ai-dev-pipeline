@@ -1,0 +1,37 @@
+# export-shape.yml — ast-grep rules for export pattern detection
+# Detects named vs default export styles.
+
+rules:
+  - id: named-export
+    language: typescript
+    rule:
+      kind: export_statement
+      not:
+        has:
+          field: default
+    message: "named export detected"
+
+  - id: named-export
+    language: javascript
+    rule:
+      kind: export_statement
+      not:
+        has:
+          field: default
+    message: "named export detected"
+
+  - id: default-export
+    language: typescript
+    rule:
+      kind: export_statement
+      has:
+        field: default
+    message: "default export detected"
+
+  - id: default-export
+    language: javascript
+    rule:
+      kind: export_statement
+      has:
+        field: default
+    message: "default export detected"

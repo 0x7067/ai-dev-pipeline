@@ -49,6 +49,7 @@ The primary user-facing surface is exactly five slash commands:
 | "review this", "look at this diff/PR", severity-first review of existing code without running the full pipeline | `/review` |
 | "refactor", "clean up", "restructure", "extract", "rename", "split this up", "tidy" | `/refactor` |
 | "audit", "health check", "overall state of…", project-wide review with no code change | `/audit` |
+| "audit standards", "discover conventions", "what patterns does this codebase follow", "detect recurring patterns", "find implicit conventions" | `/audit standards` (pattern discovery subcommand; add `--bucket <name>` for targeted re-scan) |
 | "research", "brainstorm", "investigate", "I'm stuck", "explore options before planning", library/API scoping | `/research` |
 
 > **Zero-setup default**: the pipeline works directly from the marketplace install with no scaffolding step. Vendoring assets into a consumer repo for CI (which does not load Claude Code plugins) is a manual one-off — copy `scripts/`, `.claude/rules/`, and `docs/templates/` into the consumer repo and pin the plugin version.
