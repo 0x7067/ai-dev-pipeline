@@ -7,3 +7,7 @@ yes
 ---
 
 do ne
+
+---
+
+/commit-commands:commit
