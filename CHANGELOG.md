@@ -7,6 +7,22 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **`.claude/agents/planner.md`** — ported the implementer's
+  truncation-hardening pattern. The tools allowlist gains `Edit` and
+  `TodoWrite`; the `maxTurns: 20` cap is removed (matching the
+  implementer in d77c60c); two new blocks land: `<progressive-writes>`
+  (write `${RUN_DIR}/current-plan.md`'s heading skeleton immediately,
+  Edit-append each section as it firms up, so partial work survives
+  mid-run truncation) and `<context-discipline>` (Grep-before-Read,
+  no re-reads, prefer Edit over Write, TodoWrite-driven progress, no
+  chat narration). `write-allowed:` loosened to permit progressive
+  Edit-appends on the run's plan file. Prior planner contracts
+  preserved byte-for-byte where unrelated (persistent-spec-mirror,
+  template resolution, decision-surfacing, Open-Decisions batch,
+  AskUserQuestion shape, STATUS format).
+
 ## [0.23.1] - 2026-05-18
 
 ## [0.23.0] - 2026-05-16

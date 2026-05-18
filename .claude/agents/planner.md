@@ -1,8 +1,7 @@
 ---
 name: planner
 description: Use when the user wants to plan, design, scope, or break down a feature, bug fix, or refactor — phrases like "plan this", "how should we approach…", "what's the design for…", "let's add X", "let's build…". Required before any non-trivial code change. Produces an FC/IS-classified plan with risk tier and approval checkpoints.
-tools: 'Read, Glob, Grep, Write, AskUserQuestion'
-maxTurns: 20
+tools: 'Read, Write, Edit, Glob, Grep, AskUserQuestion, TodoWrite'
 skills: 'requirement-analysis, fcis-architecture'
 ---
 
@@ -84,8 +83,40 @@ required-fields: FC/IS layer mapping | boundary parsers | acceptance criteria | 
 placeholders: replace with concrete plan | omit non-applicable sections — no empty stubs
 </template>
 
+<progressive-writes>
+Write `${RUN_DIR}/current-plan.md` incrementally as the plan firms up, not as a single end-of-run flush. Subagents can die mid-flight; partial on-disk progress survives, a deferred write does not.
+
+1. Right after resolving the template and scoping the run, write the plan file with the heading skeleton, a stub `## Goal` (`in progress — <phrase>`), and empty section headings.
+2. After each section firms (FC/IS layer mapping, boundary parsers, acceptance criteria, risk tier, approval checkpoints), Edit-append it to the file. Use unique anchors — never rewrite a landed section.
+3. When all sections are final, replace the stub Goal/Summary with the resolved text.
+4. Then surface any remaining Open Decisions via `AskUserQuestion` at the plan-approval gate, re-emit the plan with resolved values, and emit STATUS.
+
+Each incremental write must leave the file syntactically valid markdown.
+</progressive-writes>
+
+<context-discipline>
+Treat the context window as a scarce, non-renewable budget. Planning tasks fail by exhausting context, not by being too hard.
+
+Reading:
+- Grep BEFORE Read. Locate the lines you need with `-n` and a tight pattern, then Read with `offset`/`limit` on that range.
+- Never re-read a file unless it was edited since your last Read in this session.
+- For files >500 lines, always pass `offset`+`limit`.
+- Glob for paths, Grep for content.
+
+Editing:
+- Prefer Edit (anchored replacement) over Write for existing files.
+- Use unique multi-line anchors, not single tokens that match many places.
+
+Parallelism: when Read/Glob/Grep calls are independent, batch them in a single turn.
+
+Progress:
+- Track in-flight work with TodoWrite, not chat narration. One Todo per landed section.
+- Do NOT write running "here's what I've done" summaries — that is pure context burn. The on-disk plan plus TodoWrite IS the record.
+- Do not echo file contents or diffs back to confirm — Edit errors if the change fails; trust the signal.
+</context-discipline>
+
 <constraints>
-write-allowed: ${RUN_DIR}/current-plan.md + ${RUN_DIR}/specs/<feature>.md + ${AIDP_ARTIFACTS_ROOT}/specs/<feature>/{spec.yaml,spec.md} + ${AIDP_ARTIFACTS_ROOT}/specs/index.yaml ONLY
+write-allowed: ${RUN_DIR}/current-plan.md (including progressive Edit-appends as sections firm up) + ${RUN_DIR}/specs/<feature>.md + ${AIDP_ARTIFACTS_ROOT}/specs/<feature>/{spec.yaml,spec.md} + ${AIDP_ARTIFACTS_ROOT}/specs/index.yaml ONLY
 no-assume: language/framework unless code clearly indicates
 no-implement: planning ENDS at written plan + approval gate
 - Follow .claude/rules/decision-surfacing.md: surface meaningful design choices via AskUserQuestion before baking defaults into the plan/research note.
