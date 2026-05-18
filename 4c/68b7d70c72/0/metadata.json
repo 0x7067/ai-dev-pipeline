@@ -1,0 +1,119 @@
+{
+  "cli_version": "0.6.2",
+  "checkpoint_id": "4c68b7d70c72",
+  "session_id": "0d8e671b-8aba-4d9b-95b2-38ab8376e94a",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-18T19:00:46.964383Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "CLAUDE.md",
+    "conftest.py",
+    "docs/templates/discovered-pattern-template.md",
+    "pyproject.toml",
+    "scripts/discover/CALIBRATION.md",
+    "scripts/discover/__init__.py",
+    "scripts/discover/boundary.py",
+    "scripts/discover/core/__init__.py",
+    "scripts/discover/core/bucket.py",
+    "scripts/discover/core/cluster.py",
+    "scripts/discover/core/confidence.py",
+    "scripts/discover/core/features.py",
+    "scripts/discover/core/report.py",
+    "scripts/discover/data/ctags-kind-map.yml",
+    "scripts/discover/extract.sh",
+    "scripts/discover/rules/async-marker.yml",
+    "scripts/discover/rules/error-handling.yml",
+    "scripts/discover/rules/export-shape.yml",
+    "scripts/discover/rules/imports.yml",
+    "scripts/discover/rules/return-type.yml",
+    "scripts/discover/tests/__init__.py",
+    "scripts/discover/tests/__pycache__/__init__.cpython-312.pyc",
+    "scripts/discover/tests/__pycache__/__init__.cpython-314.pyc",
+    "scripts/discover/tests/__pycache__/test_boundary.cpython-312-pytest-9.0.3.pyc",
+    "scripts/discover/tests/__pycache__/test_boundary.cpython-314-pytest-9.0.2.pyc",
+    "scripts/discover/tests/__pycache__/test_bucketize.cpython-312-pytest-9.0.3.pyc",
+    "scripts/discover/tests/__pycache__/test_bucketize.cpython-314-pytest-9.0.2.pyc",
+    "scripts/discover/tests/__pycache__/test_cluster.cpython-312-pytest-9.0.3.pyc",
+    "scripts/discover/tests/__pycache__/test_cluster.cpython-314-pytest-9.0.2.pyc",
+    "scripts/discover/tests/test_boundary.py",
+    "scripts/discover/tests/test_bucketize.py",
+    "scripts/discover/tests/test_cluster.py",
+    "scripts/discover/tests/test_path_safety.sh",
+    "scripts/validate-claude-config.sh"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "44a0e8f59f8f",
+  "token_usage": {
+    "input_tokens": 46,
+    "cache_creation_tokens": 118062,
+    "cache_read_tokens": 991557,
+    "output_tokens": 10510,
+    "api_call_count": 17
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-18T19:00:46.956722Z",
+    "agent_lines": 1965,
+    "agent_removed": 1,
+    "human_added": 62,
+    "human_modified": 160,
+    "human_removed": 0,
+    "total_committed": 2187,
+    "total_lines_changed": 2189,
+    "agent_percentage": 89.81269986295112,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2451,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2451,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1,
+      "user_lines_removed": 80,
+      "agent_lines_added": 2451,
+      "agent_lines_removed": 2,
+      "user_added_per_file": {
+        ".claude/settings.json": 1
+      },
+      "user_removed_per_file": {
+        ".claude/settings.json": 80
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 1,
+      "user_lines_removed": 80,
+      "agent_lines_added": 2451,
+      "agent_lines_removed": 2,
+      "user_added_per_file": {
+        ".claude/settings.json": 1
+      },
+      "user_removed_per_file": {
+        ".claude/settings.json": 80
+      }
+    }
+  ]
+}

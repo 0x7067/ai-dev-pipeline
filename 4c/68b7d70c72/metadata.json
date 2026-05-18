@@ -1,0 +1,58 @@
+{
+  "cli_version": "0.6.2",
+  "checkpoint_id": "4c68b7d70c72",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "CLAUDE.md",
+    "conftest.py",
+    "docs/templates/discovered-pattern-template.md",
+    "pyproject.toml",
+    "scripts/discover/CALIBRATION.md",
+    "scripts/discover/__init__.py",
+    "scripts/discover/boundary.py",
+    "scripts/discover/core/__init__.py",
+    "scripts/discover/core/bucket.py",
+    "scripts/discover/core/cluster.py",
+    "scripts/discover/core/confidence.py",
+    "scripts/discover/core/features.py",
+    "scripts/discover/core/report.py",
+    "scripts/discover/data/ctags-kind-map.yml",
+    "scripts/discover/extract.sh",
+    "scripts/discover/rules/async-marker.yml",
+    "scripts/discover/rules/error-handling.yml",
+    "scripts/discover/rules/export-shape.yml",
+    "scripts/discover/rules/imports.yml",
+    "scripts/discover/rules/return-type.yml",
+    "scripts/discover/tests/__init__.py",
+    "scripts/discover/tests/__pycache__/__init__.cpython-312.pyc",
+    "scripts/discover/tests/__pycache__/__init__.cpython-314.pyc",
+    "scripts/discover/tests/__pycache__/test_boundary.cpython-312-pytest-9.0.3.pyc",
+    "scripts/discover/tests/__pycache__/test_boundary.cpython-314-pytest-9.0.2.pyc",
+    "scripts/discover/tests/__pycache__/test_bucketize.cpython-312-pytest-9.0.3.pyc",
+    "scripts/discover/tests/__pycache__/test_bucketize.cpython-314-pytest-9.0.2.pyc",
+    "scripts/discover/tests/__pycache__/test_cluster.cpython-312-pytest-9.0.3.pyc",
+    "scripts/discover/tests/__pycache__/test_cluster.cpython-314-pytest-9.0.2.pyc",
+    "scripts/discover/tests/test_boundary.py",
+    "scripts/discover/tests/test_bucketize.py",
+    "scripts/discover/tests/test_cluster.py",
+    "scripts/discover/tests/test_path_safety.sh",
+    "scripts/validate-claude-config.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/4c/68b7d70c72/0/metadata.json",
+      "transcript": "/4c/68b7d70c72/0/full.jsonl",
+      "content_hash": "/4c/68b7d70c72/0/content_hash.txt",
+      "prompt": "/4c/68b7d70c72/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 46,
+    "cache_creation_tokens": 118062,
+    "cache_read_tokens": 991557,
+    "output_tokens": 10510,
+    "api_call_count": 17
+  }
+}
