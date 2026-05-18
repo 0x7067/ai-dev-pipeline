@@ -1,0 +1,17 @@
+/commit-commands:commit
+
+---
+
+/release
+
+---
+
+should the .entire folder be commited? what about pycache?
+
+---
+
+ok commit
+
+---
+
+ok gitignore it and commit
