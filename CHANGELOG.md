@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-05-18
+
 ### Changed
 
 - **`.claude/agents/planner.md`** — ported the implementer's
