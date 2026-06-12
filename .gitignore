@@ -8,11 +8,11 @@ Thumbs.db
 *.swp
 *.swo
 
-# Local overrides (personal settings, not committed)
+# Local overrides
 CLAUDE.local.md
 
-# Workflow state (per-session, not committed)
-.claude/workflow-state.json
+# AIDP run state
+.aidp/
 
 # Node
 node_modules/
@@ -28,29 +28,23 @@ build/
 .env.*
 !.env.example
 
-# CI workflow (optional — scaffold via /setup if needed)
+# CI workflow scaffold
 .github/workflows/smoke.yml
 
-# Generated docs (recreated by agents each run)
+# Generated docs
 docs/*
-!docs/templates/
-!docs/reference/
-!docs/reference/**
-!docs/schemas/
-!docs/schemas/**
-!docs/specs/
-!docs/specs/**
-docs/specs/_site/
+!docs/redesign/
+!docs/redesign/**
+!docs/v2/
+!docs/v2/**
 
-.claude/workflow-state/
-.claude/settings.local.json
-.claude/worktrees
+# Local dev
 .dev/
-.claude/scheduled_tasks.lock
 
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
 
-# entire (local checkpoint/transcript tool data)
+# entire local checkpoint/transcript data
 .entire/

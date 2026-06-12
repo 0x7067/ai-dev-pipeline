@@ -1,114 +1,67 @@
 # ai-dev-pipeline
 
-A Claude Code workflow plugin for structured AI-assisted development. It keeps the default path short: plan, implement, review, verify, smoke, release.
+AIDP v2 is a typed, agentic kernel for AI-assisted development with bounded context and direct proof. It records Goal, context, constraints, and done-when in versioned artifacts, then requires line spans, command logs, and typed artifacts before a run can finish.
 
-## Installation
-
-Install from the marketplace and run `/ship`. No scaffolding step.
-
-CI runners do not load Claude Code plugins, so to give CI gate authority (per `.claude/rules/release-and-verification.md`) invoke the `setup` skill once to vendor `scripts/run-verification-gates.sh` and friends into the repo. Then:
+## Default Flow
 
 ```sh
-bash scripts/validate-claude-config.sh   # settings.json + cross-refs + boundary + version-sync
-bash scripts/smoke-bootstrap.sh          # required files and hook executability
+aidp "<objective>" --run-id <run-id> --proof-command "<command>"
+aidp agent <run-id>
+aidp check <run-id>
+aidp prove <run-id>
+aidp finish <run-id>
 ```
 
-Vendored copies override plugin-shipped copies, so edits survive plugin upgrades.
+The bare objective command creates `.aidp/runs/<run-id>/contract.json`, `context.json`, `plan.json`, `events.jsonl`, and a compact `work.md`. The agent handoff prints an executable prompt that references the packet instead of embedding source bodies.
 
 ## Commands
 
-Five primary slash commands:
-
 | Command | Purpose |
 |---|---|
-| `/ship` | Per-change pipeline: optional research → plan → implement → review → verify → smoke → release. Low-risk green runs auto-finish; `/ship strict` requires explicit approvals. |
-| `/review` | Severity-first review of a diff, file, or PR. No pipeline. |
-| `/refactor` | Behavior-preserving structural change with pre/post gates. |
-| `/audit` | Project-wide health check. |
-| `/research` | Brainstorm or scope before a plan exists. |
+| `aidp doctor` | Detect project languages, package manager, and likely proof commands. |
+| `aidp "<objective>"` | Start a run and write a compact worker packet. |
+| `aidp plan "<objective>"` | Create typed run artifacts without writing a worker packet. |
+| `aidp work <run-id>` | Regenerate `.aidp/runs/<run-id>/work.md` from artifacts. |
+| `aidp agent <run-id>` | Print and persist an executable agent prompt. |
+| `aidp check <run-id>` | Validate typed artifacts and schema versions. |
+| `aidp prove <run-id>` | Run proof commands and store command evidence. |
+| `aidp finish <run-id>` | Block unless every done-when requirement has direct evidence. |
+| `aidp adapter codex` | Render compact Codex `AGENTS.md` guidance for the v2 flow. |
+| `aidp self-test` | Run hermetic docs-only and code/test scenarios against the v2 lifecycle. |
+| `aidp cutover` | Print a non-destructive audit for retired surfaces before any deletion patch. |
 
-`/review` is a merge gate on a diff. `/audit` is a project-level health check. Other phase logic lives in skills (`requirement-analysis`, `test-gen`, `static-analysis`, `setup`, `reset`); see `.claude/skills/using-pipeline/SKILL.md`.
+## Artifacts
 
-## Multi-Language Support
+Every run lives under `.aidp/runs/<run-id>/`.
 
-Examples for Python, Go, Rust, and TypeScript live under `examples/<lang>/`, each demonstrating FC/IS layers, boundary parsing, error handling, property and contract tests, and anti-patterns. Stdlib only.
-
-`scripts/check-boundary-violations.sh` detects the project language from `pyproject.toml`, `go.mod`, `Cargo.toml`, or `package.json` and applies the matching ingress regex.
-
-## Workflow Enforcement
-
-Hook-based gates on agents enforce phase order: implementer is blocked before a plan, reviewer before implementation, verifier before review. `/ship` orchestrates internally and is not gated.
-
-State lives in `.claude/workflow-state.json` (gitignored). Invoke the `reset` skill to start a new task. Set `WORKFLOW_GATES_SKIP=1` to bypass.
-
-## Proactive Invocation
-
-The `SessionStart` hook (`.claude/hooks/session-start.sh`) loads the `using-pipeline` meta-skill, which carries the intent → skill mapping. Describing a bug, feature, review, refactor, or release triggers the matching skill before any other response. Typed slash commands behave identically.
-
-## Skills and Agents
-
-| Skill | Used by | Purpose |
-|---|---|---|
-| `requirement-analysis` | `planner` | FC/IS-aligned implementation specs |
-| `fcis-architecture` | layer classification | Core/shell/boundary separation |
-| `code-review` | `/review` | FC/IS + security + correctness on a diff |
-| `static-analysis` | `verifier` | Language-detected verification gates |
-| `test-gen` | `tester` | Property + contract tests |
-| `refactor` | `/refactor` | Zero-behavior-change refactoring |
-| `setup` | CI gate authority | Vendor scripts/templates/CI |
-| `reset` | new task | Clear `.claude/workflow-state.json` |
-
-Agents under `.claude/agents/` (`planner`, `implementer`, `reviewer`, `tester`, `verifier`, `auditor`, `researcher`) each carry a `maxTurns` cap; rerun the command or raise the cap if an agent stops mid-task.
-
-Add a custom skill at `.claude/skills/<name>/skill.md` with `name:` and `description:` frontmatter. The description controls when Claude invokes it — list trigger phrases and "do not invoke for X" guards. Validate with `bash scripts/validate-claude-config.sh`.
-
-## CI
-
-Three workflows in `.github/workflows/`:
-
-| Workflow | Purpose |
+| Artifact | Role |
 |---|---|
-| `claude.yml` | `@claude` mentions in issues and PRs |
-| `claude-code-review.yml` | Automated review on opened/updated PRs |
-| `shellcheck.yml` | ShellCheck on PRs and pushes to `main` |
+| `contract.json` | Objective, constraints, risk, unsafe actions, and done-when requirements. |
+| `context.json` | Bounded source pointers, detected commands, citations, and omitted context. |
+| `plan.json` | Expected tasks, test-first notes, and proof commands. |
+| `work.md` | Compact worker packet for an implementation agent. |
+| `agent.md` | Executable handoff prompt generated from the packet. |
+| `evidence.json` | Command evidence, changed files, review results, risks, and verdict. |
+| `events.jsonl` | Append-only lifecycle events. |
 
-## Run-ID Isolation
+Schemas for the typed artifacts live in `docs/v2/`.
 
-Every primary command mints a `RUN_ID` at step 0 and exports `RUN_ID` and `RUN_DIR` (= `docs/runs/<RUN_ID>`). Per-run artifacts — plans, specs, research notes, ADRs, reports, gate logs, retry hints — write under `${RUN_DIR}/`. Concurrent runs (two `/ship` sessions, CI + local, two worktrees) are safe by construction.
+## Plugin
 
-Step 0 atomically maintains three discovery pointers: `docs/latest` (symlink), `docs/latest.txt` (text fallback), and `.claude/workflow-state/active`. Read-only verification gates (`typecheck`, `lint`, `security`) run in parallel inside `scripts/run-verification-gates.sh`; test gates remain sequential.
+This repo is an installable Codex plugin. The manifest lives at `.codex-plugin/plugin.json`, and the workflow skill lives under `skills/aidp-v2/`.
 
-See [docs/specs/run-id-isolation/spec.yaml](docs/specs/run-id-isolation/spec.yaml) and [`.claude/skills/using-pipeline/SKILL.md`](.claude/skills/using-pipeline/SKILL.md).
+## Verification
 
-## Environment Variables
-
-Full reference in [docs/reference/env-vars.md](docs/reference/env-vars.md). Notable knobs:
-
-- `RUN_ID`, `RUN_DIR` — active run-id and resolved directory; set by step 0.
-- `RUN_RETENTION` — run dirs to keep under `docs/runs/` (default `10`); honored by `scripts/prune-runs.sh`. CI=true is a no-op. Runs containing `${RUN_DIR}/adrs/*.md` are not pruned.
-- `REPORT_REVIEW_PATH`, `REPORT_TEST_PATH`, `REPORT_VERIFY_PATH` — overrides for `scripts/check-report-quality.sh`. Defaults resolve through `${RUN_DIR}/`, then `docs/latest/`, then legacy `docs/<report>.md`.
-- `HOOKS_FAST=1` — change-scoped fast-path hooks (default `0`).
-- `WORKFLOW_GATES_SKIP=1` — bypass workflow-state gating.
-- `WORKFLOW_STATE_PATH` — explicit override for the workflow-state JSON.
-- `VERIFY_TYPECHECK_CMD`, `VERIFY_LINT_CMD`, `VERIFY_SECURITY_CMD`, `VERIFY_PROPERTY_CMD`, `VERIFY_CONTRACT_CMD`, `VERIFY_FULL_CMD` — per-project gate command overrides.
-- `VERIFY_REQUIRE_PROPERTY=1`, `VERIFY_REQUIRE_CONTRACT=1`, `VERIFY_REQUIRE_FULL_SUITE=1` — make optional test discovery failures blocking.
-- `HARNESS_JS_PACKAGE_MANAGER=pnpm` — force a JS package manager when auto-detection falls short.
-
-Portability notes and source references are in [docs/reference/harness-engineering.md](docs/reference/harness-engineering.md).
-
-## Tuning
-
-### Verifier Retry Hint
-
-`scripts/run-verification-gates.sh` supports one bounded retry by default:
-
-- `MAX_VERIFY_RETRIES` (default `1`) — retries per gate after a non-zero exit. Set `0` in CI when immediate failure is preferred.
-- `VERIFY_RETRY_HINT_FILE` — single-line JSON hint (`{"gate":"<label>","exit_code":<n>,"attempt":<n>}`) written on every failure for the next pass. Defaults to `${RUN_DIR}/.verify-retry.json`, or `docs/.verify-retry.json` when no run is active.
+For changes to AIDP itself, run:
 
 ```sh
-MAX_VERIFY_RETRIES=1 bash scripts/run-verification-gates.sh
-# on failure: cat "${RUN_DIR}/.verify-retry.json"
-# → {"gate":"lint","exit_code":1,"attempt":0}
+uv run pytest -q
+uv run aidp self-test
+uv run aidp cutover
 ```
 
-Authoritative semantics: `.claude/rules/release-and-verification.md` under "Canonical Gate Runner".
+`uv run pytest -q` covers the v2 package, command lifecycle, plugin surface, and completion audit. `aidp self-test` proves both docs-only and code/test scenarios through `agent`, `check`, `prove`, and `finish`. `aidp cutover` should report a clean retired-surface audit before release.
+
+## Design
+
+The ground-up redesign is documented in `docs/redesign/2026-06-12-ground-up-ai-dev-pipeline.md`.

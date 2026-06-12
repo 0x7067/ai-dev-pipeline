@@ -1,0 +1,34 @@
+{
+  "name": "ai-dev-pipeline",
+  "version": "0.1.0",
+  "description": "Typed AIDP v2 workflow for token-efficient agentic software development.",
+  "author": {
+    "name": "Pedro Guimaraes"
+  },
+  "license": "MIT",
+  "keywords": [
+    "aidp",
+    "agentic-development",
+    "codex",
+    "workflow",
+    "verification"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI Dev Pipeline",
+    "shortDescription": "Typed AIDP v2 workflow for bounded agentic development.",
+    "longDescription": "Run software changes through typed contracts, bounded context, proof commands, and completion audits.",
+    "developerName": "Pedro Guimaraes",
+    "category": "Productivity",
+    "capabilities": [
+      "Agent guidance",
+      "Workflow"
+    ],
+    "defaultPrompt": [
+      "Start an AIDP v2 run for this task.",
+      "Run AIDP self-test and summarize evidence.",
+      "Audit this repo for AIDP v2 readiness."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

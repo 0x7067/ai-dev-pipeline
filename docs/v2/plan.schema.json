@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIDP Plan Artifact",
+  "type": "object",
+  "required": ["schema_version", "artifact", "tasks", "review_focus"],
+  "properties": {
+    "schema_version": { "const": "aidp.plan.v1" },
+    "artifact": { "const": "plan" },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["title", "expected_paths", "test_first", "proof_commands"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "expected_paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "test_first": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "proof_commands": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "review_focus": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIDP Contract Artifact",
+  "type": "object",
+  "required": ["schema_version", "artifact", "objective", "constraints", "done_when", "risk", "unsafe_actions", "needs_question"],
+  "properties": {
+    "schema_version": { "const": "aidp.contract.v1" },
+    "artifact": { "const": "contract" },
+    "objective": { "type": "string", "minLength": 1 },
+    "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "done_when": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "risk": { "enum": ["low", "medium", "high"] },
+    "unsafe_actions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "needs_question": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

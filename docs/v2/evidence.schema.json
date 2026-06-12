@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AIDP Evidence Artifact",
+  "type": "object",
+  "required": ["schema_version", "artifact", "commands", "changed_files", "review_results", "unresolved_risks", "verdict"],
+  "properties": {
+    "schema_version": { "const": "aidp.evidence.v1" },
+    "artifact": { "const": "evidence" },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "command", "exit_code", "status", "log_path"],
+        "properties": {
+          "label": { "type": "string", "minLength": 1 },
+          "command": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "exit_code": { "type": "integer" },
+          "status": { "enum": ["pass", "fail"] },
+          "log_path": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "changed_files": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "review_results": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "unresolved_risks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "verdict": { "enum": ["pass", "fail", "blocked"] }
+  },
+  "additionalProperties": false
+}
