@@ -108,7 +108,7 @@ def test_codex_plugin_manifest_is_installable_v2_surface():
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert payload["name"] == "ai-dev-pipeline"
-    assert payload["version"] == "0.1.0"
+    assert payload["version"] == "0.2.0"
     assert payload["skills"] == "./skills/"
     assert payload["interface"]["displayName"] == "AI Dev Pipeline"
     assert payload["interface"]["category"] == "Productivity"
@@ -129,7 +129,7 @@ def test_claude_code_plugin_manifest_reuses_v2_skills_without_v1_surface():
 
     assert payload["name"] == "ai-dev-pipeline"
     assert payload["displayName"] == "AI Dev Pipeline"
-    assert payload["version"] == "0.1.0"
+    assert payload["version"] == "0.2.0"
     assert payload["skills"] == "./skills/"
     assert payload["defaultEnabled"] is True
     assert "commands" not in payload
