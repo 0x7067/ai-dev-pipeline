@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,7 +23,6 @@ DELETE_SURFACES = (
     Surface("claude_settings", ".claude/settings.json", "delete"),
     Surface("claude_workflow_state", ".claude/workflow-state", "delete"),
     Surface("claude_workflow_state_file", ".claude/workflow-state.json", "delete"),
-    Surface("claude_plugin", ".claude-plugin", "delete"),
     Surface("retired_report_templates", "docs/templates", "delete"),
 )
 
@@ -55,6 +55,11 @@ def build_cutover_audit(root: str | Path) -> dict[str, Any]:
             continue
         retired_surfaces.append(report)
         delete_candidates.append(str(report["path"]))
+
+    claude_plugin_report = _claude_plugin_report(project_root)
+    if claude_plugin_report is not None:
+        retired_surfaces.append(claude_plugin_report)
+        delete_candidates.append(str(claude_plugin_report["path"]))
 
     for surface in REVIEW_SURFACES:
         report = _surface_report(project_root, surface)
@@ -90,6 +95,44 @@ def _surface_report(root: Path, surface: Surface) -> dict[str, Any] | None:
         "file_count": len(files),
         "action": surface.action,
     }
+
+
+def _claude_plugin_report(root: Path) -> dict[str, Any] | None:
+    plugin_dir = root / ".claude-plugin"
+    files = _files_under(plugin_dir)
+    if not files:
+        return None
+
+    manifest = plugin_dir / "plugin.json"
+    if manifest.is_file():
+        payload = _read_json_object(manifest)
+        if payload is not None and _is_thin_v2_claude_plugin(payload):
+            return None
+
+    return {
+        "category": "claude_plugin",
+        "path": ".claude-plugin/",
+        "file_count": len(files),
+        "action": "delete",
+    }
+
+
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _is_thin_v2_claude_plugin(payload: dict[str, Any]) -> bool:
+    return (
+        payload.get("name") == "ai-dev-pipeline"
+        and payload.get("skills") == "./skills/"
+        and "commands" not in payload
+        and "agents" not in payload
+        and "hooks" not in payload
+    )
 
 
 def _files_under(path: Path) -> tuple[Path, ...]:

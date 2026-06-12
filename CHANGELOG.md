@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- Added `aidp-maintainer-improvement`, a bounded plugin skill for finding one small maintainer-reviewable improvement and stopping after one verified patch.
+  Added a matching default plugin prompt.
+- Added a thin Claude Code plugin manifest that reuses the same AIDP v2 skills without restoring the removed prompt, command, agent, or hook tree.
+
 ## [0.1.0] - 2026-06-12
 
 ### Added

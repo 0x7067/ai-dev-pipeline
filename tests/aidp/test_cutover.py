@@ -53,8 +53,8 @@ def test_cutover_audit_reports_retired_surfaces_without_deleting(tmp_path):
         ".claude/rules/",
         ".claude/policy/",
         ".claude/settings.json",
-        ".claude-plugin/",
         "docs/templates/",
+        ".claude-plugin/",
     ]
     assert audit["review_candidates"] == [
         "docs/specs/",
@@ -97,3 +97,27 @@ def test_cutover_cli_prints_json_audit(tmp_path, capsys):
     assert payload["status"] == "needs_destructive_approval"
     assert payload["delete_candidates"] == [".claude/commands/"]
     assert payload["retired_surfaces"][0]["file_count"] == 1
+
+
+def test_cutover_accepts_thin_v2_claude_plugin_manifest(tmp_path):
+    _write(tmp_path / "src" / "aidp" / "cli.py")
+    _write(tmp_path / "tests" / "aidp" / "test_selftest.py")
+    for name in ("contract", "context", "plan", "evidence"):
+        _write(tmp_path / "docs" / "v2" / f"{name}.schema.json")
+    _write(tmp_path / ".gitignore", "docs/*\n!docs/v2/\n!docs/v2/**\n")
+    _write(tmp_path / "README.md", "# ai-dev-pipeline\n\nAIDP v2 package.\n")
+    _write(tmp_path / "AGENTS.md", "# AGENTS.md\n\n## AIDP v2\n")
+    _write(
+        tmp_path / ".claude-plugin" / "plugin.json",
+        '{\n'
+        '  "name": "ai-dev-pipeline",\n'
+        '  "skills": "./skills/",\n'
+        '  "version": "0.1.0"\n'
+        '}\n',
+    )
+
+    audit = build_cutover_audit(tmp_path)
+
+    assert audit["status"] == "ready"
+    assert audit["delete_candidates"] == []
+    assert audit["retired_surfaces"] == []

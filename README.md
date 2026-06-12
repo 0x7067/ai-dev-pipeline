@@ -46,9 +46,23 @@ Every run lives under `.aidp/runs/<run-id>/`.
 
 Schemas for the typed artifacts live in `docs/v2/`.
 
-## Plugin
+## Plugins
 
-This repo is an installable Codex plugin. The manifest lives at `.codex-plugin/plugin.json`, and the workflow skill lives under `skills/aidp-v2/`.
+This repo is packaged for Codex and Claude Code. Both packages reuse the same `skills/` directory and the same `aidp` CLI.
+
+| Host | Manifest | Local test/install path |
+|---|---|---|
+| Codex | `.codex-plugin/plugin.json` | Use this repository as the Codex plugin root. |
+| Claude Code | `.claude-plugin/plugin.json` | Run `claude --plugin-dir .` from this repository root. |
+
+Included skills:
+
+| Skill | Purpose |
+|---|---|
+| `aidp-v2` | Run normal AIDP v2 work through typed artifacts, bounded context, proof commands, and completion audits. |
+| `aidp-maintainer-improvement` | Find exactly one small maintainer-reviewable improvement, make the minimum patch, verify it, and stop. |
+
+Claude Code exposes the skills as namespaced plugin skills such as `/ai-dev-pipeline:aidp-v2` and `/ai-dev-pipeline:aidp-maintainer-improvement`.
 
 ## Verification
 

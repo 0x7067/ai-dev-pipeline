@@ -36,13 +36,15 @@ The installable Codex plugin consists of:
 
 ```text
 .codex-plugin/plugin.json
+.claude-plugin/plugin.json
 skills/aidp-v2/SKILL.md
+skills/aidp-maintainer-improvement/SKILL.md
 src/aidp/
 tests/aidp/
 docs/v2/
 ```
 
-The manifest exposes the plugin as **AI Dev Pipeline** in the Productivity category. The skill teaches Codex to start runs, read bounded worker packets, execute proof commands, and finish only after the typed audit passes.
+The Codex manifest exposes the plugin as **AI Dev Pipeline** in the Productivity category. The Claude Code manifest exposes the same shared skills under namespaced invocations. The primary skill teaches agents to start runs, read bounded worker packets, execute proof commands, and finish only after the typed audit passes. The maintainer-improvement skill converts agent attention into one small, reviewable patch with explicit stop conditions.
 
 ## Core Model
 

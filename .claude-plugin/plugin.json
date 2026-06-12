@@ -1,0 +1,18 @@
+{
+  "name": "ai-dev-pipeline",
+  "displayName": "AI Dev Pipeline",
+  "version": "0.1.0",
+  "description": "Typed AIDP v2 workflow for bounded agentic development.",
+  "author": {
+    "name": "Pedro Guimaraes"
+  },
+  "license": "MIT",
+  "keywords": [
+    "aidp",
+    "agentic-development",
+    "workflow",
+    "verification"
+  ],
+  "defaultEnabled": true,
+  "skills": "./skills/"
+}

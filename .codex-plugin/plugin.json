@@ -27,7 +27,8 @@
     "defaultPrompt": [
       "Start an AIDP v2 run for this task.",
       "Run AIDP self-test and summarize evidence.",
-      "Audit this repo for AIDP v2 readiness."
+      "Audit this repo for AIDP v2 readiness.",
+      "Find one small maintainer-reviewable AIDP improvement."
     ],
     "brandColor": "#2563EB"
   }
